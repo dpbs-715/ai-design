@@ -2,8 +2,10 @@ import type { MaterialDefinition } from '@/materials/types.ts'
 
 const materials: MaterialDefinition[] = []
 
-export function register(material: MaterialDefinition) {
+const componentMap = new Map()
+export function register(material: MaterialDefinition, component: Component) {
   materials.push(material)
+  componentMap.set(material.schema.type, component)
 }
 
 const materialModules = import.meta.glob('./*/index.ts', { eager: true })
@@ -30,4 +32,15 @@ export function getMaterialByGroup(group: string) {
 
 export function geyMaterialGroups() {
   return group
+}
+
+export function getMaterialComponent(type: string) {
+  return componentMap.get(type)
+}
+
+export function createNode(node) {
+  return {
+    ...node,
+    id: crypto.randomUUID(),
+  }
 }
