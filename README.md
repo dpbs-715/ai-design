@@ -1,4 +1,4 @@
-# ai-screen-design
+# ai-design
 
 ## 安装依赖
 
