@@ -10,7 +10,11 @@ export const useEditorStore = defineStore('editor', () => {
 
   const nodes = ref<MaterialSchema[]>([])
 
-  const selectedNodeId = ref()
+  const selectedNodeIds = ref<string[]>([])
+
+  const selectedNodeId = computed(() => {
+    return selectedNodeIds.value.length === 1 ? selectedNodeIds.value[0] : null
+  })
 
   const selectedNode = computed(() => {
     return nodes.value.find((node) => node.id === selectedNodeId.value)
@@ -20,20 +24,31 @@ export const useEditorStore = defineStore('editor', () => {
     nodes.value.push(node)
   }
   function selectNode(id: string) {
-    selectedNodeId.value = id
+    selectedNodeIds.value = [id]
   }
 
   function clearSelectedNode() {
-    selectedNodeId.value = null
+    selectedNodeIds.value = []
+  }
+
+  function selectNodes(ids: string[]) {
+    selectedNodeIds.value = ids
+  }
+
+  function findNode(id: string) {
+    return nodes.value.find((node) => node.id === id)
   }
 
   return {
     panelVisible,
     nodes,
     selectedNodeId,
+    selectedNodeIds,
     selectedNode,
     addNode,
     selectNode,
     clearSelectedNode,
+    selectNodes,
+    findNode,
   }
 })

@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import type { MaterialSchema } from '@/materials/types.ts'
 import { createNode, getMaterialComponent } from '@/materials'
-import Moveable, { type OnDrag, type OnResize } from 'vue3-moveable'
+import Moveable, {
+  type OnDrag,
+  type OnDragGroup,
+  type OnResize,
+  type OnResizeGroup,
+} from 'vue3-moveable'
+import Selecto from 'vue3-selecto'
 import { useEditorStore } from '@/stores/editor.ts'
 import { storeToRefs } from 'pinia'
 defineOptions({
@@ -9,9 +15,10 @@ defineOptions({
 })
 
 const moveableRef = useTemplateRef('moveable')
+const stageRef = useTemplateRef('stage')
 
 const editorStore = useEditorStore()
-const { nodes, selectedNode } = storeToRefs(editorStore)
+const { nodes } = storeToRefs(editorStore)
 
 const selectedTarget = shallowRef<HTMLElement>()
 
@@ -47,18 +54,24 @@ function onSelect(node: MaterialSchema, e: MouseEvent) {
   })
 }
 
+function getNodeByTarget(element: HTMLElement) {
+  const id = element.getAttribute('data-node-id')
+  return editorStore.findNode(id)
+}
+
 function onDrag(e: OnDrag) {
-  selectedTarget.value.style.left = e.left + 'px'
-  selectedTarget.value.style.top = e.top + 'px'
-  selectedNode.value.layout.x = e.left
-  selectedNode.value.layout.y = e.top
+  e.target.style.left = e.left + 'px'
+  e.target.style.top = e.top + 'px'
+  const node = getNodeByTarget(e.target as HTMLElement)
+  node.layout.x = e.left
+  node.layout.y = e.top
 }
 function onResize(e: OnResize) {
-  selectedTarget.value.style.width = e.width + 'px'
-  selectedTarget.value.style.height = e.height + 'px'
-  selectedNode.value.layout.width = e.width
-  selectedNode.value.layout.height = e.height
-
+  e.target.style.width = e.width + 'px'
+  e.target.style.height = e.height + 'px'
+  const node = getNodeByTarget(e.target as HTMLElement)
+  node.layout.width = e.width
+  node.layout.height = e.height
   onDrag(e.drag)
 }
 
@@ -66,11 +79,35 @@ function onClearSelected() {
   editorStore.clearSelectedNode()
   selectedTarget.value = null
 }
+
+function onSelectEnd(e) {
+  selectedTarget.value = e.selected
+
+  const ids = e.selected.map((element) => element.getAttribute('data-node-id'))
+  editorStore.selectNodes(ids)
+}
+
+function onDragGroup(e: OnDragGroup) {
+  e.events.forEach((event) => {
+    onDrag(event)
+  })
+}
+function onResizeGroup(e: OnResizeGroup) {
+  e.events.forEach((event) => {
+    onResize(event)
+  })
+}
 </script>
 
 <template>
   <div class="canvas-root">
-    <div class="canvas-stage" @dragover.prevent @drop="onDrop" @mousedown.self="onClearSelected">
+    <div
+      ref="stage"
+      class="canvas-stage"
+      @dragover.prevent
+      @drop="onDrop"
+      @mousedown.self="onClearSelected"
+    >
       <div
         class="canvas-node"
         v-for="node in nodes"
@@ -82,14 +119,25 @@ function onClearSelected() {
         <component :is="getMaterialComponent(node.type)" :schema="node" />
       </div>
     </div>
+    <Selecto
+      v-if="stageRef"
+      :container="stageRef"
+      :dragContainer="stageRef"
+      :selectableTargets="['.canvas-node']"
+      :selectFromInside="false"
+      :toggleContinueSelect="'shift'"
+      @selectEnd="onSelectEnd"
+    ></Selecto>
     <Moveable
       ref="moveable"
       :target="selectedTarget"
       :draggable="true"
       :resizable="true"
-      @resize="onResize"
       :origin="false"
       @drag="onDrag"
+      @resize="onResize"
+      @dragGroup="onDragGroup"
+      @resizeGroup="onResizeGroup"
     ></Moveable>
   </div>
 </template>
