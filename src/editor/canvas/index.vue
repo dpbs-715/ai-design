@@ -10,14 +10,33 @@ import Moveable, {
 import Selecto from 'vue3-selecto'
 import { useEditorStore } from '@/stores/editor.ts'
 import { storeToRefs } from 'pinia'
+import Ruler from '@/editor/canvas/Ruler.vue'
+import { useSpaceEventListener } from '@/hooks/useSpaceEventListener.ts'
+import { useRefResizeObserver } from '@/hooks/useRefResizeObserver.ts'
+
 defineOptions({
   name: 'CanvasRoot',
 })
 
 const moveableRef = useTemplateRef('moveable')
 const stageRef = useTemplateRef('stage')
+const canvasRootRef = useTemplateRef('canvasRoot')
 
+const { height: rectHeight, width: rectWidth } = useRefResizeObserver(canvasRootRef)
+
+const canvasWidth = ref(1920)
+const canvasHeight = ref(1080)
 const editorStore = useEditorStore()
+
+const canvasStyle = computed(() => {
+  return {
+    width: canvasWidth.value + 'px',
+    height: canvasHeight.value + 'px',
+  }
+})
+
+const { active: dragCanvas } = useSpaceEventListener()
+
 const { nodes } = storeToRefs(editorStore)
 
 const selectedTarget = shallowRef<HTMLElement>()
@@ -82,7 +101,6 @@ function onClearSelected() {
 
 function onSelectEnd(e) {
   selectedTarget.value = e.selected
-
   const ids = e.selected.map((element) => element.getAttribute('data-node-id'))
   editorStore.selectNodes(ids)
 }
@@ -97,30 +115,42 @@ function onResizeGroup(e: OnResizeGroup) {
     onResize(event)
   })
 }
+const handleZoomChange = () => {
+  moveableRef.value.updateRect()
+}
 </script>
 
 <template>
-  <div class="canvas-root">
-    <div
-      ref="stage"
-      class="canvas-stage"
-      @dragover.prevent
-      @drop="onDrop"
-      @mousedown.self="onClearSelected"
+  <div class="canvas-root" ref="canvasRoot">
+    <Ruler
+      @zoomchange="handleZoomChange"
+      :width="rectWidth"
+      :height="rectHeight"
+      :canvasWidth="canvasWidth"
+      :canvasHeight="canvasHeight"
     >
       <div
-        class="canvas-node"
-        v-for="node in nodes"
-        :key="node.id"
-        :style="getNodeStyle(node)"
-        :data-node-id="node.id"
-        @mousedown="(e) => onSelect(node, e)"
+        ref="stage"
+        class="canvas-stage"
+        :style="canvasStyle"
+        @dragover.prevent
+        @drop="onDrop"
+        @mousedown.self="onClearSelected"
       >
-        <component :is="getMaterialComponent(node.type)" :schema="node" />
+        <div
+          class="canvas-node"
+          v-for="node in nodes"
+          :key="node.id"
+          :style="getNodeStyle(node)"
+          :data-node-id="node.id"
+          @mousedown="(e) => onSelect(node, e)"
+        >
+          <component :is="getMaterialComponent(node.type)" :schema="node" />
+        </div>
       </div>
-    </div>
+    </Ruler>
     <Selecto
-      v-if="stageRef"
+      v-if="stageRef && !dragCanvas"
       :container="stageRef"
       :dragContainer="stageRef"
       :selectableTargets="['.canvas-node']"
@@ -145,10 +175,7 @@ function onResizeGroup(e: OnResizeGroup) {
 <style scoped lang="scss">
 .canvas-root {
   .canvas-stage {
-    width: 600px;
-    height: 600px;
     background: bg-mix(40);
-    margin: 100px;
     position: relative;
     .canvas-node {
       position: absolute;
