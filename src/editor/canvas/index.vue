@@ -1,18 +1,17 @@
 <script setup lang="ts">
 import { createNode, getMaterialComponent } from '@/materials'
-import Moveable, {
-  type OnDrag,
-  type OnDragGroup,
-  type OnResize,
-  type OnResizeGroup,
-} from 'vue3-moveable'
 import Selecto from 'vue3-selecto'
+import Moveable from 'vue3-moveable'
 import { useEditorStore } from '@/stores/editor.ts'
 import { storeToRefs } from 'pinia'
-import Ruler from '@/editor/canvas/Ruler.vue'
 import { useSpaceEventListener } from '@/hooks/useSpaceEventListener.ts'
 import { useRefResizeObserver } from '@/hooks/useRefResizeObserver.ts'
 import type { MaterialSchema } from '@/schema/material.ts'
+import SketchRuler from 'vue3-sketch-ruler'
+import 'vue3-sketch-ruler/lib/style.css'
+import { useCanvasRuler } from '@/editor/canvas/composables/useCanvasRuler.ts'
+import { useMoveable } from '@/editor/canvas/composables/useMoveable.ts'
+import { useSelection } from '@/editor/canvas/composables/useSelection.ts'
 
 defineOptions({
   name: 'CanvasRoot',
@@ -23,31 +22,18 @@ const stageRef = useTemplateRef('stage')
 const canvasRootRef = useTemplateRef('canvasRoot')
 
 const { height: rectHeight, width: rectWidth } = useRefResizeObserver(canvasRootRef)
-const { nodes, selectedNodeIds, canvas } = storeToRefs(editorStore)
+const { nodes } = storeToRefs(editorStore)
+
 const { active: dragCanvas } = useSpaceEventListener()
-
-const canvasWidth = toRef(canvas.value, 'width')
-const canvasHeight = toRef(canvas.value, 'height')
-
-const selectedTarget = shallowRef<HTMLElement[]>()
-
-const canvasStyle = computed(() => {
-  return {
-    width: canvasWidth.value + 'px',
-    height: canvasHeight.value + 'px',
-    backgroundColor: canvas.value.backgroundColor,
-  }
+const { canvasWidth, canvasHeight, canvasStyle, scale, lines, palette, onZoomChange } =
+  useCanvasRuler({
+    moveableRef,
+  })
+const { onDrag, onResize, onDragGroup, onResizeGroup } = useMoveable()
+const { selectedTarget, onSelect, onClearSelected, onSelectEnd } = useSelection({
+  stageRef,
+  moveableRef,
 })
-
-function getNodeStyle(node: MaterialSchema, index: number) {
-  return {
-    width: node.layout.width + 'px',
-    height: node.layout.height + 'px',
-    left: node.layout.x + 'px',
-    top: node.layout.y + 'px',
-    zIndex: index + 1,
-  }
-}
 
 function onDrop(e: DragEvent) {
   const data = e.dataTransfer.getData('schema')
@@ -58,56 +44,14 @@ function onDrop(e: DragEvent) {
   editorStore.selectNode(node.id)
 }
 
-function onSelect(node: MaterialSchema, e: MouseEvent) {
-  editorStore.selectNode(node.id)
-
-  nextTick(() => {
-    moveableRef.value.dragStart(e)
-  })
-}
-
-function getNodeByTarget(element: HTMLElement) {
-  const id = element.getAttribute('data-node-id')
-  return editorStore.findNode(id)
-}
-
-function onDrag(e: OnDrag) {
-  e.target.style.left = e.left + 'px'
-  e.target.style.top = e.top + 'px'
-  const node = getNodeByTarget(e.target as HTMLElement)
-  node.layout.x = e.left
-  node.layout.y = e.top
-}
-function onResize(e: OnResize) {
-  e.target.style.width = e.width + 'px'
-  e.target.style.height = e.height + 'px'
-  const node = getNodeByTarget(e.target as HTMLElement)
-  node.layout.width = e.width
-  node.layout.height = e.height
-  onDrag(e.drag)
-}
-
-function onClearSelected() {
-  editorStore.clearSelectedNode()
-}
-
-function onSelectEnd(e) {
-  const ids = e.selected.map((element) => element.getAttribute('data-node-id'))
-  editorStore.selectNodes(ids)
-}
-
-function onDragGroup(e: OnDragGroup) {
-  e.events.forEach((event) => {
-    onDrag(event)
-  })
-}
-function onResizeGroup(e: OnResizeGroup) {
-  e.events.forEach((event) => {
-    onResize(event)
-  })
-}
-const handleZoomChange = () => {
-  moveableRef.value.updateRect()
+function getNodeStyle(node: MaterialSchema, index: number) {
+  return {
+    width: node.layout.width + 'px',
+    height: node.layout.height + 'px',
+    left: node.layout.x + 'px',
+    top: node.layout.y + 'px',
+    zIndex: index + 1,
+  }
 }
 
 const commandMap = {
@@ -124,29 +68,22 @@ const commandMap = {
 function onCommand(command: string) {
   commandMap[command]()
 }
-
-watch(
-  selectedNodeIds,
-  (ids) => {
-    selectedTarget.value = ids.map((id) => {
-      return stageRef.value.querySelector(`[data-node-id='${id}']:not([data-node-locked='true'])`)
-    })
-  },
-  {
-    deep: true,
-    flush: 'post',
-  },
-)
 </script>
 
 <template>
   <div class="canvas-root" ref="canvasRoot">
-    <Ruler
-      @zoomchange="handleZoomChange"
+    <SketchRuler
+      v-model:scale="scale"
+      :palette="palette"
       :width="rectWidth"
       :height="rectHeight"
       :canvasWidth="canvasWidth"
       :canvasHeight="canvasHeight"
+      :thick="20"
+      :lines="lines"
+      :enable-animation="true"
+      animation-mode="ease-out"
+      @zoomchange="onZoomChange"
     >
       <div
         ref="stage"
@@ -182,7 +119,7 @@ watch(
           </template>
         </el-dropdown>
       </div>
-    </Ruler>
+    </SketchRuler>
     <Selecto
       v-if="stageRef && !dragCanvas"
       :container="stageRef"
