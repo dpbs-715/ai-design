@@ -1,5 +1,5 @@
-import type { MaterialDefinition } from '@/materials/types.ts'
 import TextMaterial from '@/materials/text/component.vue'
+import type { MaterialDefinition } from '@/schema/material.ts'
 
 const textMaterial: MaterialDefinition = {
   // 物料元数据

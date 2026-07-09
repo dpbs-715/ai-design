@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
-import type { MaterialSchema } from '@/materials/types.ts'
+
+import type { MaterialSchema } from '@/schema/material.ts'
+import type { PageSchema } from '@/schema/page.ts'
 
 export const useEditorStore = defineStore('editor', () => {
   const panelVisible = reactive({
@@ -8,7 +10,18 @@ export const useEditorStore = defineStore('editor', () => {
     property: true,
   })
 
-  const nodes = ref<MaterialSchema[]>([])
+  const page = ref<PageSchema>({
+    canvas: {
+      width: 1920,
+      height: 1080,
+      backgroundColor: '#0d121b',
+    },
+    nodes: [],
+  })
+
+  const canvas = toRef(page.value, 'canvas')
+
+  const nodes = toRef(page.value, 'nodes')
 
   const selectedNodeIds = ref<string[]>([])
 
@@ -42,6 +55,8 @@ export const useEditorStore = defineStore('editor', () => {
   return {
     panelVisible,
     nodes,
+    canvas,
+    page,
     selectedNodeId,
     selectedNodeIds,
     selectedNode,

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { MaterialSchema } from '@/materials/types.ts'
 import { createNode, getMaterialComponent } from '@/materials'
 import Moveable, {
   type OnDrag,
@@ -13,44 +12,32 @@ import { storeToRefs } from 'pinia'
 import Ruler from '@/editor/canvas/Ruler.vue'
 import { useSpaceEventListener } from '@/hooks/useSpaceEventListener.ts'
 import { useRefResizeObserver } from '@/hooks/useRefResizeObserver.ts'
+import type { MaterialSchema } from '@/schema/material.ts'
 
 defineOptions({
   name: 'CanvasRoot',
 })
-
+const editorStore = useEditorStore()
 const moveableRef = useTemplateRef('moveable')
 const stageRef = useTemplateRef('stage')
 const canvasRootRef = useTemplateRef('canvasRoot')
 
 const { height: rectHeight, width: rectWidth } = useRefResizeObserver(canvasRootRef)
+const { nodes, selectedNodeIds, canvas } = storeToRefs(editorStore)
+const { active: dragCanvas } = useSpaceEventListener()
 
-const canvasWidth = ref(1920)
-const canvasHeight = ref(1080)
-const editorStore = useEditorStore()
+const canvasWidth = toRef(canvas.value, 'width')
+const canvasHeight = toRef(canvas.value, 'height')
+
+const selectedTarget = shallowRef<HTMLElement[]>()
 
 const canvasStyle = computed(() => {
   return {
     width: canvasWidth.value + 'px',
     height: canvasHeight.value + 'px',
+    backgroundColor: canvas.value.backgroundColor,
   }
 })
-
-const { active: dragCanvas } = useSpaceEventListener()
-
-const { nodes, selectedNodeIds } = storeToRefs(editorStore)
-
-const selectedTarget = shallowRef<HTMLElement[]>()
-
-const vm = getCurrentInstance()
-
-function onDrop(e: DragEvent) {
-  const data = e.dataTransfer.getData('schema')
-  const node = createNode(JSON.parse(data))
-  node.layout.x = e.offsetX - node.layout.width / 2
-  node.layout.y = e.offsetY - node.layout.height / 2
-  editorStore.addNode(node)
-  editorStore.selectNode(node.id)
-}
 
 function getNodeStyle(node: MaterialSchema, index: number) {
   return {
@@ -60,6 +47,15 @@ function getNodeStyle(node: MaterialSchema, index: number) {
     top: node.layout.y + 'px',
     zIndex: index + 1,
   }
+}
+
+function onDrop(e: DragEvent) {
+  const data = e.dataTransfer.getData('schema')
+  const node = createNode(JSON.parse(data))
+  node.layout.x = e.offsetX - node.layout.width / 2
+  node.layout.y = e.offsetY - node.layout.height / 2
+  editorStore.addNode(node)
+  editorStore.selectNode(node.id)
 }
 
 function onSelect(node: MaterialSchema, e: MouseEvent) {
@@ -183,7 +179,6 @@ watch(
 <style scoped lang="scss">
 .canvas-root {
   .canvas-stage {
-    background: bg-mix(40);
     position: relative;
     .canvas-node {
       position: absolute;
