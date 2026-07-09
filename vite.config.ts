@@ -6,6 +6,7 @@ import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import tailwindcss from '@tailwindcss/vite'
+import { vunioUIResolver } from '@vunio/ui/resolver'
 
 // import vueDevTools from 'vite-plugin-vue-devtools'
 
@@ -20,7 +21,12 @@ export default defineConfig({
       resolvers: [ElementPlusResolver()],
     }),
     Components({
-      resolvers: [ElementPlusResolver()],
+      resolvers: [
+        ElementPlusResolver({
+          importStyle: false,
+        }),
+        vunioUIResolver({ importStyle: true }),
+      ],
     }),
   ],
   resolve: {

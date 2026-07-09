@@ -5,6 +5,7 @@ import { useEditorStore } from '@/stores/editor.ts'
 import MaterialPanel from '@/editor/panels/material/index.vue'
 import LayerPanel from '@/editor/panels/layer/index.vue'
 import CanvasRoot from '@/editor/canvas/index.vue'
+import PropertyPanel from '@/editor/panels/property/index.vue'
 
 defineOptions({ name: 'ScreenEditor' })
 
@@ -32,9 +33,10 @@ const propertyWidth = computed(() => (editorStore.panelVisible.property ? '260px
       <!--  画布  -->
       <CanvasRoot class="canvas flex-1" />
       <!--  属性  -->
-      <aside class="property overflow-hidden transition-all" :style="{ width: propertyWidth }">
-        属性
-      </aside>
+      <PropertyPanel
+        class="property overflow-hidden transition-all"
+        :style="{ width: propertyWidth }"
+      />
     </main>
   </div>
 </template>
