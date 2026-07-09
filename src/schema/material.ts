@@ -13,6 +13,12 @@ export interface MaterialSchema {
   style?: Record<string, any>
   props: Record<string, any>
 }
+interface SetterSchema {
+  field: string
+  label: string
+  component: string
+  [key: string]: any
+}
 
 export interface MaterialDefinition {
   //region 物料元数据
@@ -20,5 +26,8 @@ export interface MaterialDefinition {
   group: string
   icon: string
   //endregion
+
+  setters: SetterSchema[]
+
   schema: Omit<MaterialSchema, 'id'>
 }

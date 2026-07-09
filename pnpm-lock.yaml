@@ -18,11 +18,11 @@ importers:
         specifier: ^1.5.5
         version: 1.5.5(vue@3.5.39(typescript@6.0.3))
       '@vunio/ui':
-        specifier: ^1.5.6
-        version: 1.5.6(@element-plus/icons-vue@2.3.2(vue@3.5.39(typescript@6.0.3)))(element-plus@2.14.2(vue@3.5.39(typescript@6.0.3)))(vue@3.5.39(typescript@6.0.3))
+        specifier: ^1.5.7
+        version: 1.5.7(@element-plus/icons-vue@2.3.2(vue@3.5.39(typescript@6.0.3)))(element-plus@2.14.2(vue@3.5.39(typescript@6.0.3)))(vue@3.5.39(typescript@6.0.3))
       '@vunio/utils':
-        specifier: ^1.5.5
-        version: 1.5.5
+        specifier: ^1.5.6
+        version: 1.5.6
       element-plus:
         specifier: ^2.14.2
         version: 2.14.2(vue@3.5.39(typescript@6.0.3))
@@ -1090,15 +1090,15 @@ packages:
     peerDependencies:
       vue: ^3.5.13
 
-  '@vunio/ui@1.5.6':
-    resolution: {integrity: sha512-LXqb9mseo29I/jRm1lA7sajIC0y1lxqqV3P3zZ0uffacGT2MCQJhmR9XcUZCiA8LV2MFCLWNchHWq/aFud92Aw==}
+  '@vunio/ui@1.5.7':
+    resolution: {integrity: sha512-Gl98zh9X55hfL7mmeT8z4PKs/onprOw3lCf/QAdSlQegDlI3XL2iR/cmegXlwvCFUFW2UQ0wFxnyq5REl63p6Q==}
     peerDependencies:
       '@element-plus/icons-vue': ^2.3.0
       element-plus: ^2.6.1
       vue: ^3.5.0
 
-  '@vunio/utils@1.5.5':
-    resolution: {integrity: sha512-wJnlP0ZWa51R8eTuB8gPTEh80l2xUHNX9iw/ROabXpZ40BLl6kqnEI8mGxzGdX1EkLKIjbAAHsns1BOdCny1AA==}
+  '@vunio/utils@1.5.6':
+    resolution: {integrity: sha512-suZ5iWUMBq/hPQha19dJTpUKjKsDZyT2ShBACzr7ke16qMSI/vM7RXRQkPKhp4YZzvPMccDrFgi1BjRqhqL/WA==}
 
   acorn-jsx@5.3.2:
     resolution: {integrity: sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ==}
@@ -3366,7 +3366,7 @@ snapshots:
     dependencies:
       vue: 3.5.39(typescript@6.0.3)
 
-  '@vunio/ui@1.5.6(@element-plus/icons-vue@2.3.2(vue@3.5.39(typescript@6.0.3)))(element-plus@2.14.2(vue@3.5.39(typescript@6.0.3)))(vue@3.5.39(typescript@6.0.3))':
+  '@vunio/ui@1.5.7(@element-plus/icons-vue@2.3.2(vue@3.5.39(typescript@6.0.3)))(element-plus@2.14.2(vue@3.5.39(typescript@6.0.3)))(vue@3.5.39(typescript@6.0.3))':
     dependencies:
       '@codemirror/autocomplete': 6.20.3
       '@codemirror/commands': 6.10.4
@@ -3381,7 +3381,7 @@ snapshots:
       jsep: 1.4.0
       vue: 3.5.39(typescript@6.0.3)
 
-  '@vunio/utils@1.5.5': {}
+  '@vunio/utils@1.5.6': {}
 
   acorn-jsx@5.3.2(acorn@8.17.0):
     dependencies:

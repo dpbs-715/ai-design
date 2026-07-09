@@ -12,7 +12,7 @@ defineOptions({ name: 'ScreenEditor' })
 const editorStore = useEditorStore()
 const materialWidth = computed(() => (editorStore.panelVisible.material ? '260px' : '0'))
 const layerWidth = computed(() => (editorStore.panelVisible.layer ? '160px' : '0'))
-const propertyWidth = computed(() => (editorStore.panelVisible.property ? '260px' : '0'))
+const propertyWidth = computed(() => (editorStore.panelVisible.property ? '360px' : '0'))
 </script>
 
 <template>
