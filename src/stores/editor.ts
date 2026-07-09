@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 
 import type { MaterialSchema } from '@/schema/material.ts'
 import type { PageSchema } from '@/schema/page.ts'
+import { deepClone } from '@vunio/utils'
 
 export const useEditorStore = defineStore('editor', () => {
   const panelVisible = reactive({
@@ -52,6 +53,32 @@ export const useEditorStore = defineStore('editor', () => {
     return nodes.value.find((node) => node.id === id)
   }
 
+  function copyNode(node: MaterialSchema) {
+    const newNode = deepClone(node)
+    newNode.id = crypto.randomUUID()
+    newNode.layout.x += 20
+    newNode.layout.y += 20
+    addNode(newNode)
+    selectNode(newNode.id)
+  }
+  function removeNode(node: MaterialSchema) {
+    nodes.value = nodes.value.filter((n) => n.id !== node.id)
+    selectedNodeIds.value = selectedNodeIds.value.filter((id) => id !== node.id)
+  }
+  function moveTop(node: MaterialSchema) {
+    const index = nodes.value.findIndex((n) => n.id === node.id)
+    nodes.value.splice(index, 1)
+    nodes.value.unshift(node)
+  }
+  function moveBottom(node: MaterialSchema) {
+    const index = nodes.value.findIndex((n) => n.id === node.id)
+    nodes.value.splice(index, 1)
+    nodes.value.push(node)
+  }
+  function toggleLock(node: MaterialSchema) {
+    node.locked = !node.locked
+  }
+
   return {
     panelVisible,
     nodes,
@@ -65,5 +92,11 @@ export const useEditorStore = defineStore('editor', () => {
     clearSelectedNode,
     selectNodes,
     findNode,
+
+    copyNode,
+    removeNode,
+    moveTop,
+    moveBottom,
+    toggleLock,
   }
 })
