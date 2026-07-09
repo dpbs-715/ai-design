@@ -1,12 +1,27 @@
 <script setup lang="ts">
+import { useEditorStore } from '@/stores/editor.ts'
+import { storeToRefs } from 'pinia'
+import { useDraggable } from 'vue-draggable-plus'
+
 defineOptions({ name: 'LayerPanel' })
+
+const editorStore = useEditorStore()
+
+const { nodes, selectedNodeIds } = storeToRefs(editorStore)
+
+useDraggable('.layer-panel', nodes, { animation: 150, direction: 'horizontal' })
 </script>
 
 <template>
   <div class="h-full">
     <div class="h-full layer-panel overflow-auto whitespace-nowrap">
-      <div v-for="i in 40" :key="i">
-        <span>柱状图</span>
+      <div
+        v-for="node in nodes"
+        :key="node.id"
+        :class="{ active: selectedNodeIds.includes(node.id) }"
+        @click="editorStore.selectNode(node.id)"
+      >
+        <span>{{ node.name }}</span>
         <span>
           <Icon icon="fluent:list-bar-24-filled" />
         </span>
@@ -19,6 +34,9 @@ defineOptions({ name: 'LayerPanel' })
 .layer-panel {
   padding: 10px;
   background: bg-mix(50);
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: start;
   & > div {
     margin-bottom: 4px;
     cursor: pointer;

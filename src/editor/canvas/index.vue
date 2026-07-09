@@ -37,9 +37,9 @@ const canvasStyle = computed(() => {
 
 const { active: dragCanvas } = useSpaceEventListener()
 
-const { nodes } = storeToRefs(editorStore)
+const { nodes, selectedNodeIds } = storeToRefs(editorStore)
 
-const selectedTarget = shallowRef<HTMLElement>()
+const selectedTarget = shallowRef<HTMLElement[]>()
 
 const vm = getCurrentInstance()
 
@@ -50,22 +50,19 @@ function onDrop(e: DragEvent) {
   node.layout.y = e.offsetY - node.layout.height / 2
   editorStore.addNode(node)
   editorStore.selectNode(node.id)
-  nextTick(() => {
-    selectedTarget.value = vm.proxy.$el.querySelector(`[data-node-id='${node.id}']`)
-  })
 }
 
-function getNodeStyle(node: MaterialSchema) {
+function getNodeStyle(node: MaterialSchema, index: number) {
   return {
     width: node.layout.width + 'px',
     height: node.layout.height + 'px',
     left: node.layout.x + 'px',
     top: node.layout.y + 'px',
+    zIndex: index + 1,
   }
 }
 
 function onSelect(node: MaterialSchema, e: MouseEvent) {
-  selectedTarget.value = e.currentTarget as HTMLElement
   editorStore.selectNode(node.id)
 
   nextTick(() => {
@@ -96,11 +93,9 @@ function onResize(e: OnResize) {
 
 function onClearSelected() {
   editorStore.clearSelectedNode()
-  selectedTarget.value = null
 }
 
 function onSelectEnd(e) {
-  selectedTarget.value = e.selected
   const ids = e.selected.map((element) => element.getAttribute('data-node-id'))
   editorStore.selectNodes(ids)
 }
@@ -118,6 +113,19 @@ function onResizeGroup(e: OnResizeGroup) {
 const handleZoomChange = () => {
   moveableRef.value.updateRect()
 }
+
+watch(
+  selectedNodeIds,
+  (ids) => {
+    selectedTarget.value = ids.map((id) => {
+      return stageRef.value.querySelector(`[data-node-id='${id}']`)
+    })
+  },
+  {
+    deep: true,
+    flush: 'post',
+  },
+)
 </script>
 
 <template>
@@ -139,9 +147,9 @@ const handleZoomChange = () => {
       >
         <div
           class="canvas-node"
-          v-for="node in nodes"
+          v-for="(node, index) in nodes"
           :key="node.id"
-          :style="getNodeStyle(node)"
+          :style="getNodeStyle(node, index)"
           :data-node-id="node.id"
           @mousedown="(e) => onSelect(node, e)"
         >
