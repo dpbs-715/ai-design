@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { getMaterialSetters } from '@/materials'
 import { type CommonFormConfig } from '@vunio/ui'
 import { useConfigs } from '@vunio/hooks'
+import { useUndoRedo } from '@/hooks/useUndoRedo.ts'
 
 defineOptions({ name: 'NodeProperty' })
 
@@ -14,6 +15,8 @@ const setters = getMaterialSetters(selectedNode.value.type)
 const { config } = useConfigs<CommonFormConfig>(setters, false)
 
 const active = ref('node')
+
+const { dispatchCommand } = useUndoRedo()
 </script>
 
 <template>
@@ -21,12 +24,20 @@ const active = ref('node')
     <el-collapse v-model="active" accordion>
       <el-collapse-item title="布局" name="layout">
         <div class="p-20">
-          <CommonForm v-model="selectedNode" :config="config" />
+          <CommonForm
+            v-model="selectedNode"
+            :config="config"
+            :commandDispatcher="dispatchCommand"
+          />
         </div>
       </el-collapse-item>
       <el-collapse-item title="组件属性" name="node">
         <div class="p-20">
-          <CommonForm v-model="selectedNode" :config="config" />
+          <CommonForm
+            v-model="selectedNode"
+            :config="config"
+            :commandDispatcher="dispatchCommand"
+          />
         </div>
       </el-collapse-item>
     </el-collapse>

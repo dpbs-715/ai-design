@@ -3,6 +3,7 @@ import { useEditorStore } from '@/stores/editor.ts'
 import { storeToRefs } from 'pinia'
 import { type CommonFormConfig } from '@vunio/ui'
 import { useConfigs } from '@vunio/hooks'
+import { useUndoRedo } from '@/hooks/useUndoRedo.ts'
 
 defineOptions({
   name: 'CanvasProperty',
@@ -33,11 +34,13 @@ const { config } = useConfigs<CommonFormConfig>(
   ],
   false,
 )
+
+const { dispatchCommand } = useUndoRedo()
 </script>
 
 <template>
   <div class="p-20">
-    <CommonForm v-model="canvas" :config="config" />
+    <CommonForm :commandDispatcher="dispatchCommand" v-model="canvas" :config="config" />
   </div>
 </template>
 

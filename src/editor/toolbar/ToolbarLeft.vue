@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { useEditorStore } from '@/stores/editor.ts'
+import { useUndoRedo } from '@/hooks/useUndoRedo.ts'
 defineOptions({ name: 'ToolbarLeft' })
 
 const { panelVisible } = useEditorStore()
+
+const { undo, redo, canUndo, canRedo } = useUndoRedo()
 </script>
 
 <template>
@@ -22,10 +25,10 @@ const { panelVisible } = useEditorStore()
     <span :class="{ active: panelVisible.layer }" @click="panelVisible.layer = !panelVisible.layer">
       <Icon icon="fluent:layer-20-filled" />
     </span>
-    <span>
+    <span :class="{ disabled: !canUndo }" @click="undo">
       <Icon icon="ic:baseline-undo" />
     </span>
-    <span>
+    <span :class="{ disabled: !canRedo }" @click="redo">
       <Icon icon="ic:baseline-redo" />
     </span>
   </div>
@@ -40,6 +43,10 @@ const { panelVisible } = useEditorStore()
     cursor: pointer;
     &.active {
       background-color: #3b465b;
+    }
+    &.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
     }
   }
 }
