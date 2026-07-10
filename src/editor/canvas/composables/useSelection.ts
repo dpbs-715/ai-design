@@ -1,6 +1,7 @@
 import type { MaterialSchema } from '@/schema/material.ts'
 import { useEditorStore } from '@/stores/editor.ts'
 import { storeToRefs } from 'pinia'
+import { debounce } from '@/utils'
 
 export function useSelection({ stageRef, moveableRef }) {
   const editorStore = useEditorStore()
@@ -33,6 +34,24 @@ export function useSelection({ stageRef, moveableRef }) {
     },
     {
       deep: true,
+      flush: 'post',
+    },
+  )
+
+  const updateReact = debounce(() => moveableRef.value.updateRect(), 300, {
+    leading: true,
+    trailing: true,
+  })
+
+  watch(
+    () =>
+      editorStore.nodes.map((node) => {
+        return node.layout
+      }),
+    () => {
+      updateReact()
+    },
+    {
       flush: 'post',
     },
   )

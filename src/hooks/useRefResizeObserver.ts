@@ -9,9 +9,15 @@ export function useRefResizeObserver(observerRef: Ref) {
     height.value = rect.height
   }
 
-  const onRootResize = debounce((rect) => {
-    setData(rect)
-  }, 100)
+  const onRootResize = debounce(
+    (rect) => {
+      setData(rect)
+    },
+    100,
+    {
+      leading: true,
+    },
+  )
 
   onMounted(() => {
     const rect = observerRef.value.getBoundingClientRect()

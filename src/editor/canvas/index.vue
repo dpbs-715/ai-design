@@ -29,9 +29,7 @@ const { canvasWidth, canvasHeight, canvasStyle, scale, lines, palette, onZoomCha
   useCanvasRuler({
     moveableRef,
   })
-const { onDrag, onStart, onEnd, onResize, onDragGroup, onResizeGroup } = useMoveable({
-  moveableRef,
-})
+const { onDrag, onStart, onEnd, onResize, onDragGroup, onResizeGroup } = useMoveable()
 const { selectedTarget, onSelect, onClearSelected, onSelectEnd } = useSelection({
   stageRef,
   moveableRef,
@@ -40,8 +38,12 @@ const { selectedTarget, onSelect, onClearSelected, onSelectEnd } = useSelection(
 function onDrop(e: DragEvent) {
   const data = e.dataTransfer.getData('schema')
   const node = createNode(JSON.parse(data))
-  node.layout.x = e.offsetX - node.layout.width / 2
-  node.layout.y = e.offsetY - node.layout.height / 2
+
+  const v = e.currentTarget as HTMLDivElement
+  const rect = v.getBoundingClientRect()
+
+  node.layout.x = (e.clientX - rect.left) / scale.value - node.layout.width / 2
+  node.layout.y = (e.clientY - rect.top) / scale.value - node.layout.height / 2
   editorStore.addNode(node)
   editorStore.selectNode(node.id)
 }

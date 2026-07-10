@@ -3,7 +3,7 @@ import { useEditorStore } from '@/stores/editor.ts'
 import { useUndoRedo } from '@/hooks/useUndoRedo.ts'
 import { SetFormFieldCommand } from '@vunio/ui'
 
-export function useMoveable({ moveableRef }) {
+export function useMoveable() {
   const editorStore = useEditorStore()
   const { dispatchCommand, startBatch, commitBatch } = useUndoRedo()
 
@@ -11,19 +11,6 @@ export function useMoveable({ moveableRef }) {
     const id = element.getAttribute('data-node-id')
     return editorStore.findNode(id)
   }
-
-  watch(
-    () =>
-      editorStore.nodes.map((node) => {
-        return node.layout
-      }),
-    () => {
-      moveableRef.value.updateRect(undefined, true)
-    },
-    {
-      flush: 'post',
-    },
-  )
 
   function onStart() {
     startBatch()
