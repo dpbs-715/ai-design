@@ -12,17 +12,17 @@ importers:
         specifier: ^4.3.2
         version: 4.3.2(vite@8.1.3(@types/node@24.13.2)(jiti@2.7.0)(sass-embedded@1.100.0)(sass@1.100.0)(yaml@2.9.0))
       '@vunio/directives':
-        specifier: ^1.6.1
-        version: 1.6.1(vue@3.5.39(typescript@6.0.3))
+        specifier: ^1.6.2
+        version: 1.6.2(vue@3.5.39(typescript@6.0.3))
       '@vunio/hooks':
-        specifier: ^1.6.1
-        version: 1.6.1(vue@3.5.39(typescript@6.0.3))
+        specifier: ^1.6.2
+        version: 1.6.2(vue@3.5.39(typescript@6.0.3))
       '@vunio/ui':
-        specifier: ^1.6.1
-        version: 1.6.1(@element-plus/icons-vue@2.3.2(vue@3.5.39(typescript@6.0.3)))(element-plus@2.14.2(vue@3.5.39(typescript@6.0.3)))(vue@3.5.39(typescript@6.0.3))
+        specifier: ^1.6.2
+        version: 1.6.2(@element-plus/icons-vue@2.3.2(vue@3.5.39(typescript@6.0.3)))(element-plus@2.14.2(vue@3.5.39(typescript@6.0.3)))(vue@3.5.39(typescript@6.0.3))
       '@vunio/utils':
-        specifier: ^1.6.1
-        version: 1.6.1
+        specifier: ^1.6.2
+        version: 1.6.2
       element-plus:
         specifier: ^2.14.2
         version: 2.14.2(vue@3.5.39(typescript@6.0.3))
@@ -1080,25 +1080,25 @@ packages:
     peerDependencies:
       vue: ^3.5.0
 
-  '@vunio/directives@1.6.1':
-    resolution: {integrity: sha512-QfzZuNoWJYtVFOJTS0HQO7AhhtAm7OAJ+F3Uu5+l/FOpcqyWzO2A3FoqPL3zV9bpjSs1Jth5cVS9NwqJMgQGZA==}
+  '@vunio/directives@1.6.2':
+    resolution: {integrity: sha512-LQyjNF823TgMDXrwkUlbr6sk5AGd9gkWQ40yv9S+EfFExWB505FljQnZeA8e5aM32znBTWtTVX2qbV1Wz9lO9g==}
     peerDependencies:
       vue: ^3.5.13
 
-  '@vunio/hooks@1.6.1':
-    resolution: {integrity: sha512-LGcILxnkC4hcr1LL7Bd9f/FwXQyDO79iSi2RaBKoGdDPNGQyK+5XI95QiwUC2PBOBPxfz9MxWawE89qV8FooPw==}
+  '@vunio/hooks@1.6.2':
+    resolution: {integrity: sha512-fO1T0UgO0L6Cmd8ye1jGngJrHoZ4HhvU7i8lS6r4nVe09Py+GYqCbfQdJtUnDP8Gafm7iJLz9aMphWprVxlCfA==}
     peerDependencies:
       vue: ^3.5.13
 
-  '@vunio/ui@1.6.1':
-    resolution: {integrity: sha512-/wMEC1GC2LaqmGyHsurl+Hy9P7o4QDJTS4fYIpm6lc01S59PTvav8iO01sA4KtYTQpnyqC7pOiul0e0NcsCHVA==}
+  '@vunio/ui@1.6.2':
+    resolution: {integrity: sha512-Qa6jp4oQEMAEXEpK2dklE2m5NNWtZQfoXSwbPFu36a8aMREcmwLS1+FJ8U2iuWITm5fnPbl9DIsPvx0P29XRdg==}
     peerDependencies:
       '@element-plus/icons-vue': ^2.3.0
       element-plus: ^2.6.1
       vue: ^3.5.0
 
-  '@vunio/utils@1.6.1':
-    resolution: {integrity: sha512-NjnwZolqJdgp0fJIjKsv5HyODP7W/49zpCplELaBTYhQGdyKV/S+XgiPKELEo4/X3K6ztOSfdfbvP2M/lDlXFg==}
+  '@vunio/utils@1.6.2':
+    resolution: {integrity: sha512-AmXvdKqh4Zq+KNlJf1/NcXjuSOAsk0kjj0MkWtD8VA7BfFjZA6/KVXO1DXKqUa7OQM1sn3fDU+ZbOXLzsLDI7A==}
 
   acorn-jsx@5.3.2:
     resolution: {integrity: sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ==}
@@ -3357,16 +3357,16 @@ snapshots:
     dependencies:
       vue: 3.5.39(typescript@6.0.3)
 
-  '@vunio/directives@1.6.1(vue@3.5.39(typescript@6.0.3))':
+  '@vunio/directives@1.6.2(vue@3.5.39(typescript@6.0.3))':
     dependencies:
       resize-observer-polyfill: 1.5.1
       vue: 3.5.39(typescript@6.0.3)
 
-  '@vunio/hooks@1.6.1(vue@3.5.39(typescript@6.0.3))':
+  '@vunio/hooks@1.6.2(vue@3.5.39(typescript@6.0.3))':
     dependencies:
       vue: 3.5.39(typescript@6.0.3)
 
-  '@vunio/ui@1.6.1(@element-plus/icons-vue@2.3.2(vue@3.5.39(typescript@6.0.3)))(element-plus@2.14.2(vue@3.5.39(typescript@6.0.3)))(vue@3.5.39(typescript@6.0.3))':
+  '@vunio/ui@1.6.2(@element-plus/icons-vue@2.3.2(vue@3.5.39(typescript@6.0.3)))(element-plus@2.14.2(vue@3.5.39(typescript@6.0.3)))(vue@3.5.39(typescript@6.0.3))':
     dependencies:
       '@codemirror/autocomplete': 6.20.3
       '@codemirror/commands': 6.10.4
@@ -3376,12 +3376,13 @@ snapshots:
       '@codemirror/state': 6.7.1
       '@codemirror/view': 6.43.6
       '@element-plus/icons-vue': 2.3.2(vue@3.5.39(typescript@6.0.3))
+      '@vunio/utils': 1.6.2
       codemirror: 6.0.2
       element-plus: 2.14.2(vue@3.5.39(typescript@6.0.3))
       jsep: 1.4.0
       vue: 3.5.39(typescript@6.0.3)
 
-  '@vunio/utils@1.6.1': {}
+  '@vunio/utils@1.6.2': {}
 
   acorn-jsx@5.3.2(acorn@8.17.0):
     dependencies:
