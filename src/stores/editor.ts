@@ -3,8 +3,12 @@ import { defineStore } from 'pinia'
 import type { MaterialSchema } from '@/schema/material.ts'
 import type { PageSchema } from '@/schema/page.ts'
 import { deepClone } from '@vunio/utils'
+import { useUndoRedo } from '@/hooks/useUndoRedo.ts'
+import { SetFormFieldCommand } from '@vunio/ui'
 
 export const useEditorStore = defineStore('editor', () => {
+  const { dispatchCommand } = useUndoRedo()
+
   const panelVisible = reactive({
     material: true,
     layer: true,
@@ -34,8 +38,12 @@ export const useEditorStore = defineStore('editor', () => {
     return nodes.value.find((node) => node.id === selectedNodeId.value)
   })
 
+  function setNodes(newNodes) {
+    dispatchCommand(new SetFormFieldCommand(() => page.value, 'nodes', newNodes))
+  }
+
   function addNode(node: MaterialSchema) {
-    nodes.value.push(node)
+    setNodes([...nodes.value, node])
   }
   function selectNode(id: string) {
     selectedNodeIds.value = [id]
@@ -62,21 +70,21 @@ export const useEditorStore = defineStore('editor', () => {
     selectNode(newNode.id)
   }
   function removeNode(node: MaterialSchema) {
-    nodes.value = nodes.value.filter((n) => n.id !== node.id)
+    setNodes(nodes.value.filter((n) => n.id !== node.id))
     selectedNodeIds.value = selectedNodeIds.value.filter((id) => id !== node.id)
   }
   function moveTop(node: MaterialSchema) {
     const index = nodes.value.findIndex((n) => n.id === node.id)
-    nodes.value.splice(index, 1)
-    nodes.value.unshift(node)
+    const splicedNodes = nodes.value.toSpliced(index, 1)
+    setNodes([node, ...splicedNodes])
   }
   function moveBottom(node: MaterialSchema) {
     const index = nodes.value.findIndex((n) => n.id === node.id)
-    nodes.value.splice(index, 1)
-    nodes.value.push(node)
+    const splicedNodes = nodes.value.toSpliced(index, 1)
+    setNodes([...splicedNodes, node])
   }
   function toggleLock(node: MaterialSchema) {
-    node.locked = !node.locked
+    dispatchCommand(new SetFormFieldCommand(() => node, 'locked', !node.locked))
   }
 
   return {

@@ -17,7 +17,6 @@ export function useUndoRedo() {
     if (!isWithinMergeWindow || !previousCommand.merge(command)) {
       undoStack.push(command)
     }
-
     redoStack.length = 0
   }
 
