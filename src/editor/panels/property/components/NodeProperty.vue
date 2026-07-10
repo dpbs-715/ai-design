@@ -10,13 +10,21 @@ defineOptions({ name: 'NodeProperty' })
 
 const editorStore = useEditorStore()
 const { selectedNode } = storeToRefs(editorStore)
+const { dispatchCommand, startBatch, commitBatch } = useUndoRedo()
 
 const setters = getMaterialSetters(selectedNode.value.type)
 const { config } = useConfigs<CommonFormConfig>(setters, false)
-
+config.forEach((config) => {
+  config.props = {
+    onFocus: () => {
+      startBatch()
+    },
+    onBlur: () => {
+      commitBatch()
+    },
+  }
+})
 const active = ref('node')
-
-const { dispatchCommand } = useUndoRedo()
 </script>
 
 <template>

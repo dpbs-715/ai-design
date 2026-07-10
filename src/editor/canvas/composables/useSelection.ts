@@ -4,7 +4,7 @@ import { storeToRefs } from 'pinia'
 
 export function useSelection({ stageRef, moveableRef }) {
   const editorStore = useEditorStore()
-  const selectedTarget = shallowRef<HTMLElement[]>()
+  const selectedTarget = shallowRef<HTMLElement[]>([])
   const { selectedNodeIds } = storeToRefs(editorStore)
 
   function onSelect(node: MaterialSchema, e: MouseEvent) {
@@ -36,6 +36,7 @@ export function useSelection({ stageRef, moveableRef }) {
       flush: 'post',
     },
   )
+
   return {
     selectedTarget,
     onSelect,

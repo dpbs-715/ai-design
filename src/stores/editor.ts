@@ -38,8 +38,13 @@ export const useEditorStore = defineStore('editor', () => {
     return nodes.value.find((node) => node.id === selectedNodeId.value)
   })
 
+  const getPageData = () => page.value
   function setNodes(newNodes) {
-    dispatchCommand(new SetFormFieldCommand(() => page.value, 'nodes', newNodes))
+    dispatchCommand(
+      new SetFormFieldCommand(getPageData, 'nodes', newNodes, {
+        clone: 'shallow',
+      }),
+    )
   }
 
   function addNode(node: MaterialSchema) {

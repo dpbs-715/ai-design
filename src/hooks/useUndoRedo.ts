@@ -1,41 +1,74 @@
 import type { CommonFormCommand } from '@vunio/ui'
 
+const MAX_HISTORY_LENGTH = 1000
 const COMMAND_MERGE_DELAY = 300
 const undoStack = shallowReactive([])
 const redoStack = shallowReactive([])
+
 export function useUndoRedo() {
   const canUndo = computed(() => undoStack.length > 0)
   const canRedo = computed(() => redoStack.length > 0)
 
+  let activeBatch = null
+
+  function startBatch() {
+    activeBatch = []
+  }
+
+  function commitBatch() {
+    if (activeBatch?.length) {
+      pushRecord(activeBatch)
+    }
+    activeBatch = null
+  }
+
+  function pushRecord(record) {
+    undoStack.push(record)
+    if (undoStack.length > MAX_HISTORY_LENGTH) {
+      undoStack.shift()
+    }
+  }
   function dispatchCommand(command: CommonFormCommand) {
     command.execute()
 
-    const previousCommand = undoStack.at(-1)
-    const isWithinMergeWindow =
-      previousCommand && command.createdAt - previousCommand.updatedAt <= COMMAND_MERGE_DELAY
+    const previousCommand = activeBatch ? activeBatch.at(-1) : undoStack.at(-1)?.at(-1)
 
-    if (!isWithinMergeWindow || !previousCommand.merge(command)) {
-      undoStack.push(command)
+    const merged =
+      previousCommand !== undefined &&
+      command.createdAt - previousCommand.updatedAt <= COMMAND_MERGE_DELAY &&
+      previousCommand.merge(command)
+
+    if (!merged) {
+      if (activeBatch) {
+        activeBatch.push(command)
+      } else {
+        pushRecord([command])
+      }
     }
+
     redoStack.length = 0
   }
 
   function undo() {
-    const command = undoStack.at(-1)
-    if (!command) return
+    const commands = undoStack.pop()
+    if (!commands) return
 
-    command.undo()
-    undoStack.pop()
-    redoStack.push(command)
+    commands.toReversed().forEach((command) => {
+      command.undo()
+    })
+
+    redoStack.push(commands)
   }
 
   function redo() {
-    const command = redoStack.at(-1)
-    if (!command) return
+    const commands = redoStack.pop()
+    if (!commands) return
 
-    command.redo()
-    redoStack.pop()
-    undoStack.push(command)
+    commands.forEach((command) => {
+      command.redo()
+    })
+
+    pushRecord(commands)
   }
 
   return {
@@ -44,5 +77,7 @@ export function useUndoRedo() {
     redo,
     canUndo,
     canRedo,
+    startBatch,
+    commitBatch,
   }
 }

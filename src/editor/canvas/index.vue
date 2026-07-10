@@ -29,7 +29,9 @@ const { canvasWidth, canvasHeight, canvasStyle, scale, lines, palette, onZoomCha
   useCanvasRuler({
     moveableRef,
   })
-const { onDrag, onResize, onDragGroup, onResizeGroup } = useMoveable()
+const { onDrag, onStart, onEnd, onResize, onDragGroup, onResizeGroup } = useMoveable({
+  moveableRef,
+})
 const { selectedTarget, onSelect, onClearSelected, onSelectEnd } = useSelection({
   stageRef,
   moveableRef,
@@ -136,9 +138,17 @@ function onCommand(command: string) {
       :resizable="true"
       :origin="false"
       @drag="onDrag"
-      @resize="onResize"
+      @dragStart="onStart"
+      @dragEnd="onEnd"
       @dragGroup="onDragGroup"
+      @dragGroupStart="onStart"
+      @dragGroupEnd="onEnd"
+      @resize="onResize"
+      @resizeStart="onStart"
+      @resizeEnd="onEnd"
       @resizeGroup="onResizeGroup"
+      @resizeGroupStart="onStart"
+      @resizeGroupEnd="onEnd"
     ></Moveable>
   </div>
 </template>

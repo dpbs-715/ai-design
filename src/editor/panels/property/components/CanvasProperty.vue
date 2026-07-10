@@ -11,6 +11,8 @@ defineOptions({
 
 const editorStore = useEditorStore()
 const { canvas } = storeToRefs(editorStore)
+const { dispatchCommand, startBatch, commitBatch } = useUndoRedo()
+
 const { config } = useConfigs<CommonFormConfig>(
   [
     {
@@ -35,7 +37,16 @@ const { config } = useConfigs<CommonFormConfig>(
   false,
 )
 
-const { dispatchCommand } = useUndoRedo()
+config.forEach((config) => {
+  config.props = {
+    onFocus: () => {
+      startBatch()
+    },
+    onBlur: () => {
+      commitBatch()
+    },
+  }
+})
 </script>
 
 <template>
