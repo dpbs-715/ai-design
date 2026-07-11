@@ -77,6 +77,12 @@ export const useEditorStore = defineStore('editor', () => {
     return id ? nodeMap.value.get(id) : undefined
   }
 
+  function requireNode(id: string) {
+    const node = findNode(id)
+    if (!node) throw new Error(`Node ${id} not found`)
+    return node
+  }
+
   function copyNode(node: MaterialSchema) {
     const newNode = deepClone(node)
     newNode.id = crypto.randomUUID()
@@ -116,6 +122,7 @@ export const useEditorStore = defineStore('editor', () => {
     clearSelectedNode,
     selectNodes,
     findNode,
+    requireNode,
 
     copyNode,
     removeNode,

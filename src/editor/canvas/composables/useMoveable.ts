@@ -38,9 +38,14 @@ export function useMoveable() {
     pendingLayouts.clear()
     startBatch()
   }
+
   function onEnd() {
     pendingLayouts.forEach(({ node, layout }) => {
-      const current = node.layout
+      const nodeId = node.id
+      const currentNode = editorStore.findNode(nodeId)
+      if (!currentNode) return
+
+      const current = currentNode.layout
       const unchanged =
         current.x === layout.x &&
         current.y === layout.y &&
@@ -48,7 +53,9 @@ export function useMoveable() {
         current.height === layout.height
 
       if (!unchanged) {
-        dispatchCommand(new SetFormFieldCommand(() => node, 'layout', layout))
+        dispatchCommand(
+          new SetFormFieldCommand(() => editorStore.requireNode(nodeId), 'layout', layout),
+        )
       }
     })
 
