@@ -169,6 +169,7 @@ function onCommand(command: string) {
 .canvas-root {
   position: relative;
   overflow: hidden;
+  isolation: isolate;
 
   .canvas-stage {
     position: relative;

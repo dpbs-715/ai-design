@@ -25,8 +25,12 @@ export const useEditorStore = defineStore('editor', () => {
   })
 
   const canvas = toRef(page.value, 'canvas')
-
   const nodes = toRef(page.value, 'nodes')
+
+  function setPage(newPage: PageSchema) {
+    Object.assign(page.value, newPage)
+  }
+
   const nodeMap = computed(() => new Map(nodes.value.map((node) => [node.id, node])))
 
   const selectedNodeIds = ref<string[]>([])
@@ -109,6 +113,11 @@ export const useEditorStore = defineStore('editor', () => {
     dispatchCommand(new SetFormFieldCommand(() => node, 'locked', !node.locked))
   }
 
+  function updateNode(id, newNode) {
+    const newNodes = nodes.value.map((node) => (node.id === id ? newNode : node))
+    setNodes(newNodes)
+  }
+
   return {
     panelVisible,
     nodes,
@@ -123,11 +132,12 @@ export const useEditorStore = defineStore('editor', () => {
     selectNodes,
     findNode,
     requireNode,
-
     copyNode,
     removeNode,
     moveTop,
     moveBottom,
     toggleLock,
+    updateNode,
+    setPage,
   }
 })

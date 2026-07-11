@@ -7,7 +7,7 @@ defineOptions({
 })
 let chart: EChartsType
 const props = defineProps<{ schema: MaterialSchema }>()
-const chartRef = useTemplateRef('chart')
+const chartRef = useTemplateRef('chartRef')
 let resize = () => {}
 
 useRefResizeObserver(chartRef, {
@@ -31,7 +31,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="chart-material w-full h-full" ref="chart" />
+  <div class="chart-material w-full h-full" ref="chartRef" />
 </template>
 
 <style scoped lang="scss"></style>

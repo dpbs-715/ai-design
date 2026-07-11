@@ -11,9 +11,11 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    CommonButton: typeof import('@vunio/ui')['CommonButton']
     CommonForm: typeof import('@vunio/ui')['CommonForm']
     ElCollapse: typeof import('element-plus/es')['ElCollapse']
     ElCollapseItem: typeof import('element-plus/es')['ElCollapseItem']
+    ElDrawer: typeof import('element-plus/es')['ElDrawer']
     ElDropdown: typeof import('element-plus/es')['ElDropdown']
     ElDropdownItem: typeof import('element-plus/es')['ElDropdownItem']
     MonacoEditor: typeof import('./src/components/MonacoEditor/index.vue')['default']

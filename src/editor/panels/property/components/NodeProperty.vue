@@ -65,10 +65,33 @@ const sections: PropertySectionConfig[] = [
   { name: 'layout', title: '布局', config: layoutConfig },
   { name: 'node', title: '组件属性', config: nodeConfig },
 ]
+
+const visible = ref(false)
+const jsonText = ref('')
+function previewJson() {
+  jsonText.value = JSON.stringify(selectedNode.value, null, 2)
+  visible.value = true
+}
+
+function onConfirm() {
+  const newNode = JSON.parse(jsonText.value)
+  editorStore.updateNode(selectedNode.value.id, {
+    ...newNode,
+    id: selectedNode.value.id,
+    type: selectedNode.value.type,
+  })
+  visible.value = false
+}
 </script>
 
 <template>
   <div class="node-property">
+    <div class="node-title">
+      <span>{{ selectedNode.name }}</span>
+      <span class="cursor-pointer" @click="previewJson">
+        <Icon icon="si:json-fill" />
+      </span>
+    </div>
     <el-collapse v-model="activeSections">
       <el-collapse-item
         v-for="section in sections"
@@ -88,11 +111,28 @@ const sections: PropertySectionConfig[] = [
         </div>
       </el-collapse-item>
     </el-collapse>
+    <el-drawer destroy-on-close v-model="visible" title="编辑 JSON" size="800">
+      <MonacoEditor v-model="jsonText" />
+      <template #footer>
+        <CommonButton class="mr-10" type="normal" @click="visible = false">取消</CommonButton>
+
+        <CommonButton type="primary" @click="onConfirm">确认</CommonButton>
+      </template>
+    </el-drawer>
   </div>
 </template>
 
 <style scoped lang="scss">
 .node-property {
+  .node-title {
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: bg-mix(40);
+    padding: 0 20px;
+  }
+
   :deep(.el-collapse) {
     --el-collapse-border-color: var(--border-color);
     --el-collapse-header-bg-color: transparent;
