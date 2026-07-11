@@ -36,6 +36,10 @@ const { selectedTarget, onSelect, onClearSelected, onSelectEnd } = useSelection(
   moveableRef,
 })
 
+function onStageMouseDown() {
+  if (!dragCanvas.value) onClearSelected()
+}
+
 function onDrop(e: DragEvent) {
   const data = e.dataTransfer.getData('schema')
   const node = createNode(JSON.parse(data))
@@ -98,7 +102,7 @@ function onCommand(command: string) {
         :style="canvasStyle"
         @dragover.prevent
         @drop="onDrop"
-        @mousedown.self="onClearSelected"
+        @mousedown.self="onStageMouseDown"
       >
         <el-dropdown
           trigger="contextmenu"
@@ -163,8 +167,12 @@ function onCommand(command: string) {
 
 <style scoped lang="scss">
 .canvas-root {
+  position: relative;
+  overflow: hidden;
+
   .canvas-stage {
     position: relative;
+
     .canvas-node {
       position: absolute;
     }
