@@ -9,13 +9,22 @@ import { useUndoRedo } from '@/hooks/useUndoRedo.ts'
 defineOptions({ name: 'NodeProperty' })
 
 const editorStore = useEditorStore()
-const { selectedNode } = storeToRefs(editorStore)
+const { canvas, selectedNode } = storeToRefs(editorStore)
 const { dispatchCommand, startBatch, commitBatch } = useUndoRedo()
 
-const setters = computed(() => getMaterialSetters(selectedNode.value.type))
+function withBatchEvents(configs: CommonFormConfig[]) {
+  return configs.map((config) => ({
+    ...config,
+    props: {
+      ...config.props,
+      onFocus: startBatch,
+      onBlur: commitBatch,
+    },
+  }))
+}
 
 const [layoutConfig] = useConfigs<CommonFormConfig>(
-  [
+  withBatchEvents([
     {
       label: '宽度',
       field: 'width',
@@ -34,26 +43,14 @@ const [layoutConfig] = useConfigs<CommonFormConfig>(
       component: 'color',
       span: 24,
     },
-  ],
+  ]),
   false,
 )
-addBatchEvent(layoutConfig)
 
-const [nodeConfig] = useConfigs<CommonFormConfig>(setters, false)
-
-function addBatchEvent(configs: CommonFormConfig[]) {
-  configs.forEach((config) => {
-    config.props = {
-      ...(config.props ?? {}),
-      onFocus: () => {
-        startBatch()
-      },
-      onBlur: () => {
-        commitBatch()
-      },
-    }
-  })
-}
+const nodeSetters = computed(() =>
+  withBatchEvents(getMaterialSetters(selectedNode.value.type) ?? []),
+)
+const [nodeConfig] = useConfigs<CommonFormConfig>(nodeSetters, false)
 
 type PropertySection = 'layout' | 'node'
 
@@ -83,7 +80,7 @@ const sections: PropertySectionConfig[] = [
           <Transition name="property-form">
             <CommonForm
               v-if="activeSections.includes(section.name)"
-              v-model="selectedNode"
+              :model-value="section.name === 'layout' ? canvas : selectedNode"
               :config="section.config"
               :commandDispatcher="dispatchCommand"
             />
