@@ -13,8 +13,12 @@ const { selectedNode } = storeToRefs(editorStore)
 const { dispatchCommand, startBatch, commitBatch } = useUndoRedo()
 
 const setters = getMaterialSetters(selectedNode.value.type)
-const { config } = useConfigs<CommonFormConfig>(setters, false)
-config.forEach((config) => {
+
+const [layoutConfig] = useConfigs<CommonFormConfig>([], false)
+const [nodeConfig] = useConfigs<CommonFormConfig>(setters, false)
+
+const configs = [...layoutConfig, ...nodeConfig]
+configs.forEach((config) => {
   config.props = {
     onFocus: () => {
       startBatch()
@@ -24,28 +28,40 @@ config.forEach((config) => {
     },
   }
 })
-const active = ref('node')
+
+type PropertySection = 'layout' | 'node'
+
+interface PropertySectionConfig {
+  name: PropertySection
+  title: string
+  config: CommonFormConfig[]
+}
+
+const activeSections = ref<PropertySection[]>(['node'])
+const sections: PropertySectionConfig[] = [
+  { name: 'layout', title: '布局', config: layoutConfig },
+  { name: 'node', title: '组件属性', config: nodeConfig },
+]
 </script>
 
 <template>
   <div class="node-property">
-    <el-collapse v-model="active" accordion>
-      <el-collapse-item title="布局" name="layout">
+    <el-collapse v-model="activeSections">
+      <el-collapse-item
+        v-for="section in sections"
+        :key="section.name"
+        :title="section.title"
+        :name="section.name"
+      >
         <div class="p-20">
-          <CommonForm
-            v-model="selectedNode"
-            :config="config"
-            :commandDispatcher="dispatchCommand"
-          />
-        </div>
-      </el-collapse-item>
-      <el-collapse-item title="组件属性" name="node">
-        <div class="p-20">
-          <CommonForm
-            v-model="selectedNode"
-            :config="config"
-            :commandDispatcher="dispatchCommand"
-          />
+          <Transition name="property-form">
+            <CommonForm
+              v-if="activeSections.includes(section.name)"
+              v-model="selectedNode"
+              :config="section.config"
+              :commandDispatcher="dispatchCommand"
+            />
+          </Transition>
         </div>
       </el-collapse-item>
     </el-collapse>
@@ -64,9 +80,20 @@ const active = ref('node')
     --el-collapse-content-text-color: var(--el-text-color-primary);
     border-top: 1px solid var(--el-collapse-border-color);
     border-bottom: 1px solid var(--el-collapse-border-color);
+
     .el-collapse-item__title {
       padding-left: 20px;
     }
   }
+}
+
+.property-form-enter-active,
+.property-form-leave-active {
+  transition: opacity var(--el-transition-duration);
+}
+
+.property-form-enter-from,
+.property-form-leave-to {
+  opacity: 0;
 }
 </style>
