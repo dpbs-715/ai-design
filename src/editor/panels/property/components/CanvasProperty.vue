@@ -50,7 +50,7 @@ config.forEach((config) => {
 </script>
 
 <template>
-  <div class="p-20">
+  <div class="px-15 py-20">
     <CommonForm :commandDispatcher="dispatchCommand" v-model="canvas" :config="config" />
   </div>
 </template>

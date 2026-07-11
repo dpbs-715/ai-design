@@ -18,8 +18,6 @@ app.component('Icon', Icon)
 registerComponent({
   number: ElInputNumber,
   color: ElColorPicker,
-  checkbox: ElCheckbox,
-  select: ElSelect,
 })
 registerComponentDefaultPropsMap({
   CommonForm: {

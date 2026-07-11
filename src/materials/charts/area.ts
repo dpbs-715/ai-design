@@ -1,7 +1,7 @@
-import { type MaterialDefinition } from '@/schema/material.ts'
+import type { MaterialDefinition } from '@/schema/material.ts'
 
-export const barMaterial: MaterialDefinition = {
-  name: '柱状图',
+export const areaMaterial: MaterialDefinition = {
+  name: '面积图',
   group: 'charts',
   icon: 'fluent-color:list-bar-16',
   setters: [
@@ -21,7 +21,7 @@ export const barMaterial: MaterialDefinition = {
       field: 'props.option.legend.show',
     },
     {
-      component: 'commonSelect',
+      component: 'select',
       label: '对齐',
       field: 'props.option.title.left',
       props: {
@@ -34,8 +34,13 @@ export const barMaterial: MaterialDefinition = {
     },
     {
       component: 'color',
-      label: '柱颜色',
-      field: 'props.option.series.0.itemStyle.color',
+      label: '线颜色',
+      field: 'props.option.series.0.lineStyle.color',
+    },
+    {
+      component: 'color',
+      label: '面积色',
+      field: 'props.option.series.0.areaStyle.color',
     },
     {
       component: 'input',
@@ -73,8 +78,8 @@ export const barMaterial: MaterialDefinition = {
     },
   ],
   schema: {
-    type: 'bar-chart',
-    name: '柱状图',
+    type: 'area-chart',
+    name: '面积图',
     layout: {
       x: 0,
       y: 0,
@@ -94,7 +99,7 @@ export const barMaterial: MaterialDefinition = {
           },
         },
         title: {
-          text: '销售额统计',
+          text: '成交额趋势',
           top: 8,
           left: 'center',
           textStyle: {
@@ -102,15 +107,18 @@ export const barMaterial: MaterialDefinition = {
             fontSize: 16,
           },
         },
-        tooltip: {},
+        tooltip: {
+          trigger: 'axis',
+        },
         dataset: {
           source: [
-            { month: '一月', sales: 120 },
-            { month: '二月', sales: 200 },
-            { month: '三月', sales: 150 },
-            { month: '四月', sales: 80 },
-            { month: '五月', sales: 170 },
-            { month: '六月', sales: 240 },
+            { date: '周一', revenue: 120 },
+            { date: '周二', revenue: 200 },
+            { date: '周三', revenue: 150 },
+            { date: '周四', revenue: 260 },
+            { date: '周五', revenue: 330 },
+            { date: '周六', revenue: 420 },
+            { date: '周日', revenue: 510 },
           ],
         },
         grid: {
@@ -122,6 +130,7 @@ export const barMaterial: MaterialDefinition = {
         },
         xAxis: {
           type: 'category',
+          boundaryGap: false,
           axisLine: {
             lineStyle: {
               color: '#64748b',
@@ -144,16 +153,23 @@ export const barMaterial: MaterialDefinition = {
         },
         series: [
           {
-            name: '销售额',
-            type: 'bar',
-            barWidth: '45%',
+            name: '成交额',
+            type: 'line',
+            smooth: true,
+            symbolSize: 8,
             encode: {
-              x: 'month',
-              y: 'sales',
+              x: 'date',
+              y: 'revenue',
+            },
+            lineStyle: {
+              width: 3,
+              color: '#22d3ee',
             },
             itemStyle: {
               color: '#22d3ee',
-              borderRadius: [4, 4, 0, 0],
+            },
+            areaStyle: {
+              color: 'rgba(34, 211, 238, 0.25)',
             },
           },
         ],

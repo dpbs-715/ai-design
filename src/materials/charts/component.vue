@@ -1,18 +1,32 @@
 <script setup lang="ts">
 import type { MaterialSchema } from '@/schema/material.ts'
-import { init } from 'echarts'
+import { init, type EChartsType } from 'echarts'
+import { useRefResizeObserver } from '@/hooks/useRefResizeObserver.ts'
 defineOptions({
   name: 'ChartMaterial',
 })
+let chart: EChartsType
 const props = defineProps<{ schema: MaterialSchema }>()
 const chartRef = useTemplateRef('chart')
+let resize = () => {}
+
+useRefResizeObserver(chartRef, {
+  exec: () => resize(),
+  timer: 0,
+})
+
+watch(
+  () => props.schema.props.option,
+  () => chart.setOption(props.schema.props.option),
+  {
+    deep: true,
+  },
+)
 
 onMounted(() => {
-  const chart = init(chartRef.value)
-  console.log(chart)
-  nextTick(() => {
-    chart.setOption(props.schema.props.option)
-  })
+  chart = init(chartRef.value)
+  chart.setOption(props.schema.props.option)
+  resize = chart.resize
 })
 </script>
 

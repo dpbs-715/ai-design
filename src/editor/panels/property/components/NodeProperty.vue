@@ -12,7 +12,7 @@ const editorStore = useEditorStore()
 const { selectedNode } = storeToRefs(editorStore)
 const { dispatchCommand, startBatch, commitBatch } = useUndoRedo()
 
-const setters = getMaterialSetters(selectedNode.value.type)
+const setters = computed(() => getMaterialSetters(selectedNode.value.type))
 
 const [layoutConfig] = useConfigs<CommonFormConfig>(
   [
@@ -37,19 +37,23 @@ const [layoutConfig] = useConfigs<CommonFormConfig>(
   ],
   false,
 )
+addBatchEvent(layoutConfig)
+
 const [nodeConfig] = useConfigs<CommonFormConfig>(setters, false)
 
-const configs = [...layoutConfig, ...nodeConfig]
-configs.forEach((config) => {
-  config.props = {
-    onFocus: () => {
-      startBatch()
-    },
-    onBlur: () => {
-      commitBatch()
-    },
-  }
-})
+function addBatchEvent(configs: CommonFormConfig[]) {
+  configs.forEach((config) => {
+    config.props = {
+      ...(config.props ?? {}),
+      onFocus: () => {
+        startBatch()
+      },
+      onBlur: () => {
+        commitBatch()
+      },
+    }
+  })
+}
 
 type PropertySection = 'layout' | 'node'
 
@@ -75,7 +79,7 @@ const sections: PropertySectionConfig[] = [
         :title="section.title"
         :name="section.name"
       >
-        <div class="p-20">
+        <div class="px-15 py-20">
           <Transition name="property-form">
             <CommonForm
               v-if="activeSections.includes(section.name)"

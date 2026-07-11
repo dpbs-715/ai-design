@@ -1,9 +1,9 @@
 import { debounce } from '@/utils'
 
-export function useRefResizeObserver(observerRef: Ref) {
+export function useRefResizeObserver(observerRef: Ref, options = { exec: () => {}, timer: 100 }) {
   const height = ref()
   const width = ref()
-
+  const { exec, timer } = options
   function setData(rect) {
     width.value = rect.width
     height.value = rect.height
@@ -12,8 +12,9 @@ export function useRefResizeObserver(observerRef: Ref) {
   const onRootResize = debounce(
     (rect) => {
       setData(rect)
+      exec()
     },
-    100,
+    timer,
     {
       leading: true,
     },
