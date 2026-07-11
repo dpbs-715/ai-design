@@ -18,14 +18,14 @@ Object.values(materialModules).forEach((module: any) => {
 
 const group = [
   {
-    name: '信息',
-    icon: 'material-symbols:info',
-    key: 'info',
-  },
-  {
     name: '图表',
     icon: 'solar:chart-bold',
     key: 'charts',
+  },
+  {
+    name: '信息',
+    icon: 'material-symbols:info',
+    key: 'info',
   },
 ]
 

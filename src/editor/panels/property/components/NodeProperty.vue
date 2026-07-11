@@ -14,7 +14,29 @@ const { dispatchCommand, startBatch, commitBatch } = useUndoRedo()
 
 const setters = getMaterialSetters(selectedNode.value.type)
 
-const [layoutConfig] = useConfigs<CommonFormConfig>([], false)
+const [layoutConfig] = useConfigs<CommonFormConfig>(
+  [
+    {
+      label: '宽度',
+      field: 'width',
+      component: 'number',
+      span: 12,
+    },
+    {
+      label: '高度',
+      field: 'height',
+      component: 'number',
+      span: 12,
+    },
+    {
+      label: '背景色',
+      field: 'backgroundColor',
+      component: 'color',
+      span: 24,
+    },
+  ],
+  false,
+)
 const [nodeConfig] = useConfigs<CommonFormConfig>(setters, false)
 
 const configs = [...layoutConfig, ...nodeConfig]

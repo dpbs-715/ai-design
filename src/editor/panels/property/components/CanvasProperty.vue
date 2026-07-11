@@ -18,13 +18,13 @@ const { config } = useConfigs<CommonFormConfig>(
     {
       label: '宽度',
       field: 'width',
-      component: 'inputNumber',
+      component: 'number',
       span: 12,
     },
     {
       label: '高度',
       field: 'height',
-      component: 'inputNumber',
+      component: 'number',
       span: 12,
     },
     {

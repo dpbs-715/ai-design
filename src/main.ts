@@ -7,7 +7,7 @@ import router from './router'
 import 'element-plus/dist/index.css'
 import 'element-plus/theme-chalk/dark/css-vars.css'
 import { registerComponent, registerComponentDefaultPropsMap } from '@vunio/ui'
-import { ElColorPicker, ElInputNumber } from 'element-plus'
+import { ElCheckbox, ElColorPicker, ElInputNumber, ElSelect } from 'element-plus'
 
 const app = createApp(App)
 
@@ -16,12 +16,20 @@ app.use(router)
 app.component('Icon', Icon)
 
 registerComponent({
-  inputNumber: ElInputNumber,
+  number: ElInputNumber,
   color: ElColorPicker,
+  checkbox: ElCheckbox,
+  select: ElSelect,
 })
 registerComponentDefaultPropsMap({
   CommonForm: {
     size: 'small',
+    col: {
+      sm: null,
+      md: null,
+      lg: null,
+      xl: null,
+    },
   },
 })
 

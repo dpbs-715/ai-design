@@ -4,7 +4,7 @@ import { getMaterialByGroup, geyMaterialGroups } from '@/materials'
 
 defineOptions({ name: 'MaterialPanel' })
 
-const activeGroup = ref('info')
+const activeGroup = ref('charts')
 const groups = geyMaterialGroups()
 
 const currentMaterial = computed(() => {

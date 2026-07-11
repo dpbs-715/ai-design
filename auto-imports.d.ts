@@ -8,6 +8,7 @@ export {}
 declare global {
   const EffectScope: typeof import('vue').EffectScope
   const ElColorPicker: typeof import('element-plus/es').ElColorPicker
+  const ElSelect: typeof import('element-plus/es').ElSelect
   const computed: typeof import('vue').computed
   const createApp: typeof import('vue').createApp
   const customRef: typeof import('vue').customRef

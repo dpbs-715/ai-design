@@ -1,4 +1,4 @@
-import TextMaterial from '@/materials/text/component.vue'
+import TextMaterial from './component.vue'
 import type { MaterialDefinition } from '@/schema/material.ts'
 
 const textMaterial: MaterialDefinition = {
@@ -8,25 +8,25 @@ const textMaterial: MaterialDefinition = {
   icon: 'solar:text-bold',
   setters: [
     {
-      component: 'inputNumber',
+      component: 'number',
       label: '宽度',
       field: 'layout.width',
       span: 12,
     },
     {
-      component: 'inputNumber',
+      component: 'number',
       label: '高度',
       field: 'layout.height',
       span: 12,
     },
     {
-      component: 'inputNumber',
+      component: 'number',
       label: 'x',
       field: 'layout.x',
       span: 12,
     },
     {
-      component: 'inputNumber',
+      component: 'number',
       label: 'y',
       field: 'layout.y',
       span: 12,
@@ -35,13 +35,11 @@ const textMaterial: MaterialDefinition = {
       component: 'input',
       label: '内容',
       field: 'props.content',
-      span: 24,
     },
     {
       component: 'color',
       label: '颜色',
       field: 'style.color',
-      span: 24,
     },
   ],
 
