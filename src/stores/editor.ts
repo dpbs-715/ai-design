@@ -22,10 +22,51 @@ export const useEditorStore = defineStore('editor', () => {
       backgroundColor: '#0d121b',
     },
     nodes: [],
+    dataSources: [
+      {
+        type: 'static',
+        id: '123',
+        name: '销售数据',
+        data: [
+          {
+            label: 'label1',
+            value: 100,
+          },
+          {
+            label: 'label2',
+            value: 200,
+          },
+          {
+            label: 'label3',
+            value: 300,
+          },
+        ],
+      },
+      {
+        type: 'static',
+        id: '456',
+        name: '访问数据',
+        data: [
+          {
+            label: '1label1',
+            value: 1001,
+          },
+          {
+            label: '2label2',
+            value: 2002,
+          },
+          {
+            label: '3label3',
+            value: 3003,
+          },
+        ],
+      },
+    ],
   })
 
   const canvas = toRef(page.value, 'canvas')
   const nodes = toRef(page.value, 'nodes')
+  const dataSources = toRef(page.value, 'dataSources')
 
   function setPage(newPage: PageSchema) {
     Object.assign(page.value, newPage)
@@ -120,9 +161,10 @@ export const useEditorStore = defineStore('editor', () => {
 
   return {
     panelVisible,
+    page,
     nodes,
     canvas,
-    page,
+    dataSources,
     selectedNodeId,
     selectedNodeIds,
     selectedNode,

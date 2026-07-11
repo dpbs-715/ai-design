@@ -13,6 +13,7 @@ export interface MaterialSchema {
   layout: Layout
   style?: Record<string, any>
   props: Record<string, any>
+  dataId?: string | number
 }
 interface SetterSchema {
   field: string

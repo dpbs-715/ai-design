@@ -5,6 +5,7 @@ import { getMaterialSetters } from '@/materials'
 import { type CommonFormConfig } from '@vunio/ui'
 import { useConfigs } from '@vunio/hooks'
 import { useUndoRedo } from '@/hooks/useUndoRedo.ts'
+import DataSource from './DataSource.vue'
 
 defineOptions({ name: 'NodeProperty' })
 
@@ -61,6 +62,8 @@ interface PropertySectionConfig {
 }
 
 const activeSections = ref<PropertySection[]>(['node'])
+const activeTab = ref('property')
+
 const sections: PropertySectionConfig[] = [
   { name: 'layout', title: '布局', config: layoutConfig },
   { name: 'node', title: '组件属性', config: nodeConfig },
@@ -92,33 +95,40 @@ function onConfirm() {
         <Icon icon="si:json-fill" />
       </span>
     </div>
-    <el-collapse v-model="activeSections">
-      <el-collapse-item
-        v-for="section in sections"
-        :key="section.name"
-        :title="section.title"
-        :name="section.name"
-      >
-        <div class="px-15 py-20">
-          <Transition name="property-form">
-            <CommonForm
-              v-if="activeSections.includes(section.name)"
-              :model-value="section.name === 'layout' ? canvas : selectedNode"
-              :config="section.config"
-              :commandDispatcher="dispatchCommand"
-            />
-          </Transition>
-        </div>
-      </el-collapse-item>
-    </el-collapse>
-    <el-drawer destroy-on-close v-model="visible" title="编辑 JSON" size="800">
-      <MonacoEditor v-model="jsonText" />
-      <template #footer>
-        <CommonButton class="mr-10" type="normal" @click="visible = false">取消</CommonButton>
+    <el-tabs v-model="activeTab" stretch>
+      <el-tab-pane label="属性" name="property">
+        <el-collapse v-model="activeSections">
+          <el-collapse-item
+            v-for="section in sections"
+            :key="section.name"
+            :title="section.title"
+            :name="section.name"
+          >
+            <div class="px-15 py-10">
+              <Transition name="property-form">
+                <CommonForm
+                  v-if="activeSections.includes(section.name)"
+                  :model-value="section.name === 'layout' ? canvas : selectedNode"
+                  :config="section.config"
+                  :commandDispatcher="dispatchCommand"
+                />
+              </Transition>
+            </div>
+          </el-collapse-item>
+        </el-collapse>
+        <el-drawer destroy-on-close v-model="visible" title="编辑 JSON" size="800">
+          <MonacoEditor v-model="jsonText" />
+          <template #footer>
+            <CommonButton class="mr-10" type="normal" @click="visible = false">取消</CommonButton>
 
-        <CommonButton type="primary" @click="onConfirm">确认</CommonButton>
-      </template>
-    </el-drawer>
+            <CommonButton type="primary" @click="onConfirm">确认</CommonButton>
+          </template>
+        </el-drawer>
+      </el-tab-pane>
+      <el-tab-pane label="数据源" name="dataSource">
+        <DataSource />
+      </el-tab-pane>
+    </el-tabs>
   </div>
 </template>
 

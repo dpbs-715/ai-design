@@ -84,10 +84,10 @@ export const pieMaterial: MaterialDefinition = {
         },
         dataset: {
           source: [
-            { channel: '搜索引擎', value: 1048 },
-            { channel: '直接访问', value: 735 },
-            { channel: '联盟广告', value: 484 },
-            { channel: '视频广告', value: 300 },
+            { label: '搜索引擎', value: 1048 },
+            { label: '直接访问', value: 735 },
+            { label: '联盟广告', value: 484 },
+            { label: '视频广告', value: 300 },
           ],
         },
         series: [
@@ -105,7 +105,7 @@ export const pieMaterial: MaterialDefinition = {
               },
             },
             encode: {
-              itemName: 'channel',
+              itemName: 'label',
               value: 'value',
             },
           },

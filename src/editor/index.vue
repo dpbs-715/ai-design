@@ -6,10 +6,17 @@ import MaterialPanel from '@/editor/panels/material/index.vue'
 import LayerPanel from '@/editor/panels/layer/index.vue'
 import CanvasRoot from '@/editor/canvas/index.vue'
 import PropertyPanel from '@/editor/panels/property/index.vue'
+import { storeToRefs } from 'pinia'
+import { provideDataSources } from '@/context'
 
 defineOptions({ name: 'ScreenEditor' })
 
 const editorStore = useEditorStore()
+
+const { dataSources } = storeToRefs(editorStore)
+
+provideDataSources(dataSources)
+
 const materialWidth = computed(() => (editorStore.panelVisible.material ? '260px' : '0'))
 const layerWidth = computed(() => (editorStore.panelVisible.layer ? '160px' : '0'))
 const propertyWidth = computed(() => (editorStore.panelVisible.property ? '360px' : '0'))
