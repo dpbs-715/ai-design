@@ -7,7 +7,8 @@ import router from './router'
 import 'element-plus/dist/index.css'
 import 'element-plus/theme-chalk/dark/css-vars.css'
 import { registerComponent, registerComponentDefaultPropsMap } from '@vunio/ui'
-import { ElCheckbox, ElColorPicker, ElInputNumber, ElSelect } from 'element-plus'
+import { ElColorPicker, ElInputNumber } from 'element-plus'
+import '@/mock/data.ts'
 
 const app = createApp(App)
 

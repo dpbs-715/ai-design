@@ -71,18 +71,18 @@ function onExport() {
     <span @click="onExport">
       <Icon icon="mdi:export" />
     </span>
+
+    <input ref="inputRef" type="file" v-show="false" @change="onFileChange" />
+
+    <el-drawer destroy-on-close v-model="visible" title="编辑 JSON" size="800">
+      <MonacoEditor v-model="jsonText" />
+      <template #footer>
+        <CommonButton class="mr-10" type="normal" @click="visible = false">取消</CommonButton>
+
+        <CommonButton type="primary" @click="onConfirm">确认</CommonButton>
+      </template>
+    </el-drawer>
   </div>
-
-  <input ref="inputRef" type="file" v-show="false" @change="onFileChange" />
-
-  <el-drawer destroy-on-close v-model="visible" title="编辑 JSON" size="800">
-    <MonacoEditor v-model="jsonText" />
-    <template #footer>
-      <CommonButton class="mr-10" type="normal" @click="visible = false">取消</CommonButton>
-
-      <CommonButton type="primary" @click="onConfirm">确认</CommonButton>
-    </template>
-  </el-drawer>
 </template>
 
 <style scoped lang="scss">

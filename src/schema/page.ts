@@ -5,6 +5,9 @@ export interface DataSourceSchema {
   id: string
   name: string
   data: any
+  interval?: number
+  params?: Record<string, any>
+  url?: string
 }
 
 interface CanvasSchema {
