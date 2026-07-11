@@ -27,6 +27,7 @@ export const useEditorStore = defineStore('editor', () => {
   const canvas = toRef(page.value, 'canvas')
 
   const nodes = toRef(page.value, 'nodes')
+  const nodeMap = computed(() => new Map(nodes.value.map((node) => [node.id, node])))
 
   const selectedNodeIds = ref<string[]>([])
 
@@ -44,7 +45,8 @@ export const useEditorStore = defineStore('editor', () => {
   })
 
   const selectedNode = computed(() => {
-    return nodes.value.find((node) => node.id === selectedNodeId.value)
+    const id = selectedNodeId.value
+    return id ? nodeMap.value.get(id) : undefined
   })
 
   const getPageData = () => page.value
@@ -71,8 +73,8 @@ export const useEditorStore = defineStore('editor', () => {
     selectedNodeIds.value = ids
   }
 
-  function findNode(id: string) {
-    return nodes.value.find((node) => node.id === id)
+  function findNode(id: string | null | undefined) {
+    return id ? nodeMap.value.get(id) : undefined
   }
 
   function copyNode(node: MaterialSchema) {
