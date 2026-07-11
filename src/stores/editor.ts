@@ -30,6 +30,15 @@ export const useEditorStore = defineStore('editor', () => {
 
   const selectedNodeIds = ref<string[]>([])
 
+  watch(
+    nodes,
+    (currentNodes) => {
+      const nodeIds = new Set(currentNodes.map((node) => node.id))
+      selectedNodeIds.value = selectedNodeIds.value.filter((id) => nodeIds.has(id))
+    },
+    { flush: 'sync' },
+  )
+
   const selectedNodeId = computed(() => {
     return selectedNodeIds.value.length === 1 ? selectedNodeIds.value[0] : null
   })

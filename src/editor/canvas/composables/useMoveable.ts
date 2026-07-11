@@ -7,6 +7,14 @@ export function useMoveable() {
   const editorStore = useEditorStore()
   const { dispatchCommand, startBatch, commitBatch } = useUndoRedo()
 
+  const moveableBounds = {
+    position: 'css' as const,
+    left: 0,
+    top: 0,
+    right: 0,
+    bottom: 0,
+  }
+
   function getNodeByTarget(element: HTMLElement) {
     const id = element.getAttribute('data-node-id')
     return editorStore.findNode(id)
@@ -18,10 +26,12 @@ export function useMoveable() {
   function onEnd() {
     commitBatch()
   }
+
   function onDrag(e: OnDrag) {
-    e.target.style.left = e.left + 'px'
-    e.target.style.top = e.top + 'px'
-    const node = getNodeByTarget(e.target as HTMLElement)
+    const target = e.target as HTMLElement
+    target.style.left = e.left + 'px'
+    target.style.top = e.top + 'px'
+    const node = getNodeByTarget(target)
 
     dispatchCommand(
       new SetFormFieldCommand(() => node, 'layout', {
@@ -57,6 +67,7 @@ export function useMoveable() {
   }
 
   return {
+    moveableBounds,
     onStart,
     onEnd,
     onDrag,

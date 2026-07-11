@@ -2,8 +2,22 @@ import type { MaterialSchema } from '@/schema/material.ts'
 import { useEditorStore } from '@/stores/editor.ts'
 import { storeToRefs } from 'pinia'
 import { debounce } from '@/utils'
+import type { ShallowRef } from 'vue'
 
-export function useSelection({ stageRef, moveableRef }) {
+interface UseSelectionOptions {
+  stageRef: Readonly<ShallowRef<HTMLElement | null>>
+  moveableRef: Readonly<
+    ShallowRef<
+      | {
+          dragStart: (event: MouseEvent) => void
+          updateRect: () => void
+        }
+      | null
+    >
+  >
+}
+
+export function useSelection({ stageRef, moveableRef }: UseSelectionOptions) {
   const editorStore = useEditorStore()
   const selectedTarget = shallowRef<HTMLElement[]>([])
   const { selectedNodeIds } = storeToRefs(editorStore)
@@ -12,7 +26,7 @@ export function useSelection({ stageRef, moveableRef }) {
     editorStore.selectNode(node.id)
 
     nextTick(() => {
-      moveableRef.value.dragStart(e)
+      moveableRef.value?.dragStart(e)
     })
   }
 
@@ -28,17 +42,24 @@ export function useSelection({ stageRef, moveableRef }) {
   watch(
     selectedNodeIds,
     (ids) => {
-      selectedTarget.value = ids.map((id) => {
-        return stageRef.value.querySelector(`[data-node-id='${id}']:not([data-node-locked='true'])`)
-      })
+      const stage = stageRef.value
+      if (!stage) {
+        selectedTarget.value = []
+        return
+      }
+
+      const selectedIds = new Set(ids)
+      const targets = Array.from(stage.querySelectorAll<HTMLElement>('.canvas-node')).filter(
+        (element) =>
+          selectedIds.has(element.dataset.nodeId ?? '') && element.dataset.nodeLocked !== 'true',
+      )
+
+      selectedTarget.value = targets
     },
-    {
-      deep: true,
-      flush: 'post',
-    },
+    { flush: 'post' },
   )
 
-  const updateReact = debounce(() => moveableRef.value.updateRect(), 300, {
+  const updateReact = debounce(() => moveableRef.value?.updateRect(), 300, {
     leading: true,
     trailing: true,
   })

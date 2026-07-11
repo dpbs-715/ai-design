@@ -29,7 +29,8 @@ const { canvasWidth, canvasHeight, canvasStyle, scale, lines, palette, onZoomCha
   useCanvasRuler({
     moveableRef,
   })
-const { onDrag, onStart, onEnd, onResize, onDragGroup, onResizeGroup } = useMoveable()
+const { moveableBounds, onDrag, onStart, onEnd, onResize, onDragGroup, onResizeGroup } =
+  useMoveable()
 const { selectedTarget, onSelect, onClearSelected, onSelectEnd } = useSelection({
   stageRef,
   moveableRef,
@@ -42,8 +43,10 @@ function onDrop(e: DragEvent) {
   const v = e.currentTarget as HTMLDivElement
   const rect = v.getBoundingClientRect()
 
-  node.layout.x = (e.clientX - rect.left) / scale.value - node.layout.width / 2
-  node.layout.y = (e.clientY - rect.top) / scale.value - node.layout.height / 2
+  const x = (e.clientX - rect.left) / scale.value - node.layout.width / 2
+  const y = (e.clientY - rect.top) / scale.value - node.layout.height / 2
+  node.layout.x = Math.min(Math.max(x, 0), Math.max(canvasWidth.value - node.layout.width, 0))
+  node.layout.y = Math.min(Math.max(y, 0), Math.max(canvasHeight.value - node.layout.height, 0))
   editorStore.addNode(node)
   editorStore.selectNode(node.id)
 }
@@ -139,6 +142,9 @@ function onCommand(command: string) {
       :draggable="true"
       :resizable="true"
       :origin="false"
+      :snappable="true"
+      :snapContainer="stageRef"
+      :bounds="moveableBounds"
       @drag="onDrag"
       @dragStart="onStart"
       @dragEnd="onEnd"
