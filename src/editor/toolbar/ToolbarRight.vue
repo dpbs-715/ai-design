@@ -2,15 +2,20 @@
 import { useEditorStore } from '@/stores/editor.ts'
 import { storeToRefs } from 'pinia'
 import { ElMessage } from 'element-plus'
+import DataSourceManager from './components/DataSourceManager.vue'
 
 defineOptions({ name: 'ToolbarRight' })
 
-const uploadRef: HTMLInputElement = useTemplateRef('inputRef')
+const uploadRef = useTemplateRef<HTMLInputElement>('inputRef')
+const dataSourceManagerRef = useTemplateRef('dataSourceManager')
 
 const editorStore = useEditorStore()
 const { page } = storeToRefs(editorStore)
+
 const visible = ref(false)
 const jsonText = ref('')
+
+const dataSourceVisible = ref(false)
 
 function previewJson() {
   jsonText.value = JSON.stringify(page.value, null, 2)
@@ -52,6 +57,15 @@ function onExport() {
   document.body.removeChild(a)
   URL.revokeObjectURL(url)
 }
+
+function openDataSource() {
+  dataSourceVisible.value = true
+}
+
+function onSave() {
+  dataSourceManagerRef.value.save()
+  dataSourceVisible.value = false
+}
 </script>
 
 <template>
@@ -64,6 +78,9 @@ function onExport() {
     </span>
     <span>
       <Icon icon="entypo:publish" />
+    </span>
+    <span @click="openDataSource">
+      <Icon icon="mdi:database" />
     </span>
     <span @click="onImport">
       <Icon icon="mdi:import" />
@@ -82,6 +99,16 @@ function onExport() {
         <CommonButton type="primary" @click="onConfirm">确认</CommonButton>
       </template>
     </el-drawer>
+
+    <CommonDialog
+      destroy-on-close
+      @confirm="onSave"
+      title="数据源配置"
+      v-model="dataSourceVisible"
+      width="800"
+    >
+      <DataSourceManager ref="dataSourceManager" />
+    </CommonDialog>
   </div>
 </template>
 

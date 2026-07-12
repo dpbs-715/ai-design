@@ -24,8 +24,10 @@ const modelValue = defineModel<string>()
 
 const editorElement = useTemplateRef('editor')
 
+let instance
+
 onMounted(() => {
-  const instance = editor.create(editorElement.value, {
+  instance = editor.create(editorElement.value, {
     value: modelValue.value,
     theme: 'vs-dark',
     language: props.lang || 'json',
@@ -41,6 +43,11 @@ onMounted(() => {
   onBeforeUnmount(() => {
     instance.dispose()
   })
+})
+
+watch(modelValue, (newVal) => {
+  if (newVal === instance.getValue()) return
+  instance.setValue(newVal)
 })
 </script>
 

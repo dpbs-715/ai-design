@@ -30,6 +30,9 @@ registerComponentDefaultPropsMap({
       xl: null,
     },
   },
+  CommonDialog: {
+    top: '10vh',
+  },
 })
 
 app.mount('#app')
