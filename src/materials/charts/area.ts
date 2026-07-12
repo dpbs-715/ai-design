@@ -112,13 +112,13 @@ export const areaMaterial: MaterialDefinition = {
         },
         dataset: {
           source: [
-            { date: '周一', revenue: 120 },
-            { date: '周二', revenue: 200 },
-            { date: '周三', revenue: 150 },
-            { date: '周四', revenue: 260 },
-            { date: '周五', revenue: 330 },
-            { date: '周六', revenue: 420 },
-            { date: '周日', revenue: 510 },
+            { label: '周一', value: 120 },
+            { label: '周二', value: 200 },
+            { label: '周三', value: 150 },
+            { label: '周四', value: 260 },
+            { label: '周五', value: 330 },
+            { label: '周六', value: 420 },
+            { label: '周日', value: 510 },
           ],
         },
         grid: {
@@ -158,8 +158,8 @@ export const areaMaterial: MaterialDefinition = {
             smooth: true,
             symbolSize: 8,
             encode: {
-              x: 'date',
-              y: 'revenue',
+              x: 'label',
+              y: 'value',
             },
             lineStyle: {
               width: 3,

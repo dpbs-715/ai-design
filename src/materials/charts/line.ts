@@ -107,13 +107,13 @@ export const lineMaterial: MaterialDefinition = {
         },
         dataset: {
           source: [
-            { date: '周一', visits: 820 },
-            { date: '周二', visits: 932 },
-            { date: '周三', visits: 901 },
-            { date: '周四', visits: 934 },
-            { date: '周五', visits: 1290 },
-            { date: '周六', visits: 1330 },
-            { date: '周日', visits: 1320 },
+            { label: '周一', value: 820 },
+            { label: '周二', value: 932 },
+            { label: '周三', value: 901 },
+            { label: '周四', value: 934 },
+            { label: '周五', value: 1290 },
+            { label: '周六', value: 1330 },
+            { label: '周日', value: 1320 },
           ],
         },
         grid: {
@@ -153,8 +153,8 @@ export const lineMaterial: MaterialDefinition = {
             smooth: true,
             symbolSize: 8,
             encode: {
-              x: 'date',
-              y: 'visits',
+              x: 'label',
+              y: 'value',
             },
             lineStyle: {
               width: 3,

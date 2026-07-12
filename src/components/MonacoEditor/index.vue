@@ -58,7 +58,7 @@ watch(modelValue, (newVal) => {
 <style scoped lang="scss">
 .editor-container {
   height: 100%;
-  min-height: 400px;
+  min-height: 300px;
   width: 100%;
 }
 </style>

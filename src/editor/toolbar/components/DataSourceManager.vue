@@ -5,6 +5,7 @@ import { useConfigs } from '@vunio/hooks'
 import type { CommonFormConfig } from '@vunio/ui'
 import MonacoEditor from '@/components/MonacoEditor/index.vue'
 import { deepClone } from '@vunio/utils'
+import { fetchData } from '@/hooks/useDataSource.ts'
 
 defineOptions({
   name: 'DataSourceManager',
@@ -23,6 +24,8 @@ const data = ref(
     }
   }),
 )
+
+const responseText = ref('')
 
 const activeSource = ref()
 function selectDataSource(source) {
@@ -64,22 +67,48 @@ const { config } = useConfigs<CommonFormConfig>([
   {
     label: '请求地址',
     field: 'url',
-    group: 'api',
     hidden: staticGroup,
     component: 'input',
   },
   {
+    label: '请求方式',
+    field: 'method',
+    hidden: staticGroup,
+    component: 'radioGroup',
+    props: {
+      options: [
+        {
+          label: 'GET',
+          value: 'get',
+        },
+        {
+          label: 'POST',
+          value: 'post',
+        },
+      ],
+    },
+  },
+  {
     label: '轮询周期',
     field: 'interval',
-    group: 'api',
     hidden: staticGroup,
     component: 'number',
   },
   {
-    label: '数据',
+    label: '参数',
     field: 'params',
     component: MonacoEditor,
     hidden: staticGroup,
+  },
+  {
+    label: '相应路径',
+    field: 'responsePath',
+    hidden: staticGroup,
+    component: 'input',
+  },
+  {
+    label: '请求预览',
+    field: 'previewAPI',
   },
 ])
 
@@ -99,6 +128,15 @@ function removeDataSource(id: string | number) {
   data.value = data.value.filter((item) => item.id != id)
 
   selectDataSource(null)
+}
+
+function onRequest() {
+  fetchData({
+    ...activeSource.value,
+    params: activeSource.value.params ? JSON.parse(activeSource.value.params) : undefined,
+  }).then((res) => {
+    responseText.value = JSON.stringify(res, null, 2)
+  })
 }
 
 defineExpose({
@@ -134,7 +172,14 @@ defineExpose({
       </div>
     </div>
     <div class="data-source-content">
-      <CommonForm v-if="activeSource" v-model="activeSource" :config="config" />
+      <CommonForm v-if="activeSource" v-model="activeSource" :config="config">
+        <template #previewAPI>
+          <div class="h-400 w-full">
+            <CommonButton class="mb-10" type="primary" @click="onRequest">发起请求</CommonButton>
+            <MonacoEditor v-model="responseText" />
+          </div>
+        </template>
+      </CommonForm>
     </div>
   </div>
 </template>

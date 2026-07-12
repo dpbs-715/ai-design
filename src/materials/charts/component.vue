@@ -14,7 +14,7 @@ const chartRef = useTemplateRef('chartRef')
 
 const dataId = computed(() => props.schema.dataId)
 
-const { data } = useDataSource(dataId)
+const { data, loading } = useDataSource(dataId)
 
 const option = computed(() => {
   const _option = props.schema.props.option
@@ -46,7 +46,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="chart-material w-full h-full" ref="chartRef" />
+  <div v-loading="loading" class="chart-material w-full h-full" ref="chartRef" />
 </template>
 
 <style scoped lang="scss"></style>

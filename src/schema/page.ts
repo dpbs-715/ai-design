@@ -8,6 +8,8 @@ export interface DataSourceSchema {
   interval?: number
   params?: Record<string, any>
   url?: string
+  method?: 'get' | 'post'
+  responsePath?: string
 }
 
 interface CanvasSchema {

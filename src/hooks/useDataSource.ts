@@ -1,8 +1,12 @@
 import { injectDataSources } from '@/context'
 import axios from 'axios'
+import type { DataSourceSchema } from '@/schema/page.ts'
+import { asyncCache, getByKeyOrPath } from '@vunio/utils'
 
 export function useDataSource(dataId: Ref<string | number>) {
   const dataSources = injectDataSources()
+  const loading = ref(false)
+  const error = ref()
   let timer
 
   const source = computed(() => {
@@ -10,22 +14,17 @@ export function useDataSource(dataId: Ref<string | number>) {
   })
   const data = ref()
 
-  async function loadData() {
+  async function loadData(params?: Record<string, any>) {
+    clearTimeout(timer)
     if (!source.value) return
     if (source.value.type === 'api') {
-      const url = source.value.url
-
       try {
-        const search = new URLSearchParams(location.search)
-        const params = Object.fromEntries(search.entries())
-        const res = await axios.get(url, {
-          params: {
-            ...source.value.params,
-            ...params,
-          },
-        })
-        data.value = res.data
+        loading.value = true
+        data.value = await fetchData(source.value, params)
+      } catch (e) {
+        error.value = e
       } finally {
+        loading.value = false
         if (source.value.interval) {
           timer = setTimeout(() => {
             loadData()
@@ -37,12 +36,41 @@ export function useDataSource(dataId: Ref<string | number>) {
     }
   }
 
-  watch(source, loadData, { immediate: true })
+  watch(source, () => loadData(), { immediate: true })
 
   onBeforeUnmount(() => {
     clearTimeout(timer)
   })
   return {
     data,
+    loading,
+    error,
+    refresh: loadData,
   }
 }
+
+export async function fetchDataBase(source: DataSourceSchema, data?: Record<string, any>) {
+  const search = new URLSearchParams(location.search)
+  const params = Object.fromEntries(search.entries())
+
+  const queryParams = {
+    ...source.params,
+    ...params,
+    ...data,
+  }
+
+  const paramsKey = source.method === 'post' ? 'data' : 'params'
+  const config = {
+    url: source.url,
+    method: source.method,
+    [paramsKey]: queryParams,
+  }
+  const res = await axios.request(config)
+  if (source.responsePath) {
+    return getByKeyOrPath(res.data, source.responsePath)
+  } else {
+    return res.data
+  }
+}
+
+export const fetchData = asyncCache(fetchDataBase)

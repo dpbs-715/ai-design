@@ -105,12 +105,12 @@ export const barMaterial: MaterialDefinition = {
         tooltip: {},
         dataset: {
           source: [
-            { month: '一月', sales: 120 },
-            { month: '二月', sales: 200 },
-            { month: '三月', sales: 150 },
-            { month: '四月', sales: 80 },
-            { month: '五月', sales: 170 },
-            { month: '六月', sales: 240 },
+            { label: '一月', value: 120 },
+            { label: '二月', value: 200 },
+            { label: '三月', value: 150 },
+            { label: '四月', value: 80 },
+            { label: '五月', value: 170 },
+            { label: '六月', value: 240 },
           ],
         },
         grid: {
@@ -148,8 +148,8 @@ export const barMaterial: MaterialDefinition = {
             type: 'bar',
             barWidth: '45%',
             encode: {
-              x: 'month',
-              y: 'sales',
+              x: 'label',
+              y: 'value',
             },
             itemStyle: {
               color: '#22d3ee',

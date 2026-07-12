@@ -91,7 +91,7 @@ function onSave() {
 
     <input ref="inputRef" type="file" v-show="false" @change="onFileChange" />
 
-    <el-drawer destroy-on-close v-model="visible" title="编辑 JSON" size="800">
+    <el-drawer destroy-on-close v-model="visible" title="编辑 JSON" size="900">
       <MonacoEditor v-model="jsonText" />
       <template #footer>
         <CommonButton class="mr-10" type="normal" @click="visible = false">取消</CommonButton>
