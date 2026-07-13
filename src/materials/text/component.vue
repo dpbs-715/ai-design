@@ -2,11 +2,19 @@
 defineOptions({
   name: 'TextMaterial',
 })
-defineProps(['schema'])
+const props = defineProps(['schema'])
+
+const textStyle = computed(() => {
+  const style = props.schema.style
+  return {
+    color: style.color,
+    fontSize: `${style.fontSize}px`,
+  }
+})
 </script>
 
 <template>
-  <div :style="schema.style">
+  <div :style="textStyle">
     {{ schema.props.content }}
   </div>
 </template>

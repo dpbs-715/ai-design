@@ -3,14 +3,20 @@ import { provideDataSources } from '@/context'
 import type { MaterialSchema } from '@/schema/material.ts'
 import { getMaterialComponent } from '@/materials'
 import type { PageSchema } from '@/schema/page.ts'
+import { createRuntimeContext } from '@/runtime/context.ts'
 
 defineOptions({ name: 'ScreenRenderer' })
 
 const props = defineProps<{ page: PageSchema }>()
 
-const canvas = computed(() => props.page.canvas)
-const nodes = computed(() => props.page.nodes)
-const dataSources = computed(() => props.page.dataSources)
+const runtimePage = ref(props.page)
+const context = createRuntimeContext(runtimePage)
+
+window.$context = context
+
+const canvas = computed(() => runtimePage.value.canvas)
+const nodes = computed(() => runtimePage.value.nodes)
+const dataSources = computed(() => runtimePage.value.dataSources)
 
 const scale = ref(0)
 const left = ref(0)
@@ -44,7 +50,19 @@ function init() {
   left.value = (window.innerWidth - canvas.value.width * scale.value) / 2
   top.value = (window.innerHeight - canvas.value.height * scale.value) / 2
 }
+
+const vm = getCurrentInstance()
+
+function registerNodeInstance() {
+  const refs = {}
+  for (const key in vm.refs) {
+    refs[key] = vm.refs[key][0]
+  }
+  context.registerNodeInstance(refs)
+}
+
 onMounted(() => {
+  registerNodeInstance()
   init()
   addEventListener('resize', init)
   onBeforeUnmount(() => {
@@ -62,7 +80,7 @@ onMounted(() => {
         v-for="(node, index) in nodes"
         :key="node.id"
       >
-        <component :is="getMaterialComponent(node.type)" :schema="node" />
+        <component :ref="node.id" :is="getMaterialComponent(node.type)" :schema="node" />
       </div>
     </div>
   </div>

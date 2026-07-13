@@ -65,6 +65,7 @@ export async function fetchDataBase(source: DataSourceSchema, data?: Record<stri
     method: source.method,
     [paramsKey]: queryParams,
   }
+  console.log('config==>', config)
   const res = await axios.request(config)
   if (source.responsePath) {
     return getByKeyOrPath(res.data, source.responsePath)

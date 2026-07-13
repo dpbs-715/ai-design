@@ -1,4 +1,4 @@
-import { debounce } from '@/utils'
+import { debounce } from '@/utils/debounce.ts'
 
 export function useRefResizeObserver(observerRef: Ref, options = { exec: () => {}, timer: 100 }) {
   const height = ref()

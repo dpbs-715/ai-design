@@ -14,7 +14,7 @@ const chartRef = useTemplateRef('chartRef')
 
 const dataId = computed(() => props.schema.dataId)
 
-const { data, loading } = useDataSource(dataId)
+const { data, loading, refresh } = useDataSource(dataId)
 
 const option = computed(() => {
   const _option = props.schema.props.option
@@ -38,6 +38,8 @@ watch(option, (newValue) => chart.setOption(newValue), {
   deep: true,
 })
 
+defineExpose({ refresh })
+
 onMounted(() => {
   chart = init(chartRef.value)
   chart.setOption(option.value)
@@ -46,7 +48,9 @@ onMounted(() => {
 </script>
 
 <template>
-  <div v-loading="loading" class="chart-material w-full h-full" ref="chartRef" />
+  <div v-loading="loading" class="chart-material w-full h-full">
+    <div class="w-full h-full" ref="chartRef" />
+  </div>
 </template>
 
 <style scoped lang="scss"></style>

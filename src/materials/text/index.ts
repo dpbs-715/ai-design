@@ -41,6 +41,11 @@ const textMaterial: MaterialDefinition = {
       label: '颜色',
       field: 'style.color',
     },
+    {
+      component: 'number',
+      label: '颜色',
+      field: 'style.fontSize',
+    },
   ],
 
   schema: {
@@ -55,6 +60,7 @@ const textMaterial: MaterialDefinition = {
     },
     style: {
       color: 'white',
+      fontSize: 16,
     },
     props: {
       content: 'hello world',
