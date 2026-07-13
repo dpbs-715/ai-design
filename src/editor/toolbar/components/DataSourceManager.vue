@@ -46,6 +46,7 @@ const { config } = useConfigs<CommonFormConfig>([
     field: 'type',
     component: 'radioGroup',
     props: {
+      radioType: 'button',
       options: [
         {
           label: '静态',
@@ -76,6 +77,7 @@ const { config } = useConfigs<CommonFormConfig>([
     hidden: staticGroup,
     component: 'radioGroup',
     props: {
+      radioType: 'button',
       options: [
         {
           label: 'GET',
