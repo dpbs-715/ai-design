@@ -6,6 +6,7 @@ import { type CommonFormConfig } from '@vunio/ui'
 import { useConfigs } from '@vunio/hooks'
 import { useUndoRedo } from '@/hooks/useUndoRedo.ts'
 import DataSource from './DataSource.vue'
+import NodeEvents from '@/editor/panels/property/components/NodeEvents.vue'
 
 defineOptions({ name: 'NodeProperty' })
 
@@ -68,22 +69,33 @@ const sections: PropertySectionConfig[] = [
   { name: 'layout', title: '布局', config: layoutConfig },
   { name: 'node', title: '组件属性', config: nodeConfig },
 ]
-
-const visible = ref(false)
+const eventVisible = ref(false)
+const jsonVisible = ref(false)
 const jsonText = ref('')
+const nodeEventsRef = useTemplateRef('nodeEvents')
+
 function previewJson() {
   jsonText.value = JSON.stringify(selectedNode.value, null, 2)
-  visible.value = true
+  jsonVisible.value = true
 }
 
-function onConfirm() {
+function previewEvents() {
+  eventVisible.value = true
+}
+
+function onConfirmJSON() {
   const newNode = JSON.parse(jsonText.value)
   editorStore.updateNode(selectedNode.value.id, {
     ...newNode,
     id: selectedNode.value.id,
     type: selectedNode.value.type,
   })
-  visible.value = false
+  jsonVisible.value = false
+}
+
+function onConfirmEvent() {
+  nodeEventsRef.value.save()
+  eventVisible.value = false
 }
 </script>
 
@@ -91,9 +103,14 @@ function onConfirm() {
   <div class="node-property">
     <div class="node-title">
       <span>{{ selectedNode.name }}</span>
-      <span class="cursor-pointer" @click="previewJson">
-        <Icon icon="si:json-fill" />
-      </span>
+      <div class="flex items-center gap-20">
+        <span class="cursor-pointer" @click="previewEvents">
+          <Icon icon="codicon:symbol-event" />
+        </span>
+        <span class="cursor-pointer" @click="previewJson">
+          <Icon icon="si:json-fill" />
+        </span>
+      </div>
     </div>
     <el-tabs v-model="activeTab" stretch>
       <el-tab-pane label="属性" name="property">
@@ -116,19 +133,30 @@ function onConfirm() {
             </div>
           </el-collapse-item>
         </el-collapse>
-        <el-drawer destroy-on-close v-model="visible" title="编辑 JSON" size="800">
-          <MonacoEditor v-model="jsonText" />
-          <template #footer>
-            <CommonButton class="mr-10" type="normal" @click="visible = false">取消</CommonButton>
-
-            <CommonButton type="primary" @click="onConfirm">确认</CommonButton>
-          </template>
-        </el-drawer>
       </el-tab-pane>
       <el-tab-pane label="数据源" name="dataSource">
         <DataSource />
       </el-tab-pane>
     </el-tabs>
+
+    <el-drawer destroy-on-close v-model="jsonVisible" title="编辑 JSON" size="800">
+      <MonacoEditor v-model="jsonText" />
+      <template #footer>
+        <CommonButton class="mr-10" type="normal" @click="jsonVisible = false">取消</CommonButton>
+
+        <CommonButton type="primary" @click="onConfirmJSON">确认</CommonButton>
+      </template>
+    </el-drawer>
+
+    <CommonDialog
+      @confirm="onConfirmEvent"
+      destroy-on-close
+      v-model="eventVisible"
+      title="事件配置"
+      width="900"
+    >
+      <NodeEvents ref="nodeEvents" />
+    </CommonDialog>
   </div>
 </template>
 

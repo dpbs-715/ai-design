@@ -12,6 +12,8 @@ interface RuntimeContext {
   registerNodeInstance(instances: Record<string, any>): void
   trigger: (id: string, event: string, ...args: any[]) => any
   refreshNodesByDataId: (dataId: string, ...args: any[]) => void
+
+  dispatch: (id: string, action: string, ...args: any[]) => any
 }
 
 export function createRuntimeContext(page: Ref<PageSchema>): RuntimeContext {
@@ -63,6 +65,8 @@ export function createRuntimeContext(page: Ref<PageSchema>): RuntimeContext {
     })
   }
 
+  const dispatch: RuntimeContext['dispatch'] = (id, action, ...args) => {}
+
   return {
     getNode,
     setAttribute,
@@ -72,5 +76,6 @@ export function createRuntimeContext(page: Ref<PageSchema>): RuntimeContext {
     registerNodeInstance,
     trigger,
     refreshNodesByDataId,
+    dispatch,
   }
 }

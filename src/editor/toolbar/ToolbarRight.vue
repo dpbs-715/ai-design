@@ -107,7 +107,7 @@ function onPublish() {
 
     <input ref="inputRef" type="file" v-show="false" @change="onFileChange" />
 
-    <el-drawer destroy-on-close v-model="visible" title="编辑 JSON" size="900">
+    <el-drawer destroy-on-close v-model="visible" title="编辑 JSON" size="800">
       <MonacoEditor v-model="jsonText" />
       <template #footer>
         <CommonButton class="mr-10" type="normal" @click="visible = false">取消</CommonButton>
@@ -121,7 +121,7 @@ function onPublish() {
       @confirm="onSave"
       title="数据源配置"
       v-model="dataSourceVisible"
-      width="800"
+      width="900"
     >
       <DataSourceManager ref="dataSourceManager" />
     </CommonDialog>

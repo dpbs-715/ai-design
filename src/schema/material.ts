@@ -5,7 +5,7 @@ export interface Layout {
   height: number
 }
 
-interface MaterialEvent {
+export interface MaterialEvent {
   type: string
   name: string
   /**
