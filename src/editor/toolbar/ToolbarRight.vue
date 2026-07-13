@@ -3,11 +3,14 @@ import { useEditorStore } from '@/stores/editor.ts'
 import { storeToRefs } from 'pinia'
 import { ElMessage } from 'element-plus'
 import DataSourceManager from './components/DataSourceManager.vue'
+import { useRouter } from 'vue-router'
 
 defineOptions({ name: 'ToolbarRight' })
 
 const uploadRef = useTemplateRef<HTMLInputElement>('inputRef')
 const dataSourceManagerRef = useTemplateRef('dataSourceManager')
+
+const router = useRouter()
 
 const editorStore = useEditorStore()
 const { page } = storeToRefs(editorStore)
@@ -66,11 +69,17 @@ function onSave() {
   dataSourceManagerRef.value.save()
   dataSourceVisible.value = false
 }
+
+function onPreview() {
+  router.push({
+    name: 'ScreenPreview',
+  })
+}
 </script>
 
 <template>
   <div class="flex gap-20 toolbar-right justify-end">
-    <span>
+    <span @click="onPreview">
       <Icon icon="fluent:preview-link-16-filled" />
     </span>
     <span @click="previewJson">

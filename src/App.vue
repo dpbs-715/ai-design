@@ -1,11 +1,7 @@
-<script setup lang="ts">
-import ScreenEditor from '@/editor/index.vue'
-</script>
+<script setup lang="ts"></script>
 
 <template>
-  <div>
-    <ScreenEditor />
-  </div>
+  <router-view />
 </template>
 
 <style scoped lang="scss"></style>
