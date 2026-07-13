@@ -61,6 +61,18 @@ function registerNodeInstance() {
   context.registerNodeInstance(refs)
 }
 
+function createEvents(node: MaterialSchema) {
+  const listeners = {}
+  const events = node.events || []
+  events.forEach((event) => {
+    listeners[event.type] = () => {
+      const fn = new Function('$context', '$node', event.code)
+      fn(context, node)
+    }
+  })
+  return listeners
+}
+
 onMounted(() => {
   registerNodeInstance()
   init()
@@ -80,7 +92,12 @@ onMounted(() => {
         v-for="(node, index) in nodes"
         :key="node.id"
       >
-        <component :ref="node.id" :is="getMaterialComponent(node.type)" :schema="node" />
+        <component
+          :ref="node.id"
+          :is="getMaterialComponent(node.type)"
+          :schema="node"
+          v-on="createEvents(node)"
+        />
       </div>
     </div>
   </div>

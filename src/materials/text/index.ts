@@ -65,6 +65,13 @@ const textMaterial: MaterialDefinition = {
     props: {
       content: 'hello world',
     },
+    events: [
+      {
+        type: 'click',
+        name: 'clickFn',
+        code: `$context.refreshNodesByDataId('789')`,
+      },
+    ],
   },
 }
 

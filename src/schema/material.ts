@@ -5,6 +5,15 @@ export interface Layout {
   height: number
 }
 
+interface MaterialEvent {
+  type: string
+  name: string
+  /**
+   * function body
+   * */
+  code: string
+}
+
 export interface MaterialSchema {
   type: string
   name: string
@@ -14,6 +23,7 @@ export interface MaterialSchema {
   style?: Record<string, any>
   props: Record<string, any>
   dataId?: string | number
+  events?: MaterialEvent[]
 }
 interface SetterSchema {
   field: string

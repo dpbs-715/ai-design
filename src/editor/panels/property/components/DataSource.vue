@@ -30,7 +30,7 @@ const { config } = useConfigs<CommonFormConfig>(
 
 <template>
   <div class="px-15 py-10">
-    <CommonForm v-model="selectedNode" :config="config" />
+    <CommonForm label-width="" v-model="selectedNode" :config="config" />
   </div>
 </template>
 
