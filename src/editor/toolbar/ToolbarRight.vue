@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { ElMessage } from 'element-plus'
 import DataSourceManager from './components/DataSourceManager.vue'
 import { useRouter } from 'vue-router'
+import { publishPage } from '@/utils/publish.ts'
 
 defineOptions({ name: 'ToolbarRight' })
 
@@ -75,6 +76,12 @@ function onPreview() {
     name: 'ScreenPreview',
   })
 }
+
+function onPublish() {
+  const id = publishPage(page.value)
+
+  router.push({ name: 'Screen', query: { id } })
+}
 </script>
 
 <template>
@@ -85,7 +92,7 @@ function onPreview() {
     <span @click="previewJson">
       <Icon icon="si:json-fill" />
     </span>
-    <span>
+    <span @click="onPublish">
       <Icon icon="entypo:publish" />
     </span>
     <span @click="openDataSource">

@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import ScreenRenderer from '@/components/ScreenRenderer/index.vue'
-import { useEditorStore } from '@/stores/editor.ts'
-import { storeToRefs } from 'pinia'
+import { getPublishPage } from '@/utils/publish.ts'
+import { useRoute } from 'vue-router'
 
 defineOptions({ name: 'ScreenPreview' })
 
-const editorStore = useEditorStore()
-const { page } = storeToRefs(editorStore)
+const route = useRoute()
+
+const page = getPublishPage(route.query.id)
 </script>
 
 <template>

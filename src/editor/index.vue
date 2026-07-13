@@ -8,10 +8,19 @@ import CanvasRoot from '@/editor/canvas/index.vue'
 import PropertyPanel from '@/editor/panels/property/index.vue'
 import { storeToRefs } from 'pinia'
 import { provideDataSources } from '@/context'
+import { useRoute } from 'vue-router'
+import { getPublishPage } from '@/utils/publish.ts'
 
 defineOptions({ name: 'ScreenEditor' })
 
+const route = useRoute()
 const editorStore = useEditorStore()
+
+const pageId = route.query.id
+if (pageId) {
+  const page = getPublishPage(route.query.id)
+  editorStore.setPage(page)
+}
 
 const { dataSources } = storeToRefs(editorStore)
 
