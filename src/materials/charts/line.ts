@@ -140,7 +140,6 @@ export const lineMaterial: MaterialDefinition = {
               itemStyle: {
                 color: '#7c8cff',
               },
-              data: [{ type: 'max', name: '峰值' }],
             },
           },
         ],
