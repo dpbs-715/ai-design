@@ -1,5 +1,10 @@
 import type { MaterialDefinition } from '@/schema/material.ts'
 import ChartPreview from '@/materials/previews/ChartPreview.vue'
+import {
+  cartesianChartSetters,
+  commonChartSetters,
+  createCartesianOption,
+} from '@/materials/charts/shared.ts'
 
 export const areaMaterial: MaterialDefinition = {
   name: '面积图',
@@ -9,67 +14,54 @@ export const areaMaterial: MaterialDefinition = {
     props: { variant: 'area' },
   },
   setters: [
+    ...commonChartSetters,
     {
-      component: 'input',
-      label: '标题',
-      field: 'props.option.title.text',
+      component: 'color',
+      label: '轮廓颜色',
+      field: 'props.option.color.0',
+      span: 24,
     },
     {
       component: 'color',
-      label: '标题色',
-      field: 'props.option.title.textStyle.color',
-    },
-    {
-      component: 'checkbox',
-      label: '图例显示',
-      field: 'props.option.legend.show',
-    },
-    {
-      component: 'select',
-      label: '对齐',
-      field: 'props.option.title.left',
-      props: {
-        options: [
-          { label: '左对齐', value: 'left' },
-          { label: '居中', value: 'center' },
-          { label: '右对齐', value: 'right' },
-        ],
-      },
+      label: '渐变顶部',
+      field: 'props.option.series.0.areaStyle.color.colorStops.0.color',
+      span: 12,
+      props: { showAlpha: true },
     },
     {
       component: 'color',
-      label: '线颜色',
-      field: 'props.option.series.0.lineStyle.color',
-    },
-    {
-      component: 'color',
-      label: '面积色',
-      field: 'props.option.series.0.areaStyle.color',
+      label: '渐变底部',
+      field: 'props.option.series.0.areaStyle.color.colorStops.1.color',
+      span: 12,
+      props: { showAlpha: true },
     },
     {
       component: 'number',
-      label: '上边距',
-      field: 'props.option.grid.top',
+      label: '填充透明度',
+      field: 'props.option.series.0.areaStyle.opacity',
       span: 12,
+      props: { min: 0, max: 1, step: 0.05, precision: 2 },
     },
     {
       component: 'number',
-      label: '右边距',
-      field: 'props.option.grid.right',
+      label: '轮廓宽度',
+      field: 'props.option.series.0.lineStyle.width',
+      span: 12,
+      props: { min: 0, max: 10 },
+    },
+    {
+      component: 'switch',
+      label: '平滑曲线',
+      field: 'props.option.series.0.smooth',
       span: 12,
     },
     {
-      component: 'number',
-      label: '下边距',
-      field: 'props.option.grid.bottom',
+      component: 'switch',
+      label: '显示节点',
+      field: 'props.option.series.0.showSymbol',
       span: 12,
     },
-    {
-      component: 'number',
-      label: '左边距',
-      field: 'props.option.grid.left',
-      span: 12,
-    },
+    ...cartesianChartSetters,
   ],
   dataBindings: [
     { label: '分类轴 X', field: 'props.option.series.0.encode.x' },
@@ -81,93 +73,62 @@ export const areaMaterial: MaterialDefinition = {
     layout: {
       x: 0,
       y: 0,
-      width: 400,
+      width: 420,
       height: 260,
     },
     props: {
       option: {
-        legend: {
-          top: 38,
-          left: 'center',
-          itemWidth: 12,
-          itemHeight: 8,
-          show: true,
-          textStyle: {
-            color: '#cbd5e1',
-          },
-        },
-        title: {
-          text: '成交额趋势',
-          top: 8,
-          left: 'center',
-          textStyle: {
-            color: '#ffffff',
-            fontSize: 16,
-          },
-        },
-        tooltip: {
-          trigger: 'axis',
-        },
+        ...createCartesianOption('累计成交额'),
+        color: ['#22d3ee'],
         dataset: {
           source: [
-            { label: '周一', value: 120 },
-            { label: '周二', value: 200 },
-            { label: '周三', value: 150 },
-            { label: '周四', value: 260 },
-            { label: '周五', value: 330 },
-            { label: '周六', value: 420 },
-            { label: '周日', value: 510 },
+            { label: '1月', value: 86 },
+            { label: '2月', value: 112 },
+            { label: '3月', value: 164 },
+            { label: '4月', value: 218 },
+            { label: '5月', value: 286 },
+            { label: '6月', value: 378 },
+            { label: '7月', value: 452 },
           ],
         },
-        grid: {
-          top: 86,
-          right: 24,
-          bottom: 32,
-          left: 48,
-          containLabel: true,
-        },
         xAxis: {
-          type: 'category',
+          ...createCartesianOption('').xAxis,
           boundaryGap: false,
-          axisLine: {
-            lineStyle: {
-              color: '#64748b',
-            },
-          },
-          axisLabel: {
-            color: '#cbd5e1',
-          },
-        },
-        yAxis: {
-          type: 'value',
-          axisLabel: {
-            color: '#cbd5e1',
-          },
-          splitLine: {
-            lineStyle: {
-              color: 'rgba(148, 163, 184, 0.18)',
-            },
-          },
         },
         series: [
           {
             name: '成交额',
             type: 'line',
             smooth: true,
-            symbolSize: 8,
+            showSymbol: false,
+            symbol: 'circle',
+            symbolSize: 6,
             encode: {
               x: 'label',
               y: 'value',
             },
             lineStyle: {
-              width: 3,
-              color: '#22d3ee',
-            },
-            itemStyle: {
-              color: '#22d3ee',
+              width: 2,
+              cap: 'round',
+              shadowColor: 'rgba(34, 211, 238, 0.32)',
+              shadowBlur: 10,
             },
             areaStyle: {
-              color: 'rgba(34, 211, 238, 0.25)',
+              opacity: 0.9,
+              color: {
+                type: 'linear',
+                x: 0,
+                y: 0,
+                x2: 0,
+                y2: 1,
+                colorStops: [
+                  { offset: 0, color: 'rgba(34, 211, 238, 0.52)' },
+                  { offset: 1, color: 'rgba(34, 211, 238, 0.02)' },
+                ],
+              },
+            },
+            emphasis: {
+              focus: 'series',
             },
           },
         ],

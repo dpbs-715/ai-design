@@ -1,5 +1,10 @@
-import { type MaterialDefinition } from '@/schema/material.ts'
+import type { MaterialDefinition } from '@/schema/material.ts'
 import ChartPreview from '@/materials/previews/ChartPreview.vue'
+import {
+  cartesianChartSetters,
+  commonChartSetters,
+  createCartesianOption,
+} from '@/materials/charts/shared.ts'
 
 export const barMaterial: MaterialDefinition = {
   name: '柱状图',
@@ -9,62 +14,55 @@ export const barMaterial: MaterialDefinition = {
     props: { variant: 'bar' },
   },
   setters: [
+    ...commonChartSetters,
     {
-      component: 'input',
-      label: '标题',
-      field: 'props.option.title.text',
+      component: 'color',
+      label: '渐变顶部',
+      field: 'props.option.series.0.itemStyle.color.colorStops.0.color',
+      span: 12,
+      props: { showAlpha: true },
     },
     {
       component: 'color',
-      label: '标题色',
-      field: 'props.option.title.textStyle.color',
+      label: '渐变底部',
+      field: 'props.option.series.0.itemStyle.color.colorStops.1.color',
+      span: 12,
+      props: { showAlpha: true },
     },
     {
-      component: 'checkbox',
-      label: '图例显示',
-      field: 'props.option.legend.show',
+      component: 'number',
+      label: '柱体宽度',
+      field: 'props.option.series.0.barWidth',
+      span: 12,
+      props: { min: 4, max: 80 },
+    },
+    {
+      component: 'number',
+      label: '柱体圆角',
+      field: 'props.option.series.0.itemStyle.borderRadius',
+      span: 12,
+      props: { min: 0, max: 30 },
+    },
+    {
+      component: 'switch',
+      label: '显示数值',
+      field: 'props.option.series.0.label.show',
+      span: 12,
     },
     {
       component: 'commonSelect',
-      label: '对齐',
-      field: 'props.option.title.left',
+      label: '数值位置',
+      field: 'props.option.series.0.label.position',
+      span: 12,
       props: {
         options: [
-          { label: '左对齐', value: 'left' },
-          { label: '居中', value: 'center' },
-          { label: '右对齐', value: 'right' },
+          { label: '柱体顶部', value: 'top' },
+          { label: '柱体内部', value: 'inside' },
+          { label: '内部顶部', value: 'insideTop' },
         ],
       },
     },
-    {
-      component: 'color',
-      label: '柱颜色',
-      field: 'props.option.series.0.itemStyle.color',
-    },
-    {
-      component: 'number',
-      label: '上边距',
-      field: 'props.option.grid.top',
-      span: 12,
-    },
-    {
-      component: 'number',
-      label: '右边距',
-      field: 'props.option.grid.right',
-      span: 12,
-    },
-    {
-      component: 'number',
-      label: '下边距',
-      field: 'props.option.grid.bottom',
-      span: 12,
-    },
-    {
-      component: 'number',
-      label: '左边距',
-      field: 'props.option.grid.left',
-      span: 12,
-    },
+    ...cartesianChartSetters,
   ],
   dataBindings: [
     { label: '分类轴 X', field: 'props.option.series.0.encode.x' },
@@ -76,82 +74,56 @@ export const barMaterial: MaterialDefinition = {
     layout: {
       x: 0,
       y: 0,
-      width: 400,
+      width: 420,
       height: 260,
     },
     props: {
       option: {
-        legend: {
-          top: 38,
-          left: 'center',
-          itemWidth: 12,
-          itemHeight: 8,
-          show: true,
-          textStyle: {
-            color: '#cbd5e1',
-          },
-        },
-        title: {
-          text: '销售额统计',
-          top: 8,
-          left: 'center',
-          textStyle: {
-            color: '#ffffff',
-            fontSize: 16,
-          },
-        },
-        tooltip: {},
+        ...createCartesianOption('渠道转化量'),
         dataset: {
           source: [
-            { label: '一月', value: 120 },
-            { label: '二月', value: 200 },
-            { label: '三月', value: 150 },
-            { label: '四月', value: 80 },
-            { label: '五月', value: 170 },
-            { label: '六月', value: 240 },
+            { label: '搜索', value: 186 },
+            { label: '推荐', value: 268 },
+            { label: '社媒', value: 214 },
+            { label: '活动', value: 336 },
+            { label: '自然', value: 292 },
+            { label: '其他', value: 148 },
           ],
-        },
-        grid: {
-          top: 86,
-          right: 24,
-          bottom: 32,
-          left: 48,
-          containLabel: true,
-        },
-        xAxis: {
-          type: 'category',
-          axisLine: {
-            lineStyle: {
-              color: '#64748b',
-            },
-          },
-          axisLabel: {
-            color: '#cbd5e1',
-          },
-        },
-        yAxis: {
-          type: 'value',
-          axisLabel: {
-            color: '#cbd5e1',
-          },
-          splitLine: {
-            lineStyle: {
-              color: 'rgba(148, 163, 184, 0.18)',
-            },
-          },
         },
         series: [
           {
-            name: '销售额',
+            name: '转化量',
             type: 'bar',
-            barWidth: '45%',
+            barWidth: 24,
             encode: {
               x: 'label',
               y: 'value',
             },
+            label: {
+              show: false,
+              position: 'top',
+              color: '#cbd5e1',
+              fontSize: 11,
+            },
             itemStyle: {
-              color: '#22d3ee',
-              borderRadius: [4, 4, 0, 0],
+              borderRadius: 6,
+              color: {
+                type: 'linear',
+                x: 0,
+                y: 0,
+                x2: 0,
+                y2: 1,
+                colorStops: [
+                  { offset: 0, color: '#7c8cff' },
+                  { offset: 1, color: '#4f5bd5' },
+                ],
+              },
+            },
+            emphasis: {
+              itemStyle: {
+                shadowColor: 'rgba(124, 140, 255, 0.34)',
+                shadowBlur: 14,
+              },
             },
           },
         ],

@@ -1,5 +1,10 @@
 import type { MaterialDefinition } from '@/schema/material.ts'
 import ChartPreview from '@/materials/previews/ChartPreview.vue'
+import {
+  cartesianChartSetters,
+  commonChartSetters,
+  createCartesianOption,
+} from '@/materials/charts/shared.ts'
 
 export const lineMaterial: MaterialDefinition = {
   name: '折线图',
@@ -9,62 +14,59 @@ export const lineMaterial: MaterialDefinition = {
     props: { variant: 'line' },
   },
   setters: [
+    ...commonChartSetters,
     {
-      component: 'input',
-      label: '标题',
-      field: 'props.option.title.text',
+      component: 'color',
+      label: '折线颜色',
+      field: 'props.option.series.0.lineStyle.color',
+      span: 12,
     },
     {
       component: 'color',
-      label: '标题色',
-      field: 'props.option.title.textStyle.color',
+      label: '节点颜色',
+      field: 'props.option.series.0.itemStyle.borderColor',
+      span: 12,
     },
     {
-      component: 'checkbox',
-      label: '图例显示',
-      field: 'props.option.legend.show',
+      component: 'number',
+      label: '线条宽度',
+      field: 'props.option.series.0.lineStyle.width',
+      span: 12,
+      props: { min: 1, max: 10 },
     },
     {
-      component: 'select',
-      label: '对齐',
-      field: 'props.option.title.left',
+      component: 'commonSelect',
+      label: '线条样式',
+      field: 'props.option.series.0.lineStyle.type',
+      span: 12,
       props: {
         options: [
-          { label: '左对齐', value: 'left' },
-          { label: '居中', value: 'center' },
-          { label: '右对齐', value: 'right' },
+          { label: '实线', value: 'solid' },
+          { label: '虚线', value: 'dashed' },
+          { label: '点线', value: 'dotted' },
         ],
       },
     },
     {
-      component: 'color',
-      label: '线颜色',
-      field: 'props.option.series.0.lineStyle.color',
+      component: 'switch',
+      label: '平滑曲线',
+      field: 'props.option.series.0.smooth',
+      span: 12,
     },
     {
-      component: 'number',
-      label: '上边距',
-      field: 'props.option.grid.top',
+      component: 'switch',
+      label: '显示节点',
+      field: 'props.option.series.0.showSymbol',
       span: 12,
     },
     {
       component: 'number',
-      label: '右边距',
-      field: 'props.option.grid.right',
-      span: 12,
+      label: '节点大小',
+      field: 'props.option.series.0.symbolSize',
+      span: 24,
+      props: { min: 2, max: 24 },
     },
-    {
-      component: 'number',
-      label: '下边距',
-      field: 'props.option.grid.bottom',
-      span: 12,
-    },
-    {
-      component: 'number',
-      label: '左边距',
-      field: 'props.option.grid.left',
-      span: 12,
-    },
+    ...cartesianChartSetters,
   ],
   dataBindings: [
     { label: '分类轴 X', field: 'props.option.series.0.encode.x' },
@@ -76,90 +78,69 @@ export const lineMaterial: MaterialDefinition = {
     layout: {
       x: 0,
       y: 0,
-      width: 400,
+      width: 420,
       height: 260,
     },
     props: {
       option: {
-        legend: {
-          top: 38,
-          left: 'center',
-          itemWidth: 12,
-          itemHeight: 8,
-          show: true,
-          textStyle: {
-            color: '#cbd5e1',
-          },
-        },
-        title: {
-          text: '访问量趋势',
-          top: 8,
-          left: 'center',
-          textStyle: {
-            color: '#ffffff',
-            fontSize: 16,
-          },
-        },
-        tooltip: {
-          trigger: 'axis',
-        },
+        ...createCartesianOption('实时访问趋势'),
+        color: ['#7c8cff'],
         dataset: {
           source: [
-            { label: '周一', value: 820 },
-            { label: '周二', value: 932 },
-            { label: '周三', value: 901 },
-            { label: '周四', value: 934 },
-            { label: '周五', value: 1290 },
-            { label: '周六', value: 1330 },
-            { label: '周日', value: 1320 },
+            { label: '08:00', value: 420 },
+            { label: '10:00', value: 680 },
+            { label: '12:00', value: 590 },
+            { label: '14:00', value: 960 },
+            { label: '16:00', value: 810 },
+            { label: '18:00', value: 1240 },
+            { label: '20:00', value: 1080 },
           ],
         },
-        grid: {
-          top: 86,
-          right: 24,
-          bottom: 32,
-          left: 48,
-          containLabel: true,
-        },
         xAxis: {
-          type: 'category',
+          ...createCartesianOption('').xAxis,
           boundaryGap: false,
-          axisLine: {
-            lineStyle: {
-              color: '#64748b',
-            },
-          },
-          axisLabel: {
-            color: '#cbd5e1',
-          },
-        },
-        yAxis: {
-          type: 'value',
-          axisLabel: {
-            color: '#cbd5e1',
-          },
-          splitLine: {
-            lineStyle: {
-              color: 'rgba(148, 163, 184, 0.18)',
-            },
-          },
         },
         series: [
           {
             name: '访问量',
             type: 'line',
-            smooth: true,
-            symbolSize: 8,
+            smooth: false,
+            showSymbol: true,
+            symbol: 'circle',
+            symbolSize: 7,
             encode: {
               x: 'label',
               y: 'value',
             },
             lineStyle: {
               width: 3,
-              color: '#38bdf8',
+              type: 'solid',
+              color: '#8b9bff',
+              cap: 'round',
+              join: 'round',
+              shadowColor: 'rgba(124, 140, 255, 0.24)',
+              shadowBlur: 10,
             },
             itemStyle: {
-              color: '#38bdf8',
+              color: '#111827',
+              borderColor: '#a5b0ff',
+              borderWidth: 2,
+            },
+            emphasis: {
+              focus: 'series',
+              scale: 1.5,
+            },
+            markPoint: {
+              symbol: 'pin',
+              symbolSize: 34,
+              label: {
+                color: '#ffffff',
+                fontSize: 10,
+              },
+              itemStyle: {
+                color: '#7c8cff',
+              },
+              data: [{ type: 'max', name: '峰值' }],
             },
           },
         ],

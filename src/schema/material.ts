@@ -31,7 +31,7 @@ export interface MaterialSchema {
   dataId?: string | number
   events?: MaterialEvent[]
 }
-interface SetterSchema {
+export interface MaterialSetter {
   field: string
   label: string
   component: string
@@ -60,7 +60,7 @@ export interface MaterialDefinition {
   preview: MaterialPreviewDefinition
   //endregion
 
-  setters: SetterSchema[]
+  setters: MaterialSetter[]
 
   eventOptions?: EventOption[]
   dataBindings?: MaterialDataBinding[]
