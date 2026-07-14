@@ -7,6 +7,7 @@ import MonacoEditor from '@/components/MonacoEditor/index.vue'
 import { deepClone } from '@vunio/utils'
 import type { MaterialEvent } from '@/schema/material.ts'
 import { ElMessage } from 'element-plus'
+import { getMaterialEventOptions } from '@/materials'
 
 defineOptions({
   name: 'NodeEvents',
@@ -23,6 +24,10 @@ function selectEvent(event: MaterialEvent) {
   activeEvent.value = event
 }
 
+const eventOptions = computed(() => {
+  return getMaterialEventOptions(selectedNode.value.type)
+})
+
 const { config } = useConfigs<CommonFormConfig>([
   {
     label: '标题',
@@ -35,6 +40,13 @@ const { config } = useConfigs<CommonFormConfig>([
   {
     label: '类型',
     field: 'type',
+    component: 'commonSelect',
+    props: {
+      placeholder: '请选择事件名',
+      options: eventOptions,
+      allowCreate: true,
+      filterable: true,
+    },
   },
   {
     label: '函数体',
@@ -44,7 +56,8 @@ const { config } = useConfigs<CommonFormConfig>([
 
 function onAdd() {
   data.value.push({
-    name: '未命名',
+    title: '未命名',
+    name: 'functionName',
     type: '',
     code: '',
   })

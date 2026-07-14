@@ -3,12 +3,12 @@ import type { MaterialDefinition } from '@/schema/material.ts'
 const materials: MaterialDefinition[] = []
 
 const componentMap = new Map()
-const settersMap = new Map()
+const materialMap = new Map()
 
 export function register(material: MaterialDefinition, component: Component) {
   materials.push(material)
   componentMap.set(material.schema.type, component)
-  settersMap.set(material.schema.type, material.setters)
+  materialMap.set(material.schema.type, material)
 }
 
 const materialModules = import.meta.glob('./*/index.ts', { eager: true })
@@ -41,7 +41,11 @@ export function getMaterialComponent(type: string) {
   return componentMap.get(type)
 }
 export function getMaterialSetters(type: string) {
-  return settersMap.get(type)
+  return materialMap.get(type)?.setters || []
+}
+
+export function getMaterialEventOptions(type) {
+  return materialMap.get(type)?.eventOptions || []
 }
 
 export function createNode(node) {
