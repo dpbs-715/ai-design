@@ -1,11 +1,6 @@
 import type { MaterialDefinition } from '@/schema/material.ts'
 import ChartPreview from '@/materials/previews/ChartPreview.vue'
-import {
-  commonChartSetters,
-  createChartBaseOption,
-  hideWhenUsingChartTheme,
-} from '@/materials/charts/shared.ts'
-import { CHART_COLOR_MODE_THEME } from '@/materials/charts/theme.ts'
+import { commonChartSetters, createChartBaseOption } from '@/materials/charts/shared.ts'
 
 export const pieMaterial: MaterialDefinition = {
   name: '饼图',
@@ -21,21 +16,18 @@ export const pieMaterial: MaterialDefinition = {
       label: '主色',
       field: 'props.option.color.0',
       span: 8,
-      hidden: hideWhenUsingChartTheme,
     },
     {
       component: 'color',
       label: '辅助色',
       field: 'props.option.color.1',
       span: 8,
-      hidden: hideWhenUsingChartTheme,
     },
     {
       component: 'color',
       label: '强调色',
       field: 'props.option.color.2',
       span: 8,
-      hidden: hideWhenUsingChartTheme,
     },
     {
       component: 'input',
@@ -118,7 +110,6 @@ export const pieMaterial: MaterialDefinition = {
       height: 260,
     },
     props: {
-      colorMode: CHART_COLOR_MODE_THEME,
       option: {
         ...createChartBaseOption('流量来源构成'),
         color: ['#7c8cff', '#22d3ee', '#fbbf24', '#34d399', '#fb7185'],

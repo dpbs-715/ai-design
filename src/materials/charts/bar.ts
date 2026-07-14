@@ -4,9 +4,7 @@ import {
   cartesianChartSetters,
   commonChartSetters,
   createCartesianOption,
-  hideWhenUsingChartTheme,
 } from '@/materials/charts/shared.ts'
-import { CHART_COLOR_MODE_THEME } from '@/materials/charts/theme.ts'
 
 export const barMaterial: MaterialDefinition = {
   name: '柱状图',
@@ -23,7 +21,6 @@ export const barMaterial: MaterialDefinition = {
       field: 'props.option.series.0.itemStyle.color.colorStops.0.color',
       span: 12,
       props: { showAlpha: true },
-      hidden: hideWhenUsingChartTheme,
     },
     {
       component: 'color',
@@ -31,7 +28,6 @@ export const barMaterial: MaterialDefinition = {
       field: 'props.option.series.0.itemStyle.color.colorStops.1.color',
       span: 12,
       props: { showAlpha: true },
-      hidden: hideWhenUsingChartTheme,
     },
     {
       component: 'number',
@@ -82,7 +78,6 @@ export const barMaterial: MaterialDefinition = {
       height: 260,
     },
     props: {
-      colorMode: CHART_COLOR_MODE_THEME,
       option: {
         ...createCartesianOption('渠道转化量'),
         dataset: {

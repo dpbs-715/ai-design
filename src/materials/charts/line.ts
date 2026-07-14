@@ -4,9 +4,7 @@ import {
   cartesianChartSetters,
   commonChartSetters,
   createCartesianOption,
-  hideWhenUsingChartTheme,
 } from '@/materials/charts/shared.ts'
-import { CHART_COLOR_MODE_THEME } from '@/materials/charts/theme.ts'
 
 export const lineMaterial: MaterialDefinition = {
   name: '折线图',
@@ -22,14 +20,12 @@ export const lineMaterial: MaterialDefinition = {
       label: '折线颜色',
       field: 'props.option.series.0.lineStyle.color',
       span: 12,
-      hidden: hideWhenUsingChartTheme,
     },
     {
       component: 'color',
       label: '节点颜色',
       field: 'props.option.series.0.itemStyle.borderColor',
       span: 12,
-      hidden: hideWhenUsingChartTheme,
     },
     {
       component: 'number',
@@ -86,7 +82,6 @@ export const lineMaterial: MaterialDefinition = {
       height: 260,
     },
     props: {
-      colorMode: CHART_COLOR_MODE_THEME,
       option: {
         ...createCartesianOption('实时访问趋势'),
         color: ['#7c8cff'],

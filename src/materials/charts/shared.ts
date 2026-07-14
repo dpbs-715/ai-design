@@ -1,9 +1,4 @@
-import type { MaterialSchema, MaterialSetter } from '@/schema/material.ts'
-import {
-  CHART_COLOR_MODE_CUSTOM,
-  CHART_COLOR_MODE_THEME,
-  usesChartTheme,
-} from '@/materials/charts/theme.ts'
+import type { MaterialSetter } from '@/schema/material.ts'
 
 const alignmentOptions = [
   { label: '左对齐', value: 20 },
@@ -12,18 +7,6 @@ const alignmentOptions = [
 ]
 
 export const commonChartSetters: MaterialSetter[] = [
-  {
-    component: 'commonSelect',
-    label: '配色模式',
-    field: 'props.colorMode',
-    span: 24,
-    props: {
-      options: [
-        { label: '跟随主题', value: CHART_COLOR_MODE_THEME },
-        { label: '自定义配色', value: CHART_COLOR_MODE_CUSTOM },
-      ],
-    },
-  },
   {
     component: 'input',
     label: '标题',
@@ -82,10 +65,6 @@ export const commonChartSetters: MaterialSetter[] = [
     span: 12,
   },
 ]
-
-export function hideWhenUsingChartTheme({ formData }: { formData: MaterialSchema }) {
-  return usesChartTheme(formData.props.colorMode)
-}
 
 export const cartesianChartSetters: MaterialSetter[] = [
   {
