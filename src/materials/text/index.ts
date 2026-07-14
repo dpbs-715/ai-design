@@ -1,11 +1,14 @@
 import TextMaterial from './component.vue'
 import type { MaterialDefinition } from '@/schema/material.ts'
+import TextPreview from '@/materials/previews/TextPreview.vue'
 
 const textMaterial: MaterialDefinition = {
   // 物料元数据
   name: '文本',
   group: 'info',
-  icon: 'solar:text-bold',
+  preview: {
+    component: TextPreview,
+  },
   setters: [
     {
       component: 'number',
@@ -70,7 +73,7 @@ const textMaterial: MaterialDefinition = {
     layout: {
       x: 0,
       y: 0,
-      width: 300,
+      width: 100,
       height: 50,
     },
     style: {

@@ -1,9 +1,13 @@
 import { type MaterialDefinition } from '@/schema/material.ts'
+import ChartPreview from '@/materials/previews/ChartPreview.vue'
 
 export const barMaterial: MaterialDefinition = {
   name: '柱状图',
   group: 'charts',
-  icon: 'fluent-color:list-bar-16',
+  preview: {
+    component: ChartPreview,
+    props: { variant: 'bar' },
+  },
   setters: [
     {
       component: 'input',

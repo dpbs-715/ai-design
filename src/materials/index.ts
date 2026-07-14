@@ -19,12 +19,12 @@ Object.values(materialModules).forEach((module: any) => {
 const group = [
   {
     name: '图表',
-    icon: 'solar:chart-bold',
+    icon: 'fluent:data-bar-vertical-20-filled',
     key: 'charts',
   },
   {
-    name: '信息',
-    icon: 'material-symbols:info',
+    name: '文本',
+    icon: 'fluent:text-font-20-filled',
     key: 'info',
   },
 ]

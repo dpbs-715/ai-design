@@ -1,9 +1,13 @@
 import type { MaterialDefinition } from '@/schema/material.ts'
+import ChartPreview from '@/materials/previews/ChartPreview.vue'
 
 export const lineMaterial: MaterialDefinition = {
   name: '折线图',
   group: 'charts',
-  icon: 'fluent-color:list-bar-16',
+  preview: {
+    component: ChartPreview,
+    props: { variant: 'line' },
+  },
   setters: [
     {
       component: 'input',

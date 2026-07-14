@@ -10,49 +10,91 @@ const groups = geyMaterialGroups()
 const currentMaterial = computed(() => {
   return getMaterialByGroup(activeGroup.value)
 })
+
+const activeGroupName = computed(() => {
+  return groups.find((group) => group.key === activeGroup.value)?.name ?? ''
+})
 </script>
 
 <template>
-  <div class="material-panel flex">
-    <div class="nav w-50 whitespace-nowrap">
-      <div
-        @click="activeGroup = item.key"
-        :class="{ active: activeGroup === item.key }"
-        v-for="item in groups"
-        :key="item.key"
-      >
-        <span>
-          <Icon :icon="item.icon" width="16" />
-        </span>
-        <span>{{ item.name }}</span>
-      </div>
+  <div class="material-panel">
+    <div class="panel-heading">
+      <span class="panel-title">素材</span>
+      <span class="panel-context">{{ activeGroupName }}</span>
     </div>
-    <div class="material-list flex-1 p-10 overflow-auto">
-      <MaterialItem
-        class="mb-10"
-        v-for="item in currentMaterial"
-        :key="item.name"
-        :material="item"
-      />
+
+    <div class="panel-body">
+      <nav class="nav whitespace-nowrap" aria-label="素材分类">
+        <button
+          v-for="group in groups"
+          :key="group.key"
+          type="button"
+          :class="{ active: activeGroup === group.key }"
+          :aria-pressed="activeGroup === group.key"
+          @click="activeGroup = group.key"
+        >
+          <Icon :icon="group.icon" width="18" />
+          <span>{{ group.name }}</span>
+        </button>
+      </nav>
+
+      <div class="material-list overflow-auto">
+        <MaterialItem v-for="material in currentMaterial" :key="material.name" :material />
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped lang="scss">
 .material-panel {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
   background: var(--surface-panel);
+}
+
+.panel-heading {
+  display: flex;
+  height: 42px;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.panel-title {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.panel-context {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.panel-body {
+  display: flex;
+  min-height: 0;
+  flex: 1;
 
   .nav {
+    width: 54px;
+    flex: none;
     background: var(--surface-workbench);
     border-right: 1px solid var(--border-color);
 
-    div {
+    button {
       display: flex;
+      width: 100%;
+      height: 58px;
       flex-direction: column;
-      justify-content: center;
       align-items: center;
-      height: 50px;
+      justify-content: center;
       gap: 3px;
+      padding: 0;
+      border: 0;
+      background: transparent;
       color: var(--text-muted);
       font-size: 12px;
       cursor: pointer;
@@ -68,11 +110,15 @@ const currentMaterial = computed(() => {
       &.active {
         background: var(--accent-soft);
         color: var(--accent-color);
+        box-shadow: inset 2px 0 0 var(--accent-color);
       }
     }
   }
 
   .material-list {
+    min-width: 0;
+    flex: 1;
+    padding: 4px 10px 10px;
     background: var(--surface-panel);
   }
 }

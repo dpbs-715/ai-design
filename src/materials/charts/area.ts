@@ -1,9 +1,13 @@
 import type { MaterialDefinition } from '@/schema/material.ts'
+import ChartPreview from '@/materials/previews/ChartPreview.vue'
 
 export const areaMaterial: MaterialDefinition = {
   name: '面积图',
   group: 'charts',
-  icon: 'fluent-color:list-bar-16',
+  preview: {
+    component: ChartPreview,
+    props: { variant: 'area' },
+  },
   setters: [
     {
       component: 'input',

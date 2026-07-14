@@ -1,3 +1,5 @@
+import type { Component } from 'vue'
+
 export interface Layout {
   x: number
   y: number
@@ -36,21 +38,26 @@ interface SetterSchema {
   [key: string]: any
 }
 
-interface eventOption {
+interface EventOption {
   label: string
   value: string
+}
+
+export interface MaterialPreviewDefinition {
+  component: Component
+  props?: Record<string, unknown>
 }
 
 export interface MaterialDefinition {
   //region 物料元数据
   name: string
   group: string
-  icon: string
+  preview: MaterialPreviewDefinition
   //endregion
 
   setters: SetterSchema[]
 
-  eventOptions: eventOption[]
+  eventOptions?: EventOption[]
 
   schema: Omit<MaterialSchema, 'id'>
 }

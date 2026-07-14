@@ -1,9 +1,13 @@
 import type { MaterialDefinition } from '@/schema/material.ts'
+import ChartPreview from '@/materials/previews/ChartPreview.vue'
 
 export const pieMaterial: MaterialDefinition = {
   name: '饼图',
   group: 'charts',
-  icon: 'fluent-color:list-bar-16',
+  preview: {
+    component: ChartPreview,
+    props: { variant: 'pie' },
+  },
   setters: [
     {
       component: 'input',
