@@ -7,7 +7,7 @@ defineOptions({ name: 'ScreenPreview' })
 
 const route = useRoute()
 
-const page = getPublishPage(route.query.id)
+const page = getPublishPage(route.query.id as string)
 </script>
 
 <template>
