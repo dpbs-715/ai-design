@@ -47,6 +47,10 @@ select {
   outline-offset: 2px;
 }
 
+.el-select__input:focus-visible {
+  outline: none;
+}
+
 .el-overlay,
 .el-popper,
 .el-message {
