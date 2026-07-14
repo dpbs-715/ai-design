@@ -52,3 +52,13 @@ select {
 .el-message {
   color: var(--text-primary);
 }
+
+.commonTable {
+  --el-table-bg-color: var(--surface-panel);
+  --el-table-border-color: var(--border-color);
+  --el-table-header-bg-color: var(--surface-raised);
+  --el-table-header-text-color: var(--text-secondary);
+  --el-table-row-hover-bg-color: var(--surface-hover);
+  --el-table-text-color: var(--text-muted);
+  --el-table-tr-bg-color: var(--surface-panel);
+}

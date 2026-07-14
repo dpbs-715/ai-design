@@ -33,6 +33,11 @@ registerComponentDefaultPropsMap({
   CommonDialog: {
     top: '10vh',
   },
+  CommonTable: {
+    size: 'small',
+    emptyValue: '—',
+    tableLayout: 'fixed',
+  },
 })
 
 app.mount('#app')

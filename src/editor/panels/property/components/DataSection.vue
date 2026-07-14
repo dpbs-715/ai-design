@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { CommonFormConfig } from '@vunio/ui'
+import { CommonTable, type CommonFormConfig, type CommonTableConfig } from '@vunio/ui'
 import { getByKeyOrPath } from '@vunio/utils'
 import { storeToRefs } from 'pinia'
 import { fetchData } from '@/hooks/useDataSource.ts'
@@ -128,6 +128,15 @@ const sourceSummary = computed(() => {
 
 const visibleFields = computed(() => previewFields.value.slice(0, 3))
 
+const previewTableConfig = computed<CommonTableConfig[]>(() =>
+  visibleFields.value.map((field) => ({
+    label: field,
+    field,
+    minWidth: 88,
+    formatter: (row: PreviewRow) => formatCell(row[field]),
+  })),
+)
+
 function formatCell(value: unknown) {
   if (value == null) return '—'
   if (typeof value === 'object') return JSON.stringify(value)
@@ -199,20 +208,7 @@ function openSourceManager() {
             <span>正在加载数据</span>
           </div>
           <div v-else-if="previewRows.length" class="preview-table-wrap">
-            <table class="preview-table">
-              <thead>
-                <tr>
-                  <th v-for="field in visibleFields" :key="field">{{ field }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(row, index) in previewRows" :key="index">
-                  <td v-for="field in visibleFields" :key="field" :title="formatCell(row[field])">
-                    {{ formatCell(row[field]) }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            <CommonTable :config="previewTableConfig" :data="previewRows" />
           </div>
           <div v-else class="preview-state">
             <Icon icon="fluent:table-simple-20-regular" width="18" />
@@ -293,39 +289,18 @@ function openSourceManager() {
 
 .preview-table-wrap {
   overflow: hidden;
-  border: 1px solid var(--border-color);
   border-radius: 5px;
-}
 
-.preview-table {
-  width: 100%;
-  table-layout: fixed;
-  border-collapse: collapse;
-  font-size: 12px;
-
-  th,
-  td {
-    overflow: hidden;
-    padding: 7px 8px;
-    border-right: 1px solid var(--border-color);
-    text-align: left;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-
-    &:last-child {
-      border-right: 0;
-    }
+  :deep(.commonTable) {
+    font-size: 12px;
   }
 
-  th {
-    background: var(--surface-raised);
-    color: var(--text-secondary);
+  :deep(.el-table__cell) {
+    padding: 6px 0;
+  }
+
+  :deep(.el-table__header .cell) {
     font-weight: 500;
-  }
-
-  td {
-    border-top: 1px solid var(--border-color);
-    color: var(--text-muted);
   }
 }
 
