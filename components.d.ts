@@ -12,16 +12,11 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     CommonButton: typeof import('@vunio/ui')['CommonButton']
-    CommonDialog: typeof import('@vunio/ui')['CommonDialog']
     CommonForm: typeof import('@vunio/ui')['CommonForm']
     ElCascader: typeof import('element-plus/es')['ElCascader']
-    ElCollapse: typeof import('element-plus/es')['ElCollapse']
-    ElCollapseItem: typeof import('element-plus/es')['ElCollapseItem']
     ElDrawer: typeof import('element-plus/es')['ElDrawer']
     ElDropdown: typeof import('element-plus/es')['ElDropdown']
     ElDropdownItem: typeof import('element-plus/es')['ElDropdownItem']
-    ElTabPane: typeof import('element-plus/es')['ElTabPane']
-    ElTabs: typeof import('element-plus/es')['ElTabs']
     MonacoEditor: typeof import('./src/components/MonacoEditor/index.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']

@@ -8,8 +8,12 @@ import { publishPage } from '@/utils/publish.ts'
 
 defineOptions({ name: 'ToolbarRight' })
 
+interface DataSourceManagerExpose {
+  save: () => boolean | void
+}
+
 const uploadRef = useTemplateRef<HTMLInputElement>('inputRef')
-const dataSourceManagerRef = useTemplateRef('dataSourceManager')
+const dataSourceManagerRef = useTemplateRef<DataSourceManagerExpose>('dataSourceManager')
 
 const router = useRouter()
 
@@ -70,9 +74,13 @@ function openDataSource() {
   dataSourceVisible.value = true
 }
 
-function onSave() {
-  dataSourceManagerRef.value.save()
+function closeDataSource() {
   dataSourceVisible.value = false
+}
+
+function onSave() {
+  const saved = dataSourceManagerRef.value?.save()
+  if (saved !== false) dataSourceVisible.value = false
 }
 
 function onPreview() {
@@ -155,15 +163,13 @@ function onMoreAction(action: MoreAction) {
       </template>
     </el-drawer>
 
-    <CommonDialog
-      destroy-on-close
-      @confirm="onSave"
-      title="数据源配置"
-      v-model="dataSourceVisible"
-      width="900"
-    >
+    <el-drawer v-model="dataSourceVisible" destroy-on-close title="管理数据源" :size="720">
       <DataSourceManager ref="dataSourceManager" />
-    </CommonDialog>
+      <template #footer>
+        <CommonButton class="mr-10" type="normal" @click="closeDataSource"> 取消 </CommonButton>
+        <CommonButton type="primary" @click="onSave">保存数据源</CommonButton>
+      </template>
+    </el-drawer>
   </div>
 </template>
 

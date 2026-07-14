@@ -41,16 +41,10 @@ export const pieMaterial: MaterialDefinition = {
       label: '主色',
       field: 'props.option.color.0',
     },
-    {
-      component: 'input',
-      label: '名称字段',
-      field: 'props.option.series.0.encode.itemName',
-    },
-    {
-      component: 'input',
-      label: '数值字段',
-      field: 'props.option.series.0.encode.value',
-    },
+  ],
+  dataBindings: [
+    { label: '名称字段', field: 'props.option.series.0.encode.itemName' },
+    { label: '数值字段', field: 'props.option.series.0.encode.value' },
   ],
   schema: {
     type: 'pie-chart',

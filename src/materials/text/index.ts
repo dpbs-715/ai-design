@@ -11,30 +11,6 @@ const textMaterial: MaterialDefinition = {
   },
   setters: [
     {
-      component: 'number',
-      label: '宽度',
-      field: 'layout.width',
-      span: 12,
-    },
-    {
-      component: 'number',
-      label: '高度',
-      field: 'layout.height',
-      span: 12,
-    },
-    {
-      component: 'number',
-      label: 'x',
-      field: 'layout.x',
-      span: 12,
-    },
-    {
-      component: 'number',
-      label: 'y',
-      field: 'layout.y',
-      span: 12,
-    },
-    {
       component: 'input',
       label: '内容',
       field: 'props.content',
@@ -46,7 +22,7 @@ const textMaterial: MaterialDefinition = {
     },
     {
       component: 'number',
-      label: '颜色',
+      label: '字号',
       field: 'style.fontSize',
     },
   ],

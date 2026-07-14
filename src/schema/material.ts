@@ -38,7 +38,7 @@ interface SetterSchema {
   [key: string]: any
 }
 
-interface EventOption {
+export interface EventOption {
   label: string
   value: string
 }
@@ -46,6 +46,11 @@ interface EventOption {
 export interface MaterialPreviewDefinition {
   component: Component
   props?: Record<string, unknown>
+}
+
+export interface MaterialDataBinding {
+  label: string
+  field: string
 }
 
 export interface MaterialDefinition {
@@ -58,6 +63,7 @@ export interface MaterialDefinition {
   setters: SetterSchema[]
 
   eventOptions?: EventOption[]
+  dataBindings?: MaterialDataBinding[]
 
   schema: Omit<MaterialSchema, 'id'>
 }

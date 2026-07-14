@@ -1,9 +1,10 @@
-import type { MaterialDefinition } from '@/schema/material.ts'
+import type { Component } from 'vue'
+import type { MaterialDefinition, MaterialSchema } from '@/schema/material.ts'
 
 const materials: MaterialDefinition[] = []
 
-const componentMap = new Map()
-const materialMap = new Map()
+const componentMap = new Map<string, Component>()
+const materialMap = new Map<string, MaterialDefinition>()
 
 export function register(material: MaterialDefinition, component: Component) {
   materials.push(material)
@@ -44,11 +45,15 @@ export function getMaterialSetters(type: string) {
   return materialMap.get(type)?.setters || []
 }
 
-export function getMaterialEventOptions(type) {
+export function getMaterialEventOptions(type: string) {
   return materialMap.get(type)?.eventOptions || []
 }
 
-export function createNode(node) {
+export function getMaterialDataBindings(type: string) {
+  return materialMap.get(type)?.dataBindings || []
+}
+
+export function createNode(node: Omit<MaterialSchema, 'id'>): MaterialSchema {
   return {
     ...node,
     id: crypto.randomUUID(),

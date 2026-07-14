@@ -47,16 +47,6 @@ export const areaMaterial: MaterialDefinition = {
       field: 'props.option.series.0.areaStyle.color',
     },
     {
-      component: 'input',
-      label: 'X字段',
-      field: 'props.option.series.0.encode.x',
-    },
-    {
-      component: 'input',
-      label: 'Y字段',
-      field: 'props.option.series.0.encode.y',
-    },
-    {
       component: 'number',
       label: '上边距',
       field: 'props.option.grid.top',
@@ -80,6 +70,10 @@ export const areaMaterial: MaterialDefinition = {
       field: 'props.option.grid.left',
       span: 12,
     },
+  ],
+  dataBindings: [
+    { label: '分类轴 X', field: 'props.option.series.0.encode.x' },
+    { label: '数值轴 Y', field: 'props.option.series.0.encode.y' },
   ],
   schema: {
     type: 'area-chart',
