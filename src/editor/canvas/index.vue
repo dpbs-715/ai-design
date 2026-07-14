@@ -25,15 +25,25 @@ const { height: rectHeight, width: rectWidth } = useRefResizeObserver(canvasRoot
 const { nodes } = storeToRefs(editorStore)
 
 const { active: dragCanvas } = useSpaceEventListener()
+const {
+  isMoveableActive,
+  moveableBounds,
+  onDrag,
+  onStart,
+  onEnd,
+  onResize,
+  onDragGroup,
+  onResizeGroup,
+} = useMoveable()
 const { canvasWidth, canvasHeight, canvasStyle, scale, lines, palette, onZoomChange } =
   useCanvasRuler({
     moveableRef,
+    isMoveableActive,
   })
-const { moveableBounds, onDrag, onStart, onEnd, onResize, onDragGroup, onResizeGroup } =
-  useMoveable()
 const { selectedTarget, onSelect, onClearSelected, onSelectEnd } = useSelection({
   stageRef,
   moveableRef,
+  isMoveableActive,
 })
 
 function onStageMouseDown() {

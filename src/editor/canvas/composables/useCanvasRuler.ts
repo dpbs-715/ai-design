@@ -1,11 +1,17 @@
 import { storeToRefs } from 'pinia'
 import { useEditorStore } from '@/stores/editor.ts'
+import type { Ref, ShallowRef } from 'vue'
+
+interface UseCanvasRulerOptions {
+  moveableRef: Readonly<ShallowRef<{ updateRect: () => void } | null>>
+  isMoveableActive: Readonly<Ref<boolean>>
+}
 
 function readThemeColor(name: string) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
 }
 
-export function useCanvasRuler({ moveableRef }) {
+export function useCanvasRuler({ moveableRef, isMoveableActive }: UseCanvasRulerOptions) {
   const editorStore = useEditorStore()
   const { canvas } = storeToRefs(editorStore)
   const canvasWidth = computed(() => canvas.value.width)
@@ -35,9 +41,22 @@ export function useCanvasRuler({ moveableRef }) {
     }
   })
 
+  let moveableUpdateFrame: number | undefined
+
   const onZoomChange = () => {
-    moveableRef.value.updateRect()
+    if (isMoveableActive.value) return
+    if (moveableUpdateFrame !== undefined) return
+
+    moveableUpdateFrame = requestAnimationFrame(() => {
+      moveableUpdateFrame = undefined
+      if (!isMoveableActive.value) moveableRef.value?.updateRect()
+    })
   }
+
+  onScopeDispose(() => {
+    if (moveableUpdateFrame !== undefined) cancelAnimationFrame(moveableUpdateFrame)
+  })
+
   return {
     canvasWidth,
     canvasHeight,

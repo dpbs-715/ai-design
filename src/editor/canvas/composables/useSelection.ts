@@ -1,7 +1,7 @@
 import type { MaterialSchema } from '@/schema/material.ts'
 import { useEditorStore } from '@/stores/editor.ts'
 import { storeToRefs } from 'pinia'
-import type { ShallowRef } from 'vue'
+import type { Ref, ShallowRef } from 'vue'
 
 interface UseSelectionOptions {
   stageRef: Readonly<ShallowRef<HTMLElement | null>>
@@ -11,9 +11,10 @@ interface UseSelectionOptions {
       updateRect: () => void
     } | null>
   >
+  isMoveableActive: Readonly<Ref<boolean>>
 }
 
-export function useSelection({ stageRef, moveableRef }: UseSelectionOptions) {
+export function useSelection({ stageRef, moveableRef, isMoveableActive }: UseSelectionOptions) {
   const editorStore = useEditorStore()
   const selectedTarget = shallowRef<HTMLElement[]>([])
   const { selectedNodeIds } = storeToRefs(editorStore)
@@ -62,7 +63,7 @@ export function useSelection({ stageRef, moveableRef }: UseSelectionOptions) {
 
     updateFrame = requestAnimationFrame(() => {
       updateFrame = undefined
-      moveableRef.value?.updateRect()
+      if (!isMoveableActive.value) moveableRef.value?.updateRect()
     })
   }
 
@@ -89,6 +90,7 @@ export function useSelection({ stageRef, moveableRef }: UseSelectionOptions) {
   watch(
     selectedLayouts,
     () => {
+      if (isMoveableActive.value) return
       scheduleMoveableUpdate()
     },
     { flush: 'post' },
