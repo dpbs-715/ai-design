@@ -22,6 +22,7 @@ const events = computed(() => selectedNode.value.events ?? [])
 const eventOptions = computed(() => getMaterialEventOptions(selectedNode.value.type))
 const selectedEventIndex = ref(0)
 const activeEvent = computed(() => events.value[selectedEventIndex.value])
+const CUSTOM_EVENT_COMMAND = '__custom_event__'
 
 watch(
   [() => selectedNode.value.id, () => events.value.length],
@@ -78,7 +79,7 @@ function createEventName(type: string) {
 function addEvent(type: string) {
   const option = eventOptions.value.find((eventOption) => eventOption.value === type)
   const newEvent: MaterialEvent = {
-    title: option?.label ?? '未命名事件',
+    title: option?.label ?? type,
     name: createEventName(type),
     type,
     code: '',
@@ -88,6 +89,29 @@ function addEvent(type: string) {
     events: [...events.value, newEvent],
   })
   selectedEventIndex.value = events.value.length
+}
+
+async function handleAddEvent(command: string) {
+  if (command !== CUSTOM_EVENT_COMMAND) {
+    addEvent(command)
+    return
+  }
+
+  try {
+    const { value } = await ElMessageBox.prompt(
+      '请输入事件类型，例如 mouseenter 或 data-loaded。',
+      '添加自定义事件',
+      {
+        confirmButtonText: '添加',
+        cancelButtonText: '取消',
+        inputPlaceholder: '事件类型',
+        inputValidator: (input) => input.trim().length > 0 || '请输入事件类型',
+      },
+    )
+    addEvent(value.trim())
+  } catch {
+    return
+  }
 }
 
 async function removeEvent(event: MaterialEvent) {
@@ -131,8 +155,8 @@ function openCodeEditor() {
           <h3>事件</h3>
           <p>{{ events.length }} 个已配置事件</p>
         </div>
-        <el-dropdown :disabled="eventOptions.length === 0" trigger="click" @command="addEvent">
-          <button type="button" class="add-event-button" :disabled="eventOptions.length === 0">
+        <el-dropdown trigger="click" @command="handleAddEvent">
+          <button type="button" class="add-event-button">
             <Icon icon="fluent:add-16-regular" width="16" />
             添加
           </button>
@@ -143,6 +167,12 @@ function openCodeEditor() {
               :command="option.value"
             >
               {{ option.label }}
+            </el-dropdown-item>
+            <el-dropdown-item
+              :command="CUSTOM_EVENT_COMMAND"
+              :divided="eventOptions.length > 0"
+            >
+              自定义事件类型
             </el-dropdown-item>
           </template>
         </el-dropdown>
@@ -182,9 +212,11 @@ function openCodeEditor() {
 
       <div v-else class="empty-state compact-empty">
         <Icon icon="fluent:flash-20-regular" width="22" />
-        <strong>{{ eventOptions.length ? '还没有配置事件' : '该组件没有可用事件' }}</strong>
+        <strong>还没有配置事件</strong>
         <span>{{
-          eventOptions.length ? '点击添加，选择组件支持的事件类型' : '素材定义中尚未声明事件类型'
+          eventOptions.length
+            ? '点击添加，选择组件支持的类型或创建自定义事件'
+            : '点击添加，创建自定义事件类型'
         }}</span>
       </div>
     </section>
