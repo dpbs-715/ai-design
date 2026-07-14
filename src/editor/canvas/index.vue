@@ -12,6 +12,9 @@ import 'vue3-sketch-ruler/lib/style.css'
 import { useCanvasRuler } from '@/editor/canvas/composables/useCanvasRuler.ts'
 import { useMoveable } from '@/editor/canvas/composables/useMoveable.ts'
 import { useSelection } from '@/editor/canvas/composables/useSelection.ts'
+import NodeContextMenu from '@/editor/canvas/components/NodeContextMenu.vue'
+import type { NodeContextMenuCommand } from '@/editor/canvas/contextMenu.ts'
+import type { DropdownInstance } from 'element-plus'
 
 defineOptions({
   name: 'CanvasRoot',
@@ -20,6 +23,8 @@ const editorStore = useEditorStore()
 const moveableRef = useTemplateRef('moveable')
 const stageRef = useTemplateRef('stage')
 const canvasRootRef = useTemplateRef('canvasRoot')
+const dropdownRefs = new Map<string, DropdownInstance>()
+let activeContextMenuId: string | null = null
 
 const { height: rectHeight, width: rectWidth } = useRefResizeObserver(canvasRootRef)
 const { nodes } = storeToRefs(editorStore)
@@ -50,6 +55,28 @@ function onStageMouseDown() {
   if (!dragCanvas.value) onClearSelected()
 }
 
+function setDropdownRef(nodeId: string, dropdown: DropdownInstance | null) {
+  if (dropdown) {
+    dropdownRefs.set(nodeId, dropdown)
+    return
+  }
+
+  dropdownRefs.delete(nodeId)
+  if (activeContextMenuId === nodeId) activeContextMenuId = null
+}
+
+function onContextMenuVisibleChange(nodeId: string, visible: boolean) {
+  if (!visible) {
+    if (activeContextMenuId === nodeId) activeContextMenuId = null
+    return
+  }
+
+  if (activeContextMenuId && activeContextMenuId !== nodeId) {
+    dropdownRefs.get(activeContextMenuId)?.handleClose()
+  }
+  activeContextMenuId = nodeId
+}
+
 function onDrop(e: DragEvent) {
   const data = e.dataTransfer.getData('schema')
   const node = createNode(JSON.parse(data))
@@ -75,19 +102,19 @@ function getNodeStyle(node: MaterialSchema, index: number) {
   }
 }
 
-const commandMap = {
-  copy: () => editorStore.copyNode(editorStore.selectedNode),
-  remove: () => editorStore.removeNode(editorStore.selectedNode),
-  moveTop: () => editorStore.moveBottom(editorStore.selectedNode),
-  moveBottom: () => editorStore.moveTop(editorStore.selectedNode),
-  toggleLock: () => {
-    editorStore.toggleLock(editorStore.selectedNode)
+const commandMap: Record<NodeContextMenuCommand, (node: MaterialSchema) => void> = {
+  copy: (node) => editorStore.copyNode(node),
+  remove: (node) => editorStore.removeNode(node),
+  moveTop: (node) => editorStore.moveBottom(node),
+  moveBottom: (node) => editorStore.moveTop(node),
+  toggleLock: (node) => {
+    editorStore.toggleLock(node)
     selectedTarget.value = []
   },
 }
 
-function onCommand(command: string) {
-  commandMap[command]()
+function onCommand(command: NodeContextMenuCommand, node: MaterialSchema) {
+  commandMap[command](node)
 }
 </script>
 
@@ -115,10 +142,14 @@ function onCommand(command: string) {
         @mousedown.self="onStageMouseDown"
       >
         <el-dropdown
-          trigger="contextmenu"
           v-for="(node, index) in nodes"
           :key="node.id"
-          @command="onCommand"
+          :ref="(dropdown: DropdownInstance | null) => setDropdownRef(node.id, dropdown)"
+          trigger="contextmenu"
+          :show-arrow="false"
+          popper-class="node-context-menu-popper"
+          @command="(command: NodeContextMenuCommand) => onCommand(command, node)"
+          @visible-change="(visible: boolean) => onContextMenuVisibleChange(node.id, visible)"
         >
           <div
             class="canvas-node"
@@ -130,13 +161,7 @@ function onCommand(command: string) {
             <component :is="getMaterialComponent(node.type)" :schema="node" />
           </div>
           <template #dropdown>
-            <el-dropdown-item command="copy">复制</el-dropdown-item>
-            <el-dropdown-item command="remove">移除</el-dropdown-item>
-            <el-dropdown-item command="moveTop">置顶</el-dropdown-item>
-            <el-dropdown-item command="moveBottom">置底</el-dropdown-item>
-            <el-dropdown-item command="toggleLock">
-              {{ node.locked ? '解锁' : '锁定' }}
-            </el-dropdown-item>
+            <NodeContextMenu :node="node" />
           </template>
         </el-dropdown>
       </div>
