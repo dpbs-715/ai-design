@@ -99,7 +99,7 @@ async function handleAddEvent(command: string) {
 
   try {
     const { value } = await ElMessageBox.prompt(
-      '请输入事件类型，例如 mouseenter 或 data-loaded。',
+      '请输入事件类型，例如 click 或 vnodeMounted等。',
       '添加自定义事件',
       {
         confirmButtonText: '添加',
@@ -168,10 +168,7 @@ function openCodeEditor() {
             >
               {{ option.label }}
             </el-dropdown-item>
-            <el-dropdown-item
-              :command="CUSTOM_EVENT_COMMAND"
-              :divided="eventOptions.length > 0"
-            >
+            <el-dropdown-item :command="CUSTOM_EVENT_COMMAND" :divided="eventOptions.length > 0">
               自定义事件类型
             </el-dropdown-item>
           </template>
