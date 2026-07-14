@@ -2,10 +2,11 @@
 import { useEditorStore } from '@/stores/editor.ts'
 import { storeToRefs } from 'pinia'
 import { useConfigs } from '@vunio/hooks'
-import type { CommonFormConfig } from '@vunio/ui'
+import { type CommonFormConfig, CommonSelect } from '@vunio/ui'
 import MonacoEditor from '@/components/MonacoEditor/index.vue'
 import { deepClone } from '@vunio/utils'
 import type { MaterialEvent } from '@/schema/material.ts'
+import { ElMessage } from 'element-plus'
 
 defineOptions({
   name: 'NodeEvents',
@@ -13,7 +14,7 @@ defineOptions({
 
 const editorStore = useEditorStore()
 
-const { selectedNode } = storeToRefs(editorStore)
+const { selectedNode, nodes } = storeToRefs(editorStore)
 
 const data = ref(deepClone(selectedNode.value.events || []))
 
@@ -56,6 +57,37 @@ function removeEvent(name: string) {
   selectEvent(null)
 }
 
+const dispatchEvent = ref()
+const dispatchOptions = computed(() => {
+  return nodes.value.map((node) => {
+    return {
+      label: node.name,
+      value: node.id,
+      children: node.events?.map((child) => {
+        return {
+          label: child.title,
+          value: child.name,
+        }
+      }),
+    }
+  })
+})
+
+async function copyNodeId(id: string) {
+  await navigator.clipboard.writeText(id)
+  ElMessage.success('复制成功')
+}
+
+function insertDispatchCode(values: string[]) {
+  const [id, name] = values
+  const code = `\n$context.dispatch('${id}','${name}')`
+  activeEvent.value.code += code
+
+  nextTick(() => {
+    dispatchEvent.value = undefined
+  })
+}
+
 defineExpose({
   save() {
     editorStore.updateNode(selectedNode.value.id, {
@@ -84,17 +116,36 @@ defineExpose({
       </div>
     </div>
     <div class="node-event-content">
-      <CommonForm v-if="activeEvent" v-model="activeEvent" :config="config">
-        <template #code>
-          <div class="flex flex-col w-full bg-[#1e1e1e]">
-            <div class="flex-none pl-30">
-              function {{ activeEvent.name }}($context,$node,$payload){
+      <template v-if="activeEvent">
+        <div class="flex gap-20 mb-20">
+          <CommonSelect
+            class="flex-1"
+            placeholder="复制节点 ID"
+            :options="nodes"
+            value-field="id"
+            label-field="name"
+            @change="copyNodeId"
+          />
+          <el-cascader
+            class="flex-1"
+            v-model="dispatchEvent"
+            placeholder="触发事件"
+            :options="dispatchOptions"
+            @change="insertDispatchCode"
+          />
+        </div>
+        <CommonForm v-model="activeEvent" :config="config">
+          <template #code>
+            <div class="flex flex-col w-full bg-[#1e1e1e]">
+              <div class="flex-none pl-30">
+                function {{ activeEvent.name }}($context,$node,$payload){
+              </div>
+              <MonacoEditor class="flex-1" v-model="activeEvent.code" lang="javascript" />
+              <div class="flex-none pl-30">}</div>
             </div>
-            <MonacoEditor class="flex-1" v-model="activeEvent.code" lang="javascript" />
-            <div class="flex-none pl-30">}</div>
-          </div>
-        </template>
-      </CommonForm>
+          </template>
+        </CommonForm>
+      </template>
     </div>
   </div>
 </template>

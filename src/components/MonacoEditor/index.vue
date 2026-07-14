@@ -22,7 +22,7 @@ const props = defineProps<{ lang?: string }>()
 
 const modelValue = defineModel<string>()
 
-const editorElement = useTemplateRef('editor')
+const editorElement = useTemplateRef('editorRef')
 
 let instance
 
@@ -52,7 +52,7 @@ watch(modelValue, (newVal) => {
 </script>
 
 <template>
-  <div class="editor-container" ref="editor"></div>
+  <div class="editor-container" ref="editorRef"></div>
 </template>
 
 <style scoped lang="scss">
