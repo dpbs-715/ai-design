@@ -70,13 +70,12 @@ function createEvents(node: MaterialSchema) {
       listeners[event.type] = event.handler
       return
     }
-    event.handler = listeners[event.type] = (payload) => {
+    event.handler = listeners[event.type] = (payload) =>
       runSandbox(event.code, {
         $context: context,
         $node: node,
         $payload: payload,
       })
-    }
   })
   return listeners
 }
