@@ -124,7 +124,7 @@ defineProps<{
 
 .area-line {
   fill: none;
-  stroke: color-mix(in srgb, var(--accent-color) 70%, #22d3ee);
+  stroke: var(--accent-color);
   stroke-linecap: round;
   stroke-width: 2;
 }
@@ -139,12 +139,12 @@ defineProps<{
 }
 
 .area-stop-end {
-  stop-color: #22d3ee;
-  stop-opacity: 0.04;
+  stop-color: var(--accent-color);
+  stop-opacity: 0.02;
 }
 
 .bar-stop-end {
-  stop-color: color-mix(in srgb, var(--accent-color) 62%, #3540a8);
+  stop-color: color-mix(in srgb, var(--accent-color) 68%, var(--surface-workbench));
 }
 
 .pie-segment {

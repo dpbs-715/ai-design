@@ -4,7 +4,9 @@ import {
   cartesianChartSetters,
   commonChartSetters,
   createCartesianOption,
+  hideWhenUsingChartTheme,
 } from '@/materials/charts/shared.ts'
+import { CHART_COLOR_MODE_THEME } from '@/materials/charts/theme.ts'
 
 export const areaMaterial: MaterialDefinition = {
   name: '面积图',
@@ -20,6 +22,7 @@ export const areaMaterial: MaterialDefinition = {
       label: '轮廓颜色',
       field: 'props.option.color.0',
       span: 24,
+      hidden: hideWhenUsingChartTheme,
     },
     {
       component: 'color',
@@ -27,6 +30,7 @@ export const areaMaterial: MaterialDefinition = {
       field: 'props.option.series.0.areaStyle.color.colorStops.0.color',
       span: 12,
       props: { showAlpha: true },
+      hidden: hideWhenUsingChartTheme,
     },
     {
       component: 'color',
@@ -34,6 +38,7 @@ export const areaMaterial: MaterialDefinition = {
       field: 'props.option.series.0.areaStyle.color.colorStops.1.color',
       span: 12,
       props: { showAlpha: true },
+      hidden: hideWhenUsingChartTheme,
     },
     {
       component: 'number',
@@ -77,9 +82,10 @@ export const areaMaterial: MaterialDefinition = {
       height: 260,
     },
     props: {
+      colorMode: CHART_COLOR_MODE_THEME,
       option: {
         ...createCartesianOption('累计成交额'),
-        color: ['#22d3ee'],
+        color: ['#7b8cff'],
         dataset: {
           source: [
             { label: '1月', value: 86 },
@@ -110,7 +116,7 @@ export const areaMaterial: MaterialDefinition = {
             lineStyle: {
               width: 2,
               cap: 'round',
-              shadowColor: 'rgba(34, 211, 238, 0.32)',
+              shadowColor: 'rgba(123, 140, 255, 0.28)',
               shadowBlur: 10,
             },
             areaStyle: {
@@ -122,8 +128,8 @@ export const areaMaterial: MaterialDefinition = {
                 x2: 0,
                 y2: 1,
                 colorStops: [
-                  { offset: 0, color: 'rgba(34, 211, 238, 0.52)' },
-                  { offset: 1, color: 'rgba(34, 211, 238, 0.02)' },
+                  { offset: 0, color: 'rgba(123, 140, 255, 0.48)' },
+                  { offset: 1, color: 'rgba(123, 140, 255, 0.02)' },
                 ],
               },
             },
