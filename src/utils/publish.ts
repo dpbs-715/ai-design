@@ -13,7 +13,7 @@ export function publishPage(page: PageSchema) {
   return id
 }
 
-export function getPublishPage(id) {
+export function getPublishPage(id: string) {
   const cacheData = publishCache.get()
   const page = cacheData[id]
   if (!page) {

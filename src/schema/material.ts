@@ -12,6 +12,10 @@ export interface MaterialEvent {
    * function body
    * */
   code: string
+
+  title?: string
+
+  handler?: (...args: any[]) => any
 }
 
 export interface MaterialSchema {

@@ -65,9 +65,13 @@ function createEvents(node: MaterialSchema) {
   const listeners = {}
   const events = node.events || []
   events.forEach((event) => {
-    listeners[event.type] = () => {
-      const fn = new Function('$context', '$node', event.code)
-      fn(context, node)
+    if (event.handler) {
+      listeners[event.type] = event.handler
+      return
+    }
+    event.handler = listeners[event.type] = (payload) => {
+      const fn = new Function('$context', '$node', '$payload', event.code)
+      fn(context, node, payload)
     }
   })
   return listeners

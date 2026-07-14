@@ -24,14 +24,16 @@ function selectEvent(event: MaterialEvent) {
 
 const { config } = useConfigs<CommonFormConfig>([
   {
+    label: '标题',
+    field: 'title',
+  },
+  {
     label: '名称',
     field: 'name',
-    component: 'input',
   },
   {
     label: '类型',
     field: 'type',
-    component: 'input',
   },
   {
     label: '函数体',
@@ -75,7 +77,7 @@ defineExpose({
         :key="item.name"
         @click="selectEvent(item)"
       >
-        <span>{{ item.name }}</span>
+        <div class="truncate">{{ item.title }}</div>
         <span class="cursor-pointer" @click.stop="removeEvent(item.name)">
           <Icon icon="mdi:remove" />
         </span>
@@ -85,7 +87,9 @@ defineExpose({
       <CommonForm v-if="activeEvent" v-model="activeEvent" :config="config">
         <template #code>
           <div class="flex flex-col w-full bg-[#1e1e1e]">
-            <div class="flex-none pl-30">function ($context,$node){</div>
+            <div class="flex-none pl-30">
+              function {{ activeEvent.name }}($context,$node,$payload){
+            </div>
             <MonacoEditor class="flex-1" v-model="activeEvent.code" lang="javascript" />
             <div class="flex-none pl-30">}</div>
           </div>

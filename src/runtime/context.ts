@@ -13,7 +13,7 @@ interface RuntimeContext {
   trigger: (id: string, event: string, ...args: any[]) => any
   refreshNodesByDataId: (dataId: string, ...args: any[]) => void
 
-  dispatch: (id: string, action: string, ...args: any[]) => any
+  dispatch: (id: string, action: string, payload?: any) => any
 }
 
 export function createRuntimeContext(page: Ref<PageSchema>): RuntimeContext {
@@ -65,7 +65,17 @@ export function createRuntimeContext(page: Ref<PageSchema>): RuntimeContext {
     })
   }
 
-  const dispatch: RuntimeContext['dispatch'] = (id, action, ...args) => {}
+  const dispatch: RuntimeContext['dispatch'] = (id, action, payload) => {
+    const node = getNode(id)
+    if (!node) {
+      console.warn(`Node ${id} not found`)
+      return
+    }
+    const event = node.events?.find((event) => event.name === action)
+    if (event) {
+      return event.handler(payload)
+    }
+  }
 
   return {
     getNode,

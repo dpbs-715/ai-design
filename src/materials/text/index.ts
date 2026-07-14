@@ -69,6 +69,7 @@ const textMaterial: MaterialDefinition = {
       {
         type: 'click',
         name: 'clickFn',
+        title: '点击事件',
         code: ``,
       },
     ],

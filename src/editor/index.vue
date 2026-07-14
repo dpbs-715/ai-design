@@ -18,7 +18,7 @@ const editorStore = useEditorStore()
 
 const pageId = route.query.id
 if (pageId) {
-  const page = getPublishPage(route.query.id)
+  const page = getPublishPage(route.query.id as string)
   editorStore.setPage(page)
 }
 
