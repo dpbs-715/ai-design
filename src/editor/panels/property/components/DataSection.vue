@@ -112,9 +112,13 @@ const bindingConfig = computed<CommonFormConfig[]>(() =>
     component: 'commonSelect',
     props: {
       options: fieldOptions.value,
+      componentType: 'ElSelect',
+      allowCreate: true,
       clearable: true,
+      defaultFirstOption: true,
       filterable: true,
-      placeholder: '选择字段',
+      reserveKeyword: false,
+      placeholder: '选择字段或输入路径',
     },
   })),
 )
@@ -172,7 +176,7 @@ function openSourceManager() {
           <div class="group-heading">
             <div>
               <h3>字段映射</h3>
-              <p>从当前数据结构中选择图表字段</p>
+              <p>选择已有字段，或输入 path 路径后按回车创建</p>
             </div>
           </div>
           <CommonForm
