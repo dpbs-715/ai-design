@@ -24,24 +24,45 @@ function onStart(e: DragEvent) {
   display: flex;
   flex-direction: column;
   border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background: bg-mix(40);
+  border-radius: 6px;
+  background: var(--surface-raised);
+  cursor: grab;
+
   .title {
     height: 26px;
+    color: var(--text-secondary);
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 500;
   }
+
   .icon {
     flex: 1;
     display: flex;
+    align-items: center;
     justify-content: center;
     border: 1px solid var(--border-color);
     border-radius: 4px;
+    background: var(--surface-workbench);
+    color: var(--text-muted);
   }
-  transition: transform 0.3s ease-in-out;
+
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
+
   &:hover {
-    transform: translateY(-2px);
-    --border-color: #5e8382;
+    border-color: rgb(123 140 255 / 48%);
+    background: var(--surface-hover);
+
+    .title,
+    .icon {
+      color: var(--text-primary);
+    }
+  }
+
+  &:active {
+    cursor: grabbing;
   }
 }
 </style>

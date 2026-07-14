@@ -40,22 +40,40 @@ const currentMaterial = computed(() => {
 
 <style scoped lang="scss">
 .material-panel {
-  background: bg-mix(20);
+  background: var(--surface-panel);
+
   .nav {
+    background: var(--surface-workbench);
     border-right: 1px solid var(--border-color);
+
     div {
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       height: 50px;
+      gap: 3px;
+      color: var(--text-muted);
       font-size: 12px;
       cursor: pointer;
+      transition:
+        background-color 140ms ease,
+        color 140ms ease;
+
+      &:hover {
+        background: var(--surface-raised);
+        color: var(--text-secondary);
+      }
 
       &.active {
-        background: bg-mix(70);
+        background: var(--accent-soft);
+        color: var(--accent-color);
       }
     }
+  }
+
+  .material-list {
+    background: var(--surface-panel);
   }
 }
 </style>

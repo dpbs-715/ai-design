@@ -1,3 +1,0 @@
-@function bg-mix($value) {
-  @return color-mix(in srgb, var(--bg-color), black #{$value + '%'});
-}

@@ -33,10 +33,11 @@ useDraggable('.layer-panel', nodes, { animation: 150, direction: 'horizontal' })
 <style scoped lang="scss">
 .layer-panel {
   padding: 10px;
-  background: bg-mix(50);
+  background: var(--surface-panel);
   display: flex;
   flex-direction: column-reverse;
   justify-content: start;
+
   & > div {
     margin-bottom: 4px;
     cursor: pointer;
@@ -44,13 +45,26 @@ useDraggable('.layer-panel', nodes, { animation: 150, direction: 'horizontal' })
     align-items: center;
     justify-content: space-between;
     padding: 0 10px;
-    height: 20px;
-    border: 1px solid var(--border-color);
+    height: 28px;
+    border: 1px solid transparent;
     border-radius: 4px;
-    background: bg-mix(70);
+    background: var(--surface-raised);
+    color: var(--text-secondary);
     font-size: 12px;
+    transition:
+      background-color 140ms ease,
+      border-color 140ms ease,
+      color 140ms ease;
+
+    &:hover {
+      background: var(--surface-hover);
+      color: var(--text-primary);
+    }
+
     &.active {
-      background: #0b99b6;
+      border-color: rgb(123 140 255 / 34%);
+      background: var(--accent-soft);
+      color: var(--accent-color);
     }
   }
 }

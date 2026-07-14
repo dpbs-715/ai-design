@@ -11,10 +11,16 @@ const { selectedNode } = storeToRefs(editorStore)
 </script>
 
 <template>
-  <div>
+  <div class="property-panel">
     <NodeProperty v-if="selectedNode" />
     <CanvasProperty v-else />
   </div>
 </template>
 
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+.property-panel {
+  height: 100%;
+  background: var(--surface-panel);
+  color: var(--text-secondary);
+}
+</style>

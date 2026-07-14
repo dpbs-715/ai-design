@@ -191,30 +191,52 @@ defineExpose({
   display: flex;
   gap: 20px;
   height: 600px;
+
   .data-source-sidebar {
     overflow: auto;
     width: 200px;
     flex: none;
     border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--surface-panel);
     padding: 10px;
+
     .data-source-item {
       height: 40px;
       padding: 0 10px;
-      background-color: bg-mix(80);
+      border: 1px solid transparent;
+      border-radius: 4px;
+      background: var(--surface-raised);
+      color: var(--text-secondary);
       margin: 5px 0;
       cursor: pointer;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      transition:
+        background-color 140ms ease,
+        border-color 140ms ease,
+        color 140ms ease;
+
+      &:hover {
+        background: var(--surface-hover);
+        color: var(--text-primary);
+      }
+
       &.active {
-        background: var(--el-color-primary);
+        border-color: rgb(123 140 255 / 34%);
+        background: var(--accent-soft);
+        color: var(--accent-color);
       }
     }
   }
+
   .data-source-content {
     padding: 20px;
     flex: 1;
     border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--surface-panel);
     overflow: auto;
   }
 }

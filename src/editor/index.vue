@@ -35,7 +35,7 @@ const propertyWidth = computed(() => (editorStore.panelVisible.property ? '360px
   <div class="editor h-screen select-none">
     <header class="header h-56 flex items-center px-20">
       <ToolbarLeft class="w-300" />
-      <div class="flex-1 text-center">title</div>
+      <div class="editor-title flex-1 text-center">未命名大屏</div>
       <ToolbarRight class="w-300" />
     </header>
     <main class="editor-main flex">
@@ -59,18 +59,35 @@ const propertyWidth = computed(() => (editorStore.panelVisible.property ? '360px
 
 <style scoped lang="scss">
 .editor {
-  background: var(--bg-color);
+  background: var(--surface-workbench);
+  color: var(--text-primary);
+
   .header {
+    position: relative;
+    z-index: 10;
+    background: var(--surface-panel);
     border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 1px 0 rgb(255 255 255 / 2%);
   }
+
+  .editor-title {
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+
   .editor-main {
     height: calc(100% - 56px);
   }
+
   .material,
   .layer {
     border-right: 1px solid var(--border-color);
   }
+
   .property {
+    background: var(--surface-panel);
     border-left: 1px solid var(--border-color);
   }
 }

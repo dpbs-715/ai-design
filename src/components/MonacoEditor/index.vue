@@ -27,9 +27,29 @@ const editorElement = useTemplateRef('editorRef')
 let instance
 
 onMounted(() => {
+  const themeStyles = getComputedStyle(document.documentElement)
+  const themeColor = (name: string) => themeStyles.getPropertyValue(name).trim()
+
+  editor.defineTheme('tungsten-workbench', {
+    base: 'vs-dark',
+    inherit: true,
+    rules: [],
+    colors: {
+      'editor.background': themeColor('--surface-workbench'),
+      'editor.foreground': themeColor('--text-primary'),
+      'editorCursor.foreground': themeColor('--accent-color'),
+      'editorLineNumber.foreground': themeColor('--text-muted'),
+      'editorLineNumber.activeForeground': themeColor('--text-secondary'),
+      'editor.lineHighlightBackground': themeColor('--surface-panel'),
+      'editorIndentGuide.background1': themeColor('--border-color'),
+      'editor.selectionBackground': '#7b8cff38',
+      'editor.inactiveSelectionBackground': '#7b8cff24',
+    },
+  })
+
   instance = editor.create(editorElement.value, {
     value: modelValue.value,
-    theme: 'vs-dark',
+    theme: 'tungsten-workbench',
     language: props.lang || 'json',
     fontSize: 14,
     tabSize: 2,

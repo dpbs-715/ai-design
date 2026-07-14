@@ -162,13 +162,38 @@ function onConfirmEvent() {
 
 <style scoped lang="scss">
 .node-property {
+  height: 100%;
+  background: var(--surface-panel);
+
   .node-title {
     height: 40px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background-color: bg-mix(40);
+    border-bottom: 1px solid var(--border-color);
+    background: var(--surface-raised);
+    color: var(--text-primary);
     padding: 0 20px;
+    font-weight: 500;
+  }
+
+  :deep(.el-tabs__header) {
+    margin-bottom: 0;
+  }
+
+  :deep(.el-tabs__nav-wrap::after) {
+    height: 1px;
+    background: var(--border-color);
+  }
+
+  :deep(.el-tabs__item) {
+    height: 40px;
+    color: var(--text-muted);
+
+    &:hover,
+    &.is-active {
+      color: var(--accent-color);
+    }
   }
 
   :deep(.el-collapse) {
@@ -179,11 +204,16 @@ function onConfirmEvent() {
     --el-collapse-content-bg-color: transparent;
     --el-collapse-content-font-size: 13px;
     --el-collapse-content-text-color: var(--el-text-color-primary);
-    border-top: 1px solid var(--el-collapse-border-color);
+    border-top: 0;
     border-bottom: 1px solid var(--el-collapse-border-color);
 
     .el-collapse-item__title {
       padding-left: 20px;
+      color: var(--text-secondary);
+
+      &:hover {
+        color: var(--text-primary);
+      }
     }
   }
 }

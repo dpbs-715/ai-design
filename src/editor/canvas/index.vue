@@ -143,7 +143,7 @@ function onCommand(command: string) {
     <Moveable
       ref="moveable"
       :target="selectedTarget"
-      :draggable="true"
+      :draggable="!dragCanvas"
       :resizable="true"
       :origin="false"
       :snappable="true"
@@ -170,9 +170,11 @@ function onCommand(command: string) {
   position: relative;
   overflow: hidden;
   isolation: isolate;
+  background: var(--surface-workbench);
 
   .canvas-stage {
     position: relative;
+    box-shadow: 0 12px 36px rgb(0 0 0 / 34%);
 
     .canvas-node {
       position: absolute;
