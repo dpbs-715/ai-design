@@ -23,22 +23,22 @@ const { undo, redo, canUndo, canRedo } = useUndoRedo()
     <button
       type="button"
       class="toolbar-button"
-      :class="{ active: panelVisible.property }"
-      title="切换属性面板"
-      aria-label="切换属性面板"
-      @click="panelVisible.property = !panelVisible.property"
-    >
-      <Icon icon="fluent:panel-right-28-filled" />
-    </button>
-    <button
-      type="button"
-      class="toolbar-button"
       :class="{ active: panelVisible.layer }"
       title="切换图层面板"
       aria-label="切换图层面板"
       @click="panelVisible.layer = !panelVisible.layer"
     >
       <Icon icon="fluent:layer-20-filled" />
+    </button>
+    <button
+      type="button"
+      class="toolbar-button"
+      :class="{ active: panelVisible.property }"
+      title="切换属性面板"
+      aria-label="切换属性面板"
+      @click="panelVisible.property = !panelVisible.property"
+    >
+      <Icon icon="fluent:panel-right-28-filled" />
     </button>
     <span class="toolbar-divider"></span>
     <button

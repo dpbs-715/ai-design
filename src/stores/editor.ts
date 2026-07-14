@@ -11,7 +11,7 @@ export const useEditorStore = defineStore('editor', () => {
 
   const panelVisible = reactive({
     material: true,
-    layer: true,
+    layer: false,
     property: true,
   })
 
