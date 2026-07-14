@@ -79,7 +79,7 @@ export const areaMaterial: MaterialDefinition = {
     props: {
       option: {
         ...createCartesianOption('累计成交额'),
-        color: ['#5561d9'],
+        color: ['#4f5bd5'],
         dataset: {
           source: [
             { label: '1月', value: 86 },
@@ -110,7 +110,7 @@ export const areaMaterial: MaterialDefinition = {
             lineStyle: {
               width: 2,
               cap: 'round',
-              shadowColor: 'rgb(118,135,245)',
+              shadowColor: '#7c8cff',
               shadowBlur: 10,
             },
             areaStyle: {
@@ -122,8 +122,8 @@ export const areaMaterial: MaterialDefinition = {
                 x2: 0,
                 y2: 1,
                 colorStops: [
-                  { offset: 0, color: 'rgb(122,139,253,0.52)' },
-                  { offset: 1, color: 'rgba(122,139,253, 0.02)' },
+                  { offset: 0, color: 'rgb(123,139,253,0.9)' },
+                  { offset: 1, color: 'rgba(123,139,253,0.02)' },
                 ],
               },
             },
