@@ -15,17 +15,17 @@ importers:
         specifier: ^1.0.10
         version: 1.0.10
       '@vunio/directives':
-        specifier: ^1.6.4
-        version: 1.6.4(vue@3.5.39(typescript@6.0.3))
+        specifier: ^1.6.5
+        version: 1.6.5(vue@3.5.39(typescript@6.0.3))
       '@vunio/hooks':
-        specifier: ^1.6.4
-        version: 1.6.4(vue@3.5.39(typescript@6.0.3))
+        specifier: ^1.6.5
+        version: 1.6.5(vue@3.5.39(typescript@6.0.3))
       '@vunio/ui':
-        specifier: ^1.6.4
-        version: 1.6.4(@element-plus/icons-vue@2.3.2(vue@3.5.39(typescript@6.0.3)))(element-plus@2.14.2(vue@3.5.39(typescript@6.0.3)))(vue@3.5.39(typescript@6.0.3))
+        specifier: ^1.6.5
+        version: 1.6.5(@element-plus/icons-vue@2.3.2(vue@3.5.39(typescript@6.0.3)))(element-plus@2.14.2(vue@3.5.39(typescript@6.0.3)))(vue@3.5.39(typescript@6.0.3))
       '@vunio/utils':
-        specifier: ^1.6.4
-        version: 1.6.4
+        specifier: ^1.6.5
+        version: 1.6.5
       axios:
         specifier: ^1.18.1
         version: 1.18.1
@@ -1101,25 +1101,25 @@ packages:
     peerDependencies:
       vue: ^3.5.0
 
-  '@vunio/directives@1.6.4':
-    resolution: {integrity: sha512-aeF3oLwdBRYJSu+6d13hQBlCL7010wZDeZSTfW/V1QToiE1IT3iR3hErGNKDeWH8zwd9ZsNQSfuX3cK9a8TgeQ==}
+  '@vunio/directives@1.6.5':
+    resolution: {integrity: sha512-emzb7Remlq49sCAQAl+KxPVdsEv4Ln9N0LuncCrPmx/UuKfz8O+FngFj4z7BloHSe4l8xbRLyuyAGGkhIhTS5Q==}
     peerDependencies:
       vue: ^3.5.13
 
-  '@vunio/hooks@1.6.4':
-    resolution: {integrity: sha512-iTRGXFrHqmFrnYrsTGrHgOMrIGb327ImYk3oyyizLIfXMn8t8nc6Tx1e3D9flc8cI0x9BOFAOPly5g5SL6mWCQ==}
+  '@vunio/hooks@1.6.5':
+    resolution: {integrity: sha512-h6mSAOZvFP8KOEhPzj6hIBIaMf0CIWsqLQBI7z3K9AhmPceu2PLpnWRgJuJLlIAnLXYuwH+m/jvOxtPzfN5/wA==}
     peerDependencies:
       vue: ^3.5.13
 
-  '@vunio/ui@1.6.4':
-    resolution: {integrity: sha512-Wh1m88Pry9epJyXv+TmpHqR/z2l+YZtpoua4IEB9D7taNGIyVpSt8/+Yf/4Btb+SpzuRS6sHRIZIy0HDWXyJBQ==}
+  '@vunio/ui@1.6.5':
+    resolution: {integrity: sha512-1l/Yf1D62AiNu7vF0WHp6sc7zCnYWMo7k5ShzCxRYN63ql+M2R4XB/tBmt5KaSEG2Tc8k+P+luoLsBa+FntnxQ==}
     peerDependencies:
       '@element-plus/icons-vue': ^2.3.0
       element-plus: ^2.6.1
       vue: ^3.5.0
 
-  '@vunio/utils@1.6.4':
-    resolution: {integrity: sha512-uTcn8KdBd8I/5SescHA77QdDUM5fxShy3wMNv/ivk5vBaSoN5xoE7MOOTQoPiW/ROxo0BRMgzVwRgkt7xsCdFg==}
+  '@vunio/utils@1.6.5':
+    resolution: {integrity: sha512-gQosg6efKBdDUr+NMQojg2qhaH2sk+aA5i6w9dBJQ6Ml21kuomhpIukUORMKYPYxJ1KcxwDCZ8f/p2HhU5IEyg==}
 
   acorn-jsx@5.3.2:
     resolution: {integrity: sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ==}
@@ -3513,16 +3513,16 @@ snapshots:
     dependencies:
       vue: 3.5.39(typescript@6.0.3)
 
-  '@vunio/directives@1.6.4(vue@3.5.39(typescript@6.0.3))':
+  '@vunio/directives@1.6.5(vue@3.5.39(typescript@6.0.3))':
     dependencies:
       resize-observer-polyfill: 1.5.1
       vue: 3.5.39(typescript@6.0.3)
 
-  '@vunio/hooks@1.6.4(vue@3.5.39(typescript@6.0.3))':
+  '@vunio/hooks@1.6.5(vue@3.5.39(typescript@6.0.3))':
     dependencies:
       vue: 3.5.39(typescript@6.0.3)
 
-  '@vunio/ui@1.6.4(@element-plus/icons-vue@2.3.2(vue@3.5.39(typescript@6.0.3)))(element-plus@2.14.2(vue@3.5.39(typescript@6.0.3)))(vue@3.5.39(typescript@6.0.3))':
+  '@vunio/ui@1.6.5(@element-plus/icons-vue@2.3.2(vue@3.5.39(typescript@6.0.3)))(element-plus@2.14.2(vue@3.5.39(typescript@6.0.3)))(vue@3.5.39(typescript@6.0.3))':
     dependencies:
       '@codemirror/autocomplete': 6.20.3
       '@codemirror/commands': 6.10.4
@@ -3532,13 +3532,13 @@ snapshots:
       '@codemirror/state': 6.7.1
       '@codemirror/view': 6.43.6
       '@element-plus/icons-vue': 2.3.2(vue@3.5.39(typescript@6.0.3))
-      '@vunio/utils': 1.6.4
+      '@vunio/utils': 1.6.5
       codemirror: 6.0.2
       element-plus: 2.14.2(vue@3.5.39(typescript@6.0.3))
       jsep: 1.4.0
       vue: 3.5.39(typescript@6.0.3)
 
-  '@vunio/utils@1.6.4': {}
+  '@vunio/utils@1.6.5': {}
 
   acorn-jsx@5.3.2(acorn@8.17.0):
     dependencies:
