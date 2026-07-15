@@ -189,7 +189,7 @@ export const textMaterial: MaterialDefinition = {
     },
     style: {
       color: '#eef2ff',
-      backgroundColor: 'rgba(39, 48, 85, 0.72)',
+      backgroundColor: '',
       fontFamily: 'Inter, "PingFang SC", "Microsoft YaHei", sans-serif',
       fontSize: 28,
       fontWeight: 700,
@@ -200,7 +200,7 @@ export const textMaterial: MaterialDefinition = {
       borderRadius: 12,
     },
     props: {
-      content: '让数据，更有表达力',
+      content: 'hello world',
       verticalAlign: 'center',
       italic: false,
       underline: false,

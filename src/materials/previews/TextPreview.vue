@@ -9,7 +9,7 @@ defineOptions({ name: 'TextMaterialPreview' })
       <small>TYPE</small>
     </span>
     <span class="sample-copy">
-      <strong>数据标题</strong>
+      <strong>文本信息</strong>
       <small>清晰表达每一个重点</small>
     </span>
   </div>
