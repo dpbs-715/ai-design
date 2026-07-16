@@ -3,6 +3,7 @@ import { editor } from 'monaco-editor'
 import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
 import JsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker'
 import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker'
+import { useEditorTheme } from '@/editor/theme/editorTheme.ts'
 
 defineOptions({ name: 'MonacoEditor' })
 
@@ -23,15 +24,17 @@ const props = defineProps<{ lang?: string }>()
 const modelValue = defineModel<string>()
 
 const editorElement = useTemplateRef('editorRef')
+const { resolvedTheme } = useEditorTheme()
 
-let instance
+let instance: editor.IStandaloneCodeEditor | undefined
 
-onMounted(() => {
+function applyMonacoTheme() {
   const themeStyles = getComputedStyle(document.documentElement)
   const themeColor = (name: string) => themeStyles.getPropertyValue(name).trim()
+  const themeName = `ai-design-${resolvedTheme.value}`
 
-  editor.defineTheme('tungsten-workbench', {
-    base: 'vs-dark',
+  editor.defineTheme(themeName, {
+    base: resolvedTheme.value === 'dark' ? 'vs-dark' : 'vs',
     inherit: true,
     rules: [],
     colors: {
@@ -42,14 +45,21 @@ onMounted(() => {
       'editorLineNumber.activeForeground': themeColor('--text-secondary'),
       'editor.lineHighlightBackground': themeColor('--surface-panel'),
       'editorIndentGuide.background1': themeColor('--border-color'),
-      'editor.selectionBackground': '#7b8cff38',
-      'editor.inactiveSelectionBackground': '#7b8cff24',
+      'editor.selectionBackground': themeColor('--accent-selection'),
+      'editor.inactiveSelectionBackground': themeColor('--accent-selection-inactive'),
     },
   })
 
+  editor.setTheme(themeName)
+  return themeName
+}
+
+onMounted(() => {
+  const themeName = applyMonacoTheme()
+
   instance = editor.create(editorElement.value, {
     value: modelValue.value,
-    theme: 'tungsten-workbench',
+    theme: themeName,
     language: props.lang || 'json',
     fontSize: 14,
     tabSize: 2,
@@ -66,9 +76,11 @@ onMounted(() => {
 })
 
 watch(modelValue, (newVal) => {
-  if (newVal === instance.getValue()) return
+  if (!instance || newVal === instance.getValue()) return
   instance.setValue(newVal)
 })
+
+watch(resolvedTheme, applyMonacoTheme, { flush: 'post' })
 </script>
 
 <template>

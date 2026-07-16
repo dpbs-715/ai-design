@@ -7,8 +7,11 @@ import 'element-plus/dist/index.css'
 import 'element-plus/theme-chalk/dark/css-vars.css'
 import './styles/index.css'
 import { registerComponent, registerComponentDefaultPropsMap } from '@vunio/ui'
-import { ElColorPicker, ElInputNumber, ElSwitch } from 'element-plus'
+import { ElInputNumber, ElSwitch } from 'element-plus'
 import '@/mock/data.ts'
+import { initializeEditorTheme } from '@/editor/theme/editorTheme.ts'
+
+initializeEditorTheme()
 
 const app = createApp(App)
 

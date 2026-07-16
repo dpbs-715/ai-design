@@ -1,6 +1,7 @@
 import { storeToRefs } from 'pinia'
 import { useEditorStore } from '@/stores/editor.ts'
 import type { Ref, ShallowRef } from 'vue'
+import { useEditorTheme } from '@/editor/theme/editorTheme.ts'
 
 interface UseCanvasRulerOptions {
   moveableRef: Readonly<ShallowRef<{ updateRect: () => void } | null>>
@@ -14,24 +15,29 @@ function readThemeColor(name: string) {
 export function useCanvasRuler({ moveableRef, isMoveableActive }: UseCanvasRulerOptions) {
   const editorStore = useEditorStore()
   const { canvas } = storeToRefs(editorStore)
+  const { resolvedTheme } = useEditorTheme()
   const canvasWidth = computed(() => canvas.value.width)
   const canvasHeight = computed(() => canvas.value.height)
 
   const scale = ref(1)
   const lines = ref({ h: [], v: [] })
-  const palette = {
-    bgColor: readThemeColor('--surface-panel'),
-    longfgColor: readThemeColor('--border-color-strong'),
-    fontColor: readThemeColor('--text-muted'),
-    fontShadowColor: readThemeColor('--accent-color'),
-    shadowColor: readThemeColor('--accent-soft'),
-    lineColor: readThemeColor('--accent-color'),
-    lineTYpe: 'solid',
-    lockLineColor: readThemeColor('--border-color-strong'),
-    borderColor: readThemeColor('--border-color'),
-    hoverBg: readThemeColor('--surface-raised'),
-    hoverColor: readThemeColor('--text-primary'),
-  }
+  const palette = computed(() => {
+    void resolvedTheme.value
+
+    return {
+      bgColor: readThemeColor('--surface-panel'),
+      longfgColor: readThemeColor('--border-color-strong'),
+      fontColor: readThemeColor('--text-muted'),
+      fontShadowColor: readThemeColor('--accent-color'),
+      shadowColor: readThemeColor('--accent-soft'),
+      lineColor: readThemeColor('--accent-color'),
+      lineTYpe: 'solid',
+      lockLineColor: readThemeColor('--border-color-strong'),
+      borderColor: readThemeColor('--border-color'),
+      hoverBg: readThemeColor('--surface-raised'),
+      hoverColor: readThemeColor('--text-primary'),
+    }
+  })
 
   const canvasStyle = computed(() => {
     return {

@@ -5,6 +5,7 @@ import { ElMessage } from 'element-plus'
 import DataSourceManager from './components/DataSourceManager.vue'
 import { useRouter } from 'vue-router'
 import { publishPage } from '@/utils/publish.ts'
+import EditorThemeControl from '@/editor/theme/EditorThemeControl.vue'
 
 defineOptions({ name: 'ToolbarRight' })
 
@@ -152,6 +153,9 @@ function onMoreAction(action: MoreAction) {
       <span>发布</span>
     </button>
 
+    <span class="toolbar-divider"></span>
+    <EditorThemeControl />
+
     <input ref="inputRef" type="file" v-show="false" @change="onFileChange" />
 
     <el-drawer destroy-on-close v-model="visible" title="编辑 JSON" size="800">
@@ -208,12 +212,12 @@ function onMoreAction(action: MoreAction) {
   padding: 0 10px;
   border-color: var(--accent-color);
   background: var(--accent-color);
-  color: #fff;
+  color: var(--accent-foreground);
 
   &:hover {
     border-color: var(--accent-color-hover);
     background: var(--accent-color-hover);
-    color: #fff;
+    color: var(--accent-foreground);
   }
 }
 

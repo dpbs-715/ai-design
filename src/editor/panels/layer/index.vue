@@ -62,7 +62,7 @@ useDraggable('.layer-panel', nodes, { animation: 150, direction: 'horizontal' })
     }
 
     &.active {
-      border-color: rgb(123 140 255 / 34%);
+      border-color: color-mix(in srgb, var(--accent-color) 34%, transparent);
       background: var(--accent-soft);
       color: var(--accent-color);
     }

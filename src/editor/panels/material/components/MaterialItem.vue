@@ -83,7 +83,7 @@ function onStart(e: DragEvent) {
     .preview {
       background: var(--surface-raised);
       color: var(--text-secondary);
-      box-shadow: inset 0 0 0 1px rgb(123 140 255 / 48%);
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-color) 48%, transparent);
     }
 
     .title,

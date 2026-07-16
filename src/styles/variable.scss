@@ -1,7 +1,28 @@
-:root,
-html.dark {
-  color-scheme: dark;
+:root {
+  /* Single source for the complete editor accent family. */
 
+  --accent-color-hover: color-mix(in oklab, var(--accent-color) 86%, var(--text-primary));
+  --accent-foreground: var(--surface-workbench);
+  --accent-soft: color-mix(in srgb, var(--accent-color) 12%, transparent);
+  --accent-soft-hover: color-mix(in srgb, var(--accent-color) 20%, transparent);
+  --accent-selection: color-mix(in srgb, var(--accent-color) 22%, transparent);
+  --accent-selection-inactive: color-mix(in srgb, var(--accent-color) 14%, transparent);
+
+  /* Element Plus and Vunio derive their primary palette from the same accent. */
+  --el-color-primary: var(--accent-color);
+  --el-color-primary-light-3: color-mix(in srgb, var(--accent-color) 70%, var(--surface-panel));
+  --el-color-primary-light-5: color-mix(in srgb, var(--accent-color) 50%, var(--surface-panel));
+  --el-color-primary-light-7: color-mix(in srgb, var(--accent-color) 30%, var(--surface-panel));
+  --el-color-primary-light-8: color-mix(in srgb, var(--accent-color) 20%, var(--surface-panel));
+  --el-color-primary-light-9: color-mix(in srgb, var(--accent-color) 10%, var(--surface-panel));
+  --el-color-primary-dark-2: color-mix(in srgb, var(--accent-color) 80%, var(--text-primary));
+}
+
+:root,
+html.dark,
+html[data-editor-theme='dark'] {
+  color-scheme: dark;
+  --accent-seed: #6673f0;
   /* Editor surfaces */
   --surface-workbench: #0d1015;
   --surface-panel: #151a21;
@@ -14,22 +35,10 @@ html.dark {
   --text-primary: #e6eaf0;
   --text-secondary: #a9b3c1;
   --text-muted: #788493;
-  --accent-color: #7b8cff;
-  --accent-color-hover: #91a0ff;
-  --accent-soft: rgb(123 140 255 / 14%);
-  --accent-soft-hover: rgb(123 140 255 / 22%);
+  --accent-color: color-mix(in oklab, var(--accent-seed) 84%, white);
 
   /* Backwards-compatible editor aliases */
   --bg-color: var(--surface-panel);
-
-  /* Element Plus and Vunio share the same editor theme. */
-  --el-color-primary: var(--accent-color);
-  --el-color-primary-light-3: #5c6abc;
-  --el-color-primary-light-5: #485373;
-  --el-color-primary-light-7: #333a4c;
-  --el-color-primary-light-8: #29313f;
-  --el-color-primary-light-9: #1f2537;
-  --el-color-primary-dark-2: #95a3ff;
 
   --el-bg-color: var(--surface-panel);
   --el-bg-color-page: var(--surface-workbench);
@@ -60,4 +69,68 @@ html.dark {
   --el-box-shadow-light: 0 10px 28px rgb(0 0 0 / 32%);
   --el-box-shadow-lighter: 0 8px 20px rgb(0 0 0 / 24%);
   --el-mask-color: rgb(4 6 10 / 72%);
+}
+
+html[data-editor-theme='light'] {
+  color-scheme: light;
+  --accent-seed: #000;
+  /* Editor surfaces */
+  --surface-workbench: #f3f5f8;
+  --surface-panel: #ffffff;
+  --surface-raised: #f7f8fa;
+  --surface-hover: #edf0f5;
+
+  /* Editor content */
+  --border-color: #dde2ea;
+  --border-color-strong: #c5cdd8;
+  --text-primary: #1f2733;
+  --text-secondary: #536071;
+  --text-muted: #7a8797;
+  --accent-color: color-mix(in oklab, var(--accent-seed) 88%, black);
+
+  --bg-color: var(--surface-panel);
+
+  --el-bg-color: var(--surface-panel);
+  --el-bg-color-page: var(--surface-workbench);
+  --el-bg-color-overlay: var(--surface-panel);
+  --el-fill-color-darker: #d9dee7;
+  --el-fill-color-dark: #e2e6ed;
+  --el-fill-color: #e8ebf0;
+  --el-fill-color-light: var(--surface-hover);
+  --el-fill-color-lighter: #f4f6f8;
+  --el-fill-color-extra-light: #f8f9fb;
+  --el-fill-color-blank: var(--surface-panel);
+
+  --el-border-color: var(--border-color);
+  --el-border-color-light: rgb(221 226 234 / 82%);
+  --el-border-color-lighter: rgb(221 226 234 / 62%);
+  --el-border-color-extra-light: rgb(221 226 234 / 42%);
+  --el-border-color-dark: var(--border-color-strong);
+  --el-border-color-darker: #aeb8c6;
+
+  --el-text-color-primary: var(--text-primary);
+  --el-text-color-regular: var(--text-secondary);
+  --el-text-color-secondary: var(--text-muted);
+  --el-text-color-placeholder: rgb(122 135 151 / 72%);
+  --el-text-color-disabled: rgb(122 135 151 / 48%);
+
+  --el-border-radius-base: 5px;
+  --el-border-radius-small: 4px;
+  --el-box-shadow-light: 0 10px 28px rgb(31 39 51 / 14%);
+  --el-box-shadow-lighter: 0 8px 20px rgb(31 39 51 / 10%);
+  --el-mask-color: rgb(31 39 51 / 46%);
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 2147483646;
 }
