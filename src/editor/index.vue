@@ -10,6 +10,7 @@ import { storeToRefs } from 'pinia'
 import { provideDataSources } from '@/context'
 import { useRoute } from 'vue-router'
 import { getPublishPage } from '@/utils/publish.ts'
+import { useResponsiveEditorLayout } from '@/editor/composables/useResponsiveEditorLayout.ts'
 
 defineOptions({ name: 'ScreenEditor' })
 
@@ -26,17 +27,15 @@ const { dataSources } = storeToRefs(editorStore)
 
 provideDataSources(dataSources)
 
-const materialWidth = computed(() => (editorStore.panelVisible.material ? '260px' : '0'))
-const layerWidth = computed(() => (editorStore.panelVisible.layer ? '160px' : '0'))
-const propertyWidth = computed(() => (editorStore.panelVisible.property ? '360px' : '0'))
+const { isNarrowWorkspace, materialWidth, layerWidth, propertyWidth } = useResponsiveEditorLayout()
 </script>
 
 <template>
-  <div class="editor h-screen select-none">
-    <header class="header h-56 flex items-center px-20">
-      <ToolbarLeft class="w-300" />
+  <div class="editor h-screen select-none" :class="{ 'is-narrow': isNarrowWorkspace }">
+    <header class="header h-56 flex justify-between items-center px-20">
+      <ToolbarLeft class="editor-toolbar editor-toolbar-left" />
       <div class="editor-title flex-1 text-center">未命名大屏</div>
-      <ToolbarRight class="w-300" />
+      <ToolbarRight class="editor-toolbar editor-toolbar-right" />
     </header>
     <main class="editor-main flex">
       <!--  物料  -->
@@ -65,16 +64,26 @@ const propertyWidth = computed(() => (editorStore.panelVisible.property ? '360px
   .header {
     position: relative;
     z-index: 10;
+    gap: 12px;
     background: var(--surface-panel);
     border-bottom: 1px solid var(--border-color);
     box-shadow: 0 1px 0 rgb(255 255 255 / 2%);
   }
 
+  .editor-toolbar {
+    width: 300px;
+    min-width: 0;
+  }
+
   .editor-title {
+    min-width: 0;
+    overflow: hidden;
     color: var(--text-secondary);
     font-size: 12px;
     font-weight: 500;
     letter-spacing: 0.02em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .editor-main {
@@ -89,6 +98,29 @@ const propertyWidth = computed(() => (editorStore.panelVisible.property ? '360px
   .property {
     background: var(--surface-panel);
     border-left: 1px solid var(--border-color);
+  }
+
+  .canvas {
+    min-width: 0;
+  }
+
+  &.is-narrow {
+    .header {
+      gap: 8px;
+      padding-right: 12px;
+      padding-left: 12px;
+    }
+
+    .editor-toolbar {
+      width: auto;
+      flex: none;
+    }
+  }
+}
+
+@media (max-width: 699px) {
+  .editor.is-narrow .editor-title {
+    display: none;
   }
 }
 </style>

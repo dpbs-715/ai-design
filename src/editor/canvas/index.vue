@@ -5,7 +5,6 @@ import Moveable from 'vue3-moveable'
 import { useEditorStore } from '@/stores/editor.ts'
 import { storeToRefs } from 'pinia'
 import { useSpaceEventListener } from '@/hooks/useSpaceEventListener.ts'
-import { useRefResizeObserver } from '@/hooks/useRefResizeObserver.ts'
 import type { MaterialSchema } from '@/schema/material.ts'
 import SketchRuler from 'vue3-sketch-ruler'
 import 'vue3-sketch-ruler/lib/style.css'
@@ -17,6 +16,7 @@ import NodeContextMenu from '@/editor/canvas/components/NodeContextMenu.vue'
 import CanvasZoomControl from '@/editor/canvas/components/CanvasZoomControl.vue'
 import { dispatchEventHandlers } from '@/utils/dispatchEventHandlers.ts'
 import { useNodeContextMenu } from '@/editor/canvas/composables/useNodeContextMenu.ts'
+import { useCanvasViewport } from '@/editor/canvas/composables/useCanvasViewport.ts'
 
 defineOptions({
   name: 'CanvasRoot',
@@ -24,9 +24,8 @@ defineOptions({
 const editorStore = useEditorStore()
 const moveableRef = useTemplateRef('moveable')
 const stageRef = useTemplateRef('stage')
-const canvasRootRef = useTemplateRef('canvasRoot')
 
-const { height: rectHeight, width: rectWidth } = useRefResizeObserver(canvasRootRef)
+const { height: viewportHeight, width: viewportWidth } = useCanvasViewport()
 const { nodes } = storeToRefs(editorStore)
 
 const { active: dragCanvas } = useSpaceEventListener()
@@ -46,8 +45,8 @@ const { canvasWidth, canvasHeight, canvasStyle, scale, lines, palette, onZoomCha
     isMoveableActive,
   })
 const { fitCanvas, centerCanvas, setCanvasScale, isCanvasFit } = useCanvasZoom({
-  viewportWidth: rectWidth,
-  viewportHeight: rectHeight,
+  viewportWidth,
+  viewportHeight,
   canvasWidth,
   canvasHeight,
   scale,
@@ -108,8 +107,8 @@ function getNodeStyle(node: MaterialSchema, index: number) {
       ref="sketchRuler"
       v-model:scale="scale"
       :palette="palette"
-      :width="rectWidth"
-      :height="rectHeight"
+      :width="viewportWidth"
+      :height="viewportHeight"
       :canvasWidth="canvasWidth"
       :canvasHeight="canvasHeight"
       :thick="20"

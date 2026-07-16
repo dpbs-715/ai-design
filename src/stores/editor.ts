@@ -9,12 +9,6 @@ import { SetFormFieldCommand } from '@vunio/ui'
 export const useEditorStore = defineStore('editor', () => {
   const { dispatchCommand } = useUndoRedo()
 
-  const panelVisible = reactive({
-    material: true,
-    layer: false,
-    property: true,
-  })
-
   const page = ref<PageSchema>({
     canvas: {
       width: 1920,
@@ -172,7 +166,6 @@ export const useEditorStore = defineStore('editor', () => {
   }
 
   return {
-    panelVisible,
     page,
     nodes,
     canvas,

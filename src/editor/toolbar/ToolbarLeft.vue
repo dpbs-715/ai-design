@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { useEditorStore } from '@/stores/editor.ts'
+import { useEditorPanelStore } from '@/stores/editorPanel.ts'
 import { useUndoRedo } from '@/hooks/useUndoRedo.ts'
+import { storeToRefs } from 'pinia'
 defineOptions({ name: 'ToolbarLeft' })
 
-const { panelVisible } = useEditorStore()
+const editorPanelStore = useEditorPanelStore()
+const { panelVisible } = storeToRefs(editorPanelStore)
 
 const { undo, redo, canUndo, canRedo } = useUndoRedo()
 </script>
@@ -16,7 +18,7 @@ const { undo, redo, canUndo, canRedo } = useUndoRedo()
       :class="{ active: panelVisible.material }"
       title="切换素材面板"
       aria-label="切换素材面板"
-      @click="panelVisible.material = !panelVisible.material"
+      @click="editorPanelStore.togglePanel('material')"
     >
       <Icon icon="fluent:panel-left-28-filled" />
     </button>
@@ -26,7 +28,7 @@ const { undo, redo, canUndo, canRedo } = useUndoRedo()
       :class="{ active: panelVisible.layer }"
       title="切换图层面板"
       aria-label="切换图层面板"
-      @click="panelVisible.layer = !panelVisible.layer"
+      @click="editorPanelStore.togglePanel('layer')"
     >
       <Icon icon="fluent:layer-20-filled" />
     </button>
@@ -36,7 +38,7 @@ const { undo, redo, canUndo, canRedo } = useUndoRedo()
       :class="{ active: panelVisible.property }"
       title="切换属性面板"
       aria-label="切换属性面板"
-      @click="panelVisible.property = !panelVisible.property"
+      @click="editorPanelStore.togglePanel('property')"
     >
       <Icon icon="fluent:panel-right-28-filled" />
     </button>

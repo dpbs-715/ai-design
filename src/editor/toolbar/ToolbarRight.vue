@@ -223,4 +223,19 @@ function onMoreAction(action: MoreAction) {
   margin: 0 4px;
   background: var(--border-color);
 }
+
+@media (max-width: 899px) {
+  .toolbar-action {
+    width: 30px;
+    padding: 0;
+
+    span {
+      display: none;
+    }
+  }
+
+  .publish-button {
+    padding: 0;
+  }
+}
 </style>
