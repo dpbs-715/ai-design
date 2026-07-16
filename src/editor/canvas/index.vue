@@ -10,11 +10,13 @@ import type { MaterialSchema } from '@/schema/material.ts'
 import SketchRuler from 'vue3-sketch-ruler'
 import 'vue3-sketch-ruler/lib/style.css'
 import { useCanvasRuler } from '@/editor/canvas/composables/useCanvasRuler.ts'
+import { useCanvasZoom } from '@/editor/canvas/composables/useCanvasZoom.ts'
 import { useMoveable } from '@/editor/canvas/composables/useMoveable.ts'
 import { useSelection } from '@/editor/canvas/composables/useSelection.ts'
 import NodeContextMenu from '@/editor/canvas/components/NodeContextMenu.vue'
-import type { NodeContextMenuCommand } from '@/editor/canvas/contextMenu.ts'
-import type { DropdownInstance } from 'element-plus'
+import CanvasZoomControl from '@/editor/canvas/components/CanvasZoomControl.vue'
+import { dispatchEventHandlers } from '@/utils/dispatchEventHandlers.ts'
+import { useNodeContextMenu } from '@/editor/canvas/composables/useNodeContextMenu.ts'
 
 defineOptions({
   name: 'CanvasRoot',
@@ -23,8 +25,6 @@ const editorStore = useEditorStore()
 const moveableRef = useTemplateRef('moveable')
 const stageRef = useTemplateRef('stage')
 const canvasRootRef = useTemplateRef('canvasRoot')
-const dropdownRefs = new Map<string, DropdownInstance>()
-let activeContextMenuId: string | null = null
 
 const { height: rectHeight, width: rectWidth } = useRefResizeObserver(canvasRootRef)
 const { nodes } = storeToRefs(editorStore)
@@ -45,37 +45,36 @@ const { canvasWidth, canvasHeight, canvasStyle, scale, lines, palette, onZoomCha
     moveableRef,
     isMoveableActive,
   })
+const { fitCanvas, centerCanvas, setCanvasScale, isCanvasFit } = useCanvasZoom({
+  viewportWidth: rectWidth,
+  viewportHeight: rectHeight,
+  canvasWidth,
+  canvasHeight,
+  scale,
+})
 const { selectedTarget, onSelect, onClearSelected, onSelectEnd } = useSelection({
   stageRef,
   moveableRef,
   isMoveableActive,
 })
+const {
+  contextMenuNode,
+  contextMenuAnchor,
+  openContextMenu,
+  closeContextMenu,
+  onContextMenuCommand,
+} = useNodeContextMenu({
+  onNodeLockChange: () => {
+    selectedTarget.value = []
+  },
+})
 
-function onStageMouseDown() {
-  if (!dragCanvas.value) onClearSelected()
+function onStageMouseDown(event: MouseEvent) {
+  if (event.target === stageRef.value && !dragCanvas.value) onClearSelected()
 }
 
-function setDropdownRef(nodeId: string, dropdown: DropdownInstance | null) {
-  if (dropdown) {
-    dropdownRefs.set(nodeId, dropdown)
-    return
-  }
-
-  dropdownRefs.delete(nodeId)
-  if (activeContextMenuId === nodeId) activeContextMenuId = null
-}
-
-function onContextMenuVisibleChange(nodeId: string, visible: boolean) {
-  if (!visible) {
-    if (activeContextMenuId === nodeId) activeContextMenuId = null
-    return
-  }
-
-  if (activeContextMenuId && activeContextMenuId !== nodeId) {
-    dropdownRefs.get(activeContextMenuId)?.handleClose()
-  }
-  activeContextMenuId = nodeId
-}
+const onCanvasMouseDown = dispatchEventHandlers(onStageMouseDown, closeContextMenu)
+const onCanvasZoom = dispatchEventHandlers(onZoomChange, closeContextMenu)
 
 function onDrop(e: DragEvent) {
   const data = e.dataTransfer.getData('schema')
@@ -101,26 +100,12 @@ function getNodeStyle(node: MaterialSchema, index: number) {
     zIndex: index + 1,
   }
 }
-
-const commandMap: Record<NodeContextMenuCommand, (node: MaterialSchema) => void> = {
-  copy: (node) => editorStore.copyNode(node),
-  remove: (node) => editorStore.removeNode(node),
-  moveTop: (node) => editorStore.moveBottom(node),
-  moveBottom: (node) => editorStore.moveTop(node),
-  toggleLock: (node) => {
-    editorStore.toggleLock(node)
-    selectedTarget.value = []
-  },
-}
-
-function onCommand(command: NodeContextMenuCommand, node: MaterialSchema) {
-  commandMap[command](node)
-}
 </script>
 
 <template>
-  <div class="canvas-root" ref="canvasRoot">
+  <div class="canvas-root" ref="canvasRoot" @mousedown.capture="onCanvasMouseDown">
     <SketchRuler
+      ref="sketchRuler"
       v-model:scale="scale"
       :palette="palette"
       :width="rectWidth"
@@ -131,41 +116,49 @@ function onCommand(command: NodeContextMenuCommand, node: MaterialSchema) {
       :lines="lines"
       :enable-animation="true"
       animation-mode="ease-out"
-      @zoomchange="onZoomChange"
+      @zoomchange="onCanvasZoom"
     >
-      <div
-        ref="stage"
-        class="canvas-stage"
-        :style="canvasStyle"
-        @dragover.prevent
-        @drop="onDrop"
-        @mousedown.self="onStageMouseDown"
-      >
-        <el-dropdown
-          v-for="(node, index) in nodes"
-          :key="node.id"
-          :ref="(dropdown: DropdownInstance | null) => setDropdownRef(node.id, dropdown)"
-          trigger="contextmenu"
-          :show-arrow="false"
-          popper-class="node-context-menu-popper"
-          @command="(command: NodeContextMenuCommand) => onCommand(command, node)"
-          @visible-change="(visible: boolean) => onContextMenuVisibleChange(node.id, visible)"
-        >
+      <template #default>
+        <div ref="stage" class="canvas-stage" :style="canvasStyle" @dragover.prevent @drop="onDrop">
           <div
+            v-for="(node, index) in nodes"
+            :key="node.id"
             class="canvas-node"
             :style="getNodeStyle(node, index)"
             :data-node-id="node.id"
             :data-node-locked="node.locked"
             @mousedown="(e) => onSelect(node, e)"
+            @contextmenu.prevent.stop="(e) => openContextMenu(node, e)"
           >
             <component :is="getMaterialComponent(node.type)" :schema="node" />
           </div>
-          <template #dropdown>
-            <NodeContextMenu :node="node" />
-          </template>
-        </el-dropdown>
-      </div>
+        </div>
+      </template>
+      <template #toolbar="{ state }">
+        <CanvasZoomControl
+          class="canvas-zoom"
+          :scale="state.scale"
+          :fit-active="isCanvasFit(state)"
+          @fit="fitCanvas"
+          @center="centerCanvas"
+          @zoom="setCanvasScale"
+        />
+      </template>
     </SketchRuler>
+    <el-dropdown
+      ref="contextMenu"
+      trigger="contextmenu"
+      virtual-triggering
+      :virtual-ref="contextMenuAnchor"
+      :show-arrow="false"
+      placement="bottom-start"
+      popper-class="node-context-menu-popper"
+      @command="onContextMenuCommand"
+    >
+      <template v-if="contextMenuNode" #dropdown>
+        <NodeContextMenu :node="contextMenuNode" />
+      </template>
+    </el-dropdown>
     <Selecto
       v-if="stageRef && !dragCanvas"
       :container="stageRef"
@@ -214,6 +207,13 @@ function onCommand(command: NodeContextMenuCommand, node: MaterialSchema) {
     .canvas-node {
       position: absolute;
     }
+  }
+
+  .canvas-zoom {
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    z-index: 10;
   }
 }
 </style>
