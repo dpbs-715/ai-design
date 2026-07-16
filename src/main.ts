@@ -17,7 +17,7 @@ app.use(router)
 app.component('Icon', Icon)
 
 registerComponent({
-  number: ElInputNumber,
+  number: (props, { slots }) => h(ElInputNumber, { precision: 3, ...props }, slots),
   switch: ElSwitch,
 })
 registerComponentDefaultPropsMap({
