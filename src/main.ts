@@ -18,7 +18,6 @@ app.component('Icon', Icon)
 
 registerComponent({
   number: ElInputNumber,
-  color: ElColorPicker,
   switch: ElSwitch,
 })
 registerComponentDefaultPropsMap({
