@@ -194,6 +194,7 @@ function removeVariable(variable: ThemeVariable) {
 
     &.active {
       background: var(--surface-raised);
+      box-shadow: 0 1px 3px rgb(0 0 0 / 14%);
       color: var(--accent-color);
     }
   }

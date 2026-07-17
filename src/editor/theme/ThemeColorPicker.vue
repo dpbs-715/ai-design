@@ -173,6 +173,7 @@ function onFocusOut(event: FocusEvent) {
     &.active {
       background: var(--surface-raised);
       color: var(--accent-color);
+      box-shadow: 0 1px 2px rgb(0 0 0 / 12%);
     }
 
     &:disabled {
