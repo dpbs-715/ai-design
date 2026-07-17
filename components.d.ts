@@ -13,7 +13,6 @@ declare module 'vue' {
   export interface GlobalComponents {
     CommonButton: typeof import('@vunio/ui')['CommonButton']
     CommonForm: typeof import('@vunio/ui')['CommonForm']
-    CommonSelect: typeof import('@vunio/ui')['CommonSelect']
     ElCascader: typeof import('element-plus/es')['ElCascader']
     ElDrawer: typeof import('element-plus/es')['ElDrawer']
     ElDropdown: typeof import('element-plus/es')['ElDropdown']
