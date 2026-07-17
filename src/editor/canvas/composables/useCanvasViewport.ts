@@ -6,11 +6,13 @@ export function useCanvasViewport() {
   const viewportRef = useTemplateRef<HTMLDivElement>('canvasRoot')
   const { width: measuredWidth, height: measuredHeight } = useRefResizeObserver(viewportRef)
 
+  const measured = computed(() => measuredWidth.value != null && measuredHeight.value != null)
   const width = computed(() => Math.max(MIN_VIEWPORT_SIZE, measuredWidth.value ?? 0))
   const height = computed(() => Math.max(MIN_VIEWPORT_SIZE, measuredHeight.value ?? 0))
 
   return {
     width,
     height,
+    measured,
   }
 }

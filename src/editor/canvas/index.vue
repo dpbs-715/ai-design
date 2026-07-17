@@ -26,7 +26,8 @@ const editorStore = useEditorStore()
 const moveableRef = useTemplateRef('moveable')
 const stageRef = useTemplateRef('stage')
 
-const { height: viewportHeight, width: viewportWidth } = useCanvasViewport()
+const { height: viewportHeight, width: viewportWidth, measured: viewportMeasured } =
+  useCanvasViewport()
 const { canvas, nodes } = storeToRefs(editorStore)
 const { resolvedMode, rootStyle: renderThemeStyle, resolveColor } = useRenderTheme()
 
@@ -112,6 +113,7 @@ const stageStyle = computed(() => ({
 <template>
   <div class="canvas-root" ref="canvasRoot" @mousedown.capture="onCanvasMouseDown">
     <SketchRuler
+      v-if="viewportMeasured"
       ref="sketchRuler"
       v-model:scale="scale"
       :palette="palette"
