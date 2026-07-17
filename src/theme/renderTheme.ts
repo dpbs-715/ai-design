@@ -50,7 +50,7 @@ const defaultThemeVariables: ThemeVariable[] = [
     name: '页面背景',
     type: 'color',
     light: '#f5f7fb',
-    dark: '#0d121b',
+    dark: '#0e0e10',
     builtin: true,
   },
   {
@@ -58,7 +58,7 @@ const defaultThemeVariables: ThemeVariable[] = [
     name: '容器背景',
     type: 'color',
     light: '#ffffff',
-    dark: '#151b24',
+    dark: '#161618',
     builtin: true,
   },
   {
@@ -90,7 +90,7 @@ const defaultThemeVariables: ThemeVariable[] = [
     name: '边框颜色',
     type: 'color',
     light: '#dde2ea',
-    dark: '#2a3442',
+    dark: '#2b2b31',
     builtin: true,
   },
   {
