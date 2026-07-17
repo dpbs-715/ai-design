@@ -21,6 +21,7 @@ interface SketchRulerExpose {
 interface UseCanvasZoomOptions {
   viewportWidth: Readonly<Ref<number>>
   viewportHeight: Readonly<Ref<number>>
+  viewportMeasured: Readonly<Ref<boolean>>
   canvasWidth: Readonly<Ref<number>>
   canvasHeight: Readonly<Ref<number>>
   scale: Ref<number>
@@ -33,6 +34,7 @@ const FIT_OFFSET_TOLERANCE = 0.5
 export function useCanvasZoom({
   viewportWidth,
   viewportHeight,
+  viewportMeasured,
   canvasWidth,
   canvasHeight,
   scale,
@@ -53,6 +55,15 @@ export function useCanvasZoom({
       y: (viewportHeight.value - canvasHeight.value * fitScale) / 2,
     }
   }
+
+  watch(
+    viewportMeasured,
+    (measured) => {
+      if (!measured) return
+      scale.value = getFitTransform().scale
+    },
+    { flush: 'sync', once: true },
+  )
 
   function fitCanvas() {
     sketchRulerRef.value?.setTransform(getFitTransform())

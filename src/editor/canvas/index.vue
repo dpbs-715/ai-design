@@ -26,8 +26,11 @@ const editorStore = useEditorStore()
 const moveableRef = useTemplateRef('moveable')
 const stageRef = useTemplateRef('stage')
 
-const { height: viewportHeight, width: viewportWidth, measured: viewportMeasured } =
-  useCanvasViewport()
+const {
+  height: viewportHeight,
+  width: viewportWidth,
+  measured: viewportMeasured,
+} = useCanvasViewport()
 const { canvas, nodes } = storeToRefs(editorStore)
 const { resolvedMode, rootStyle: renderThemeStyle, resolveColor } = useRenderTheme()
 
@@ -50,6 +53,7 @@ const { canvasWidth, canvasHeight, canvasStyle, scale, lines, palette, onZoomCha
 const { fitCanvas, centerCanvas, setCanvasScale, isCanvasFit } = useCanvasZoom({
   viewportWidth,
   viewportHeight,
+  viewportMeasured,
   canvasWidth,
   canvasHeight,
   scale,
