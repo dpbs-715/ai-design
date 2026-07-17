@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { CSSProperties } from 'vue'
 import type { MaterialSchema } from '@/schema/material.ts'
-import { useRenderTheme } from '@/theme/renderTheme.ts'
+import { createThemeColorReference, useRenderTheme } from '@/theme/renderTheme.ts'
 
 defineOptions({
   name: 'TextMaterial',
@@ -11,6 +11,8 @@ const props = defineProps<{
   schema: MaterialSchema
 }>()
 const { resolveColor } = useRenderTheme()
+
+const TEXT_SHADOW = '0 8px 24px rgba(7, 10, 24, 0.42), 0 1px 2px rgba(7, 10, 24, 0.7)'
 
 const containerStyle = computed<CSSProperties>(() => {
   const style = props.schema.style ?? {}
@@ -28,7 +30,7 @@ const textStyle = computed<CSSProperties>(() => {
   const wrap = textProps.wrap !== false
 
   return {
-    color: resolveColor(style.color) || '#ffffff',
+    color: resolveColor(style.color ?? createThemeColorReference('text-primary')),
     fontFamily: style.fontFamily,
     fontSize: `${style.fontSize ?? 16}px`,
     fontWeight: style.fontWeight ?? 400,
@@ -37,9 +39,7 @@ const textStyle = computed<CSSProperties>(() => {
     letterSpacing: `${style.letterSpacing ?? 0}px`,
     textAlign: style.textAlign ?? 'left',
     textDecoration: textProps.underline ? 'underline' : 'none',
-    textShadow: textProps.shadow
-      ? '0 8px 24px rgba(7, 10, 24, 0.42), 0 1px 2px rgba(7, 10, 24, 0.7)'
-      : 'none',
+    textShadow: textProps.shadow ? TEXT_SHADOW : 'none',
     whiteSpace: wrap ? 'pre-wrap' : 'nowrap',
     textOverflow: wrap ? 'clip' : 'ellipsis',
   }

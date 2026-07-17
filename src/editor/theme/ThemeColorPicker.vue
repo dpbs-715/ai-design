@@ -164,7 +164,7 @@ function onFocusOut(event: FocusEvent) {
     height: 24px;
     padding: 0 6px;
     border: 0;
-    border-radius: 3px;
+    border-radius: var(--el-border-radius-small);
     background: transparent;
     color: var(--text-muted);
     cursor: pointer;
@@ -172,7 +172,6 @@ function onFocusOut(event: FocusEvent) {
 
     &.active {
       background: var(--surface-raised);
-      box-shadow: 0 1px 2px rgb(0 0 0 / 12%);
       color: var(--accent-color);
     }
 
@@ -207,7 +206,7 @@ function onFocusOut(event: FocusEvent) {
   i {
     width: 16px;
     height: 16px;
-    border: 1px solid rgb(127 127 127 / 24%);
+    border: 1px solid var(--border-color);
     border-radius: 50%;
 
     & + i {

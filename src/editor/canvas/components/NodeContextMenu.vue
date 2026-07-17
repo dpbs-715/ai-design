@@ -17,7 +17,7 @@ const nodeKind = computed(() => (node.type === 'text' ? '文本节点' : '图表
 <template>
   <el-dropdown-menu class="node-context-menu">
     <li class="node-context-menu__header" role="presentation">
-      <span class="node-context-menu__node-icon">
+      <span class="node-context-menu__node-icon icon-tile icon-tile--lg">
         <Icon :icon="nodeIcon" width="17" />
       </span>
       <span class="node-context-menu__identity">
@@ -76,11 +76,10 @@ const nodeKind = computed(() => (node.type === 'text' ? '文本节点' : '图表
   min-width: var(--node-context-menu-width);
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--border-color) 88%, var(--text-muted));
-  border-radius: 11px;
+  border-radius: var(--el-border-radius-base);
   background: color-mix(in srgb, var(--surface-raised) 96%, transparent);
-  box-shadow:
-    0 18px 42px rgb(0 0 0 / 44%),
-    inset 0 1px 0 rgb(255 255 255 / 4%);
+  box-shadow: var(--el-box-shadow-light);
+  -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
 }
 
@@ -101,16 +100,6 @@ const nodeKind = computed(() => (node.type === 'text' ? '文本节点' : '图表
     padding: 12px;
     border-bottom: 1px solid color-mix(in srgb, var(--border-color) 72%, transparent);
     list-style: none;
-  }
-
-  .node-context-menu__node-icon {
-    display: grid;
-    width: 32px;
-    height: 32px;
-    place-items: center;
-    border-radius: 8px;
-    background: var(--accent-soft);
-    color: var(--accent-color);
   }
 
   .node-context-menu__identity {
@@ -164,7 +153,7 @@ const nodeKind = computed(() => (node.type === 'text' ? '文本节点' : '图表
     gap: 4px;
     padding: 0;
     border: 1px solid var(--border-color);
-    border-radius: 7px;
+    border-radius: var(--el-border-radius-base);
     background: color-mix(in srgb, var(--surface-workbench) 76%, transparent);
     color: var(--text-secondary);
     font-size: 11px;
@@ -198,7 +187,7 @@ const nodeKind = computed(() => (node.type === 'text' ? '文本节点' : '图表
     gap: 8px;
     margin: 0 6px;
     padding: 0 9px;
-    border-radius: 6px;
+    border-radius: var(--el-border-radius-small);
     color: var(--text-secondary);
     line-height: 1;
 

@@ -53,7 +53,7 @@ config.forEach((config) => {
 <template>
   <div class="canvas-property">
     <header class="canvas-header">
-      <span class="canvas-icon"><Icon icon="fluent:slide-size-20-filled" width="18" /></span>
+      <span class="canvas-icon icon-tile"><Icon icon="fluent:slide-size-20-filled" width="18" /></span>
       <span class="canvas-copy">
         <strong>画布</strong>
         <small>页面基础设置</small>
@@ -91,16 +91,6 @@ config.forEach((config) => {
   border-bottom: 1px solid var(--border-color);
 }
 
-.canvas-icon {
-  display: grid;
-  width: 30px;
-  height: 30px;
-  place-items: center;
-  border-radius: 5px;
-  background: var(--accent-soft);
-  color: var(--accent-color);
-}
-
 .canvas-copy {
   display: flex;
   flex-direction: column;
@@ -118,34 +108,8 @@ config.forEach((config) => {
   }
 }
 
-.content-heading {
-  display: flex;
-  height: 48px;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 14px;
-  border-bottom: 1px solid var(--border-color);
-
-  h2 {
-    color: var(--text-primary);
-    font-size: 13px;
-    font-weight: 500;
-  }
-
-  span {
-    color: var(--text-muted);
-    font-size: 11px;
-  }
-}
-
 .canvas-form {
   padding: 16px 14px;
-}
-
-:deep(.el-form-item__label) {
-  margin-bottom: 5px;
-  color: var(--text-muted);
-  font-size: 12px;
 }
 
 :deep(.el-input-number) {

@@ -216,7 +216,7 @@ const stageStyle = computed(() => ({
 
   .canvas-stage {
     position: relative;
-    box-shadow: 0 12px 36px rgb(0 0 0 / 34%);
+    box-shadow: var(--el-box-shadow-light);
 
     .canvas-node {
       position: absolute;

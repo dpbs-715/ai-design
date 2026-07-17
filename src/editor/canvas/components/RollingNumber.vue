@@ -126,36 +126,37 @@ onScopeDispose(() => {
 .rolling-number-place-down-enter-active,
 .rolling-number-place-down-leave-active {
   transition: transform var(--rolling-number-duration) ease-out;
-  //opacity var(--rolling-number-duration) ease-out;
 }
 
 .rolling-number-digit-up-enter-from,
 .rolling-number-place-up-enter-from {
-  //opacity: 0;
   transform: translateY(100%);
 }
 
 .rolling-number-digit-up-leave-to,
 .rolling-number-place-up-leave-to {
-  //opacity: 0;
   transform: translateY(-100%);
 }
 
 .rolling-number-digit-down-enter-from,
 .rolling-number-place-down-enter-from {
-  //opacity: 0;
   transform: translateY(-100%);
 }
 
 .rolling-number-digit-down-leave-to,
 .rolling-number-place-down-leave-to {
-  //opacity: 0;
   transform: translateY(100%);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rolling-number__digit,
-  .rolling-number__slot {
+  .rolling-number-digit-up-enter-active,
+  .rolling-number-digit-up-leave-active,
+  .rolling-number-digit-down-enter-active,
+  .rolling-number-digit-down-leave-active,
+  .rolling-number-place-up-enter-active,
+  .rolling-number-place-up-leave-active,
+  .rolling-number-place-down-enter-active,
+  .rolling-number-place-down-leave-active {
     transition: none;
   }
 }

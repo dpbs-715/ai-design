@@ -152,7 +152,7 @@ watch(
   <div class="node-property">
     <header class="node-header">
       <div class="node-identity">
-        <span class="node-icon"><Icon :icon="componentIcon" width="18" /></span>
+        <span class="node-icon icon-tile"><Icon :icon="componentIcon" width="18" /></span>
         <span class="node-copy">
           <strong>{{ selectedNode.name }}</strong>
           <small>{{ selectedNode.type }}</small>
@@ -160,7 +160,7 @@ watch(
       </div>
 
       <el-dropdown trigger="click">
-        <button type="button" class="header-more" aria-label="更多组件操作">
+        <button type="button" class="header-more icon-button" aria-label="更多组件操作">
           <Icon icon="fluent:more-horizontal-20-regular" width="18" />
         </button>
         <template #dropdown>
@@ -173,7 +173,7 @@ watch(
     </header>
 
     <div class="property-body">
-      <nav class="section-nav" aria-label="组件属性分区">
+      <nav class="rail-nav" aria-label="组件属性分区">
         <button
           v-for="section in sectionOptions"
           :key="section.name"
@@ -289,17 +289,6 @@ watch(
   gap: 9px;
 }
 
-.node-icon {
-  display: grid;
-  width: 30px;
-  height: 30px;
-  flex: none;
-  place-items: center;
-  border-radius: 5px;
-  background: var(--accent-soft);
-  color: var(--accent-color);
-}
-
 .node-copy {
   display: flex;
   min-width: 0;
@@ -321,62 +310,10 @@ watch(
   }
 }
 
-.header-more {
-  display: grid;
-  width: 28px;
-  height: 28px;
-  place-items: center;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-
-  &:hover {
-    background: var(--surface-hover);
-    color: var(--text-primary);
-  }
-}
-
 .property-body {
   display: flex;
   min-height: 0;
   flex: 1;
-}
-
-.section-nav {
-  width: 62px;
-  flex: none;
-  border-right: 1px solid var(--border-color);
-  background: var(--surface-workbench);
-
-  button {
-    display: flex;
-    width: 100%;
-    height: 62px;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    padding: 0;
-    border: 0;
-    border-left: 2px solid transparent;
-    background: transparent;
-    color: var(--text-muted);
-    font-size: 11px;
-    cursor: pointer;
-
-    &:hover {
-      background: var(--surface-raised);
-      color: var(--text-secondary);
-    }
-
-    &.active {
-      border-left-color: var(--accent-color);
-      background: var(--accent-soft);
-      color: var(--accent-color);
-    }
-  }
 }
 
 .section-content {
@@ -386,38 +323,12 @@ watch(
   background: var(--surface-panel);
 }
 
-.content-heading {
-  display: flex;
-  height: 48px;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 14px;
-  border-bottom: 1px solid var(--border-color);
-
-  h2 {
-    color: var(--text-primary);
-    font-size: 13px;
-    font-weight: 500;
-  }
-
-  span {
-    color: var(--text-muted);
-    font-size: 11px;
-  }
-}
-
 .form-area {
   padding: 16px 14px;
 }
 
 :deep(.el-form-item) {
   margin-bottom: 14px;
-}
-
-:deep(.el-form-item__label) {
-  margin-bottom: 5px;
-  color: var(--text-muted);
-  font-size: 12px;
 }
 
 :deep(.el-input-number),

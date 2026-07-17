@@ -60,7 +60,7 @@ function selectTheme(nextPreference: EditorThemePreference, event: MouseEvent) {
   gap: 1px;
   padding: 2px;
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--el-border-radius-base);
   background: color-mix(in srgb, var(--surface-workbench) 74%, transparent);
 }
 

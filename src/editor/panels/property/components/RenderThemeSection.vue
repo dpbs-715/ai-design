@@ -67,11 +67,11 @@ function removeVariable(variable: ThemeVariable) {
 
 <template>
   <section class="render-theme-section">
-    <div class="section-heading">
-      <span>
-        <strong>渲染区主题</strong>
-        <small>组件共享的浅色与深色变量</small>
-      </span>
+    <div class="section-heading theme-heading">
+      <div>
+        <h3>渲染区主题</h3>
+        <p>组件共享的浅色与深色变量</p>
+      </div>
       <em>{{ resolvedMode === 'dark' ? '深色预览' : '浅色预览' }}</em>
     </div>
 
@@ -111,7 +111,7 @@ function removeVariable(variable: ThemeVariable) {
           <button
             v-else
             type="button"
-            class="delete-variable"
+            class="delete-variable icon-button icon-button--sm"
             aria-label="删除主题变量"
             @click="removeVariable(variable)"
           >
@@ -156,29 +156,10 @@ function removeVariable(variable: ThemeVariable) {
   padding: 0 14px 18px;
 }
 
-.section-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+.theme-heading {
   padding: 16px 0 12px;
+  margin-bottom: 0;
   border-top: 1px solid var(--border-color);
-
-  > span {
-    display: flex;
-    flex-direction: column;
-  }
-
-  strong {
-    color: var(--text-primary);
-    font-size: 13px;
-    font-weight: 500;
-  }
-
-  small {
-    margin-top: 3px;
-    color: var(--text-muted);
-    font-size: 11px;
-  }
 
   em {
     padding: 3px 6px;
@@ -194,7 +175,7 @@ function removeVariable(variable: ThemeVariable) {
   display: grid;
   padding: 3px;
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--el-border-radius-base);
   background: var(--surface-workbench);
   grid-template-columns: repeat(3, minmax(0, 1fr));
 
@@ -213,7 +194,6 @@ function removeVariable(variable: ThemeVariable) {
 
     &.active {
       background: var(--surface-raised);
-      box-shadow: 0 1px 3px rgb(0 0 0 / 14%);
       color: var(--accent-color);
     }
   }
@@ -242,7 +222,7 @@ function removeVariable(variable: ThemeVariable) {
 .theme-variable {
   padding: 10px;
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--el-border-radius-base);
   background: var(--surface-workbench);
 }
 
@@ -270,23 +250,14 @@ function removeVariable(variable: ThemeVariable) {
 .builtin-badge {
   flex: none;
   padding: 2px 5px;
-  border-radius: 3px;
+  border-radius: var(--el-border-radius-small);
   background: var(--surface-raised);
   color: var(--text-muted);
   font-size: 9px;
 }
 
 .delete-variable {
-  display: grid;
-  width: 24px;
-  height: 24px;
   flex: none;
-  place-items: center;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
 
   &:hover {
     background: color-mix(in srgb, var(--el-color-danger) 12%, transparent);

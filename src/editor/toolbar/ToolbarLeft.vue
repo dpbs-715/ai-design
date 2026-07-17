@@ -70,46 +70,4 @@ const { undo, redo, canUndo, canRedo } = useUndoRedo()
 .toolbar {
   gap: 4px;
 }
-
-.toolbar-button {
-  display: inline-flex;
-  width: 30px;
-  height: 30px;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 1px solid transparent;
-  border-radius: 5px;
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition:
-    background-color 140ms ease,
-    border-color 140ms ease,
-    color 140ms ease;
-
-  &:hover:not(:disabled) {
-    background: var(--surface-raised);
-    color: var(--text-primary);
-  }
-
-  &.active {
-    border-color: color-mix(in srgb, var(--accent-color) 22%, transparent);
-    background: var(--accent-soft);
-    color: var(--accent-color);
-  }
-
-  &:disabled {
-    color: var(--text-muted);
-    cursor: not-allowed;
-    opacity: 0.45;
-  }
-}
-
-.toolbar-divider {
-  width: 1px;
-  height: 18px;
-  margin: 0 4px;
-  background: var(--border-color);
-}
 </style>

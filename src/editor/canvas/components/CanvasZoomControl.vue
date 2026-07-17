@@ -107,11 +107,10 @@ function onZoomMenuCommand(command: ZoomMenuCommand) {
   height: 30px;
   align-items: stretch;
   border: 1px solid color-mix(in srgb, var(--border-color-strong) 84%, transparent);
-  border-radius: 7px;
+  border-radius: var(--el-border-radius-base);
   background: color-mix(in srgb, var(--surface-raised) 94%, transparent);
-  box-shadow:
-    0 8px 20px rgb(0 0 0 / 24%),
-    inset 0 1px 0 rgb(255 255 255 / 4%);
+  box-shadow: var(--el-box-shadow-lighter);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
 
   .canvas-zoom-control__button {
@@ -144,7 +143,7 @@ function onZoomMenuCommand(command: ZoomMenuCommand) {
     position: relative;
     width: 30px;
     flex: 0 0 30px;
-    border-radius: 6px 0 0 6px;
+    border-radius: 4px 0 0 4px;
 
     &.is-active {
       background: var(--accent-soft);
@@ -177,7 +176,7 @@ function onZoomMenuCommand(command: ZoomMenuCommand) {
     gap: 1px;
     padding: 0 5px 0 7px;
     border-left: 1px solid color-mix(in srgb, var(--border-color) 78%, transparent);
-    border-radius: 0 6px 6px 0;
+    border-radius: 0 4px 4px 0;
     font-size: 12px;
     font-variant-numeric: tabular-nums;
     font-weight: 500;
@@ -199,9 +198,10 @@ function onZoomMenuCommand(command: ZoomMenuCommand) {
   min-width: 132px;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--border-color-strong) 84%, transparent);
-  border-radius: 8px;
+  border-radius: var(--el-border-radius-base);
   background: color-mix(in srgb, var(--surface-raised) 96%, transparent);
-  box-shadow: 0 12px 30px rgb(0 0 0 / 36%);
+  box-shadow: var(--el-box-shadow-light);
+  -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
 }
 
@@ -215,7 +215,7 @@ function onZoomMenuCommand(command: ZoomMenuCommand) {
     grid-template-columns: 18px minmax(0, 1fr);
     gap: 6px;
     padding: 0 8px;
-    border-radius: 5px;
+    border-radius: var(--el-border-radius-small);
     color: var(--text-secondary);
     font-size: 12px;
 

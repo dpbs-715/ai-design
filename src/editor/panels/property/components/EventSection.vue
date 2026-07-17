@@ -195,7 +195,7 @@ function openCodeEditor() {
           <el-dropdown trigger="click" @command="removeEvent(event)">
             <button
               type="button"
-              class="more-button"
+              class="more-button icon-button"
               :aria-label="`管理${event.title ?? event.name}`"
             >
               <Icon icon="fluent:more-horizontal-20-regular" width="16" />
@@ -207,7 +207,7 @@ function openCodeEditor() {
         </div>
       </div>
 
-      <div v-else class="empty-state compact-empty">
+      <div v-else class="empty-state">
         <Icon icon="fluent:flash-20-regular" width="22" />
         <strong>还没有配置事件</strong>
         <span>{{
@@ -234,7 +234,7 @@ function openCodeEditor() {
 
       <div class="code-summary">
         <div class="code-copy">
-          <span class="code-icon"><Icon icon="fluent:code-20-regular" width="17" /></span>
+          <span class="code-icon icon-tile"><Icon icon="fluent:code-20-regular" width="17" /></span>
           <span>
             <strong>处理代码</strong>
             <small>{{
@@ -253,26 +253,6 @@ function openCodeEditor() {
 .event-detail-section {
   padding: 16px 14px;
   border-bottom: 1px solid var(--border-color);
-}
-
-.section-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
-
-  h3 {
-    color: var(--text-primary);
-    font-size: 13px;
-    font-weight: 500;
-  }
-
-  p {
-    margin-top: 3px;
-    color: var(--text-muted);
-    font-size: 12px;
-  }
 }
 
 .add-event-button,
@@ -378,20 +358,10 @@ function openCodeEditor() {
 }
 
 .more-button {
-  display: grid;
-  width: 28px;
-  height: 28px;
   margin-right: 5px;
-  place-items: center;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
 
   &:hover {
     background: var(--surface-workbench);
-    color: var(--text-primary);
   }
 }
 
@@ -414,17 +384,6 @@ function openCodeEditor() {
   gap: 8px;
 }
 
-.code-icon {
-  display: grid;
-  width: 28px;
-  height: 28px;
-  flex: none;
-  place-items: center;
-  border-radius: 4px;
-  background: var(--accent-soft);
-  color: var(--accent-color);
-}
-
 .open-code-button {
   flex: none;
   border-color: var(--accent-color);
@@ -433,26 +392,7 @@ function openCodeEditor() {
 }
 
 .empty-state {
-  display: flex;
   min-height: 150px;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  color: var(--text-muted);
-  text-align: center;
-
-  strong {
-    color: var(--text-secondary);
-    font-size: 13px;
-    font-weight: 500;
-  }
-
-  span {
-    max-width: 220px;
-    font-size: 12px;
-    line-height: 1.6;
-  }
 }
 
 :deep(.el-form-item) {
@@ -461,11 +401,5 @@ function openCodeEditor() {
   &:last-child {
     margin-bottom: 0;
   }
-}
-
-:deep(.el-form-item__label) {
-  margin-bottom: 5px;
-  color: var(--text-muted);
-  font-size: 12px;
 }
 </style>

@@ -11,7 +11,7 @@ const { selectedNode } = storeToRefs(editorStore)
 </script>
 
 <template>
-  <div class="property-panel">
+  <div class="property-panel editor-pane">
     <NodeProperty v-if="selectedNode" />
     <CanvasProperty v-else />
   </div>

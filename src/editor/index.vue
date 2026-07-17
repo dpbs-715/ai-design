@@ -34,7 +34,7 @@ const { isNarrowWorkspace, materialWidth, layerWidth, propertyWidth } = useRespo
 
 <template>
   <div class="editor h-screen select-none" :class="{ 'is-narrow': isNarrowWorkspace }">
-    <header class="header h-56 flex justify-between items-center px-20">
+    <header class="header flex justify-between items-center px-20">
       <ToolbarLeft class="editor-toolbar editor-toolbar-left" />
       <div class="editor-title flex-1 text-center">未命名大屏</div>
       <ToolbarRight class="editor-toolbar editor-toolbar-right" />
@@ -66,10 +66,10 @@ const { isNarrowWorkspace, materialWidth, layerWidth, propertyWidth } = useRespo
   .header {
     position: relative;
     z-index: 10;
+    height: var(--editor-header-height);
     gap: 12px;
     background: var(--surface-panel);
     border-bottom: 1px solid var(--border-color);
-    box-shadow: 0 1px 0 rgb(255 255 255 / 2%);
   }
 
   .editor-toolbar {
@@ -89,7 +89,7 @@ const { isNarrowWorkspace, materialWidth, layerWidth, propertyWidth } = useRespo
   }
 
   .editor-main {
-    height: calc(100% - 56px);
+    height: calc(100% - var(--editor-header-height));
   }
 
   .material,

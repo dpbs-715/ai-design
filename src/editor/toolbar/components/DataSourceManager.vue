@@ -192,7 +192,7 @@ defineExpose({ save })
 </script>
 
 <template>
-  <div class="source-workbench">
+  <div class="source-workbench editor-pane">
     <aside class="source-sidebar">
       <div class="sidebar-heading">
         <span>数据源</span>
@@ -497,29 +497,7 @@ defineExpose({ save })
 }
 
 .empty-state {
-  display: flex;
   height: 100%;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  color: var(--text-muted);
-
-  strong {
-    color: var(--text-secondary);
-    font-size: 13px;
-    font-weight: 500;
-  }
-
-  span {
-    font-size: 12px;
-  }
-}
-
-:deep(.el-form-item__label) {
-  margin-bottom: 5px;
-  color: var(--text-muted);
-  font-size: 12px;
 }
 
 :deep(.el-input-number),

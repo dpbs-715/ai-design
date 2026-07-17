@@ -24,7 +24,7 @@ const activeGroupName = computed(() => {
     </div>
 
     <div class="panel-body">
-      <nav class="nav whitespace-nowrap" aria-label="素材分类">
+      <nav class="rail-nav whitespace-nowrap" aria-label="素材分类">
         <button
           v-for="group in groups"
           :key="group.key"
@@ -77,43 +77,6 @@ const activeGroupName = computed(() => {
   display: flex;
   min-height: 0;
   flex: 1;
-
-  .nav {
-    width: 54px;
-    flex: none;
-    background: var(--surface-workbench);
-    border-right: 1px solid var(--border-color);
-
-    button {
-      display: flex;
-      width: 100%;
-      height: 58px;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 3px;
-      padding: 0;
-      border: 0;
-      background: transparent;
-      color: var(--text-muted);
-      font-size: 12px;
-      cursor: pointer;
-      transition:
-        background-color 140ms ease,
-        color 140ms ease;
-
-      &:hover {
-        background: var(--surface-raised);
-        color: var(--text-secondary);
-      }
-
-      &.active {
-        background: var(--accent-soft);
-        color: var(--accent-color);
-        box-shadow: inset 2px 0 0 var(--accent-color);
-      }
-    }
-  }
 
   .material-list {
     min-width: 0;

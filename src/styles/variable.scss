@@ -1,6 +1,7 @@
 :root {
   /* Single source for the complete editor accent family. */
 
+  --editor-header-height: 56px;
   --accent-color-hover: color-mix(in oklab, var(--accent-color) 86%, var(--surface-panel));
   --accent-foreground: var(--surface-workbench);
   --accent-soft: color-mix(in srgb, var(--accent-color) 12%, transparent);
@@ -63,9 +64,6 @@ html[data-editor-theme='dark'] {
   --control-accent-color: #5f6b7a;
   --el-color-primary-rgb: 95, 107, 122;
 
-  /* Backwards-compatible editor aliases */
-  --bg-color: var(--surface-panel);
-
   --el-bg-color: var(--surface-panel);
   --el-bg-color-page: var(--surface-workbench);
   --el-bg-color-overlay: var(--surface-raised);
@@ -115,8 +113,6 @@ html[data-editor-theme='light'] {
   --accent-color: color-mix(in oklab, var(--accent-seed) 88%, black);
   --control-accent-color: var(--accent-color);
   --el-color-primary-rgb: 0, 0, 0;
-
-  --bg-color: var(--surface-panel);
 
   --el-bg-color: var(--surface-panel);
   --el-bg-color-page: var(--surface-workbench);

@@ -156,7 +156,7 @@ function openSourceManager() {
   <div class="data-section">
     <template v-if="supportsDataBinding">
       <section class="property-group">
-        <div class="group-heading">
+        <div class="section-heading">
           <div>
             <h3>数据源</h3>
             <p v-if="selectedSource">{{ sourceSummary }}</p>
@@ -173,7 +173,7 @@ function openSourceManager() {
 
       <template v-if="selectedSource">
         <section class="property-group">
-          <div class="group-heading">
+          <div class="section-heading">
             <div>
               <h3>字段映射</h3>
               <p>选择已有字段，或输入 path 路径后按回车创建</p>
@@ -188,14 +188,14 @@ function openSourceManager() {
         </section>
 
         <section class="property-group preview-group">
-          <div class="group-heading">
+          <div class="section-heading">
             <div>
               <h3>数据预览</h3>
               <p>{{ previewRecordCount }} 条记录</p>
             </div>
             <button
               type="button"
-              class="icon-action"
+              class="icon-action icon-button"
               aria-label="刷新数据预览"
               @click="loadPreview"
             >
@@ -246,49 +246,17 @@ function openSourceManager() {
   border-bottom: 1px solid var(--border-color);
 }
 
-.group-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
-
-  h3 {
-    color: var(--text-primary);
-    font-size: 13px;
-    font-weight: 500;
-  }
-
-  p {
-    margin-top: 3px;
-    color: var(--text-muted);
-    font-size: 12px;
-  }
-}
-
-.text-action,
-.icon-action {
+.text-action {
+  padding: 2px 0;
   border: 0;
   background: transparent;
   color: var(--accent-color);
   cursor: pointer;
-}
-
-.text-action {
-  padding: 2px 0;
   font-size: 12px;
 }
 
 .icon-action {
-  display: grid;
-  width: 26px;
-  height: 26px;
-  place-items: center;
-  border-radius: 4px;
-
-  &:hover {
-    background: var(--surface-hover);
-  }
+  color: var(--accent-color);
 }
 
 .preview-table-wrap {
@@ -308,19 +276,15 @@ function openSourceManager() {
   }
 }
 
-.preview-state,
-.empty-state {
+.preview-state {
   display: flex;
+  min-height: 88px;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
-}
-
-.preview-state {
-  min-height: 88px;
   gap: 8px;
   border: 1px dashed var(--border-color);
   border-radius: 5px;
+  color: var(--text-muted);
   font-size: 12px;
 }
 
@@ -334,22 +298,7 @@ function openSourceManager() {
 
 .empty-state {
   min-height: 190px;
-  flex-direction: column;
-  gap: 7px;
   padding: 24px;
-  text-align: center;
-
-  strong {
-    color: var(--text-secondary);
-    font-size: 13px;
-    font-weight: 500;
-  }
-
-  span {
-    max-width: 210px;
-    font-size: 12px;
-    line-height: 1.6;
-  }
 }
 
 .unsupported-state {
@@ -362,12 +311,6 @@ function openSourceManager() {
   &:last-child {
     margin-bottom: 0;
   }
-}
-
-:deep(.el-form-item__label) {
-  margin-bottom: 5px;
-  color: var(--text-muted);
-  font-size: 12px;
 }
 
 @keyframes preview-loading {
