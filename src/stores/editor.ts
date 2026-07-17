@@ -5,15 +5,21 @@ import type { PageSchema } from '@/schema/page.ts'
 import { deepClone } from '@vunio/utils'
 import { useUndoRedo } from '@/hooks/useUndoRedo.ts'
 import { SetFormFieldCommand } from '@vunio/ui'
+import {
+  createDefaultRenderTheme,
+  createThemeColorReference,
+  normalizeRenderTheme,
+} from '@/theme/renderTheme.ts'
 
 export const useEditorStore = defineStore('editor', () => {
   const { dispatchCommand } = useUndoRedo()
 
   const page = ref<PageSchema>({
+    theme: createDefaultRenderTheme(),
     canvas: {
       width: 1920,
       height: 1080,
-      backgroundColor: '#0d121b',
+      backgroundColor: createThemeColorReference('page-background'),
     },
     nodes: [],
     dataSources: [
@@ -71,11 +77,14 @@ export const useEditorStore = defineStore('editor', () => {
   })
 
   const canvas = toRef(page.value, 'canvas')
+  const theme = toRef(page.value, 'theme')
   const nodes = toRef(page.value, 'nodes')
   const dataSources = toRef(page.value, 'dataSources')
 
   function setPage(newPage: PageSchema) {
-    Object.assign(page.value, newPage)
+    Object.assign(page.value, newPage, {
+      theme: normalizeRenderTheme(newPage.theme),
+    })
   }
 
   const nodeMap = computed(() => new Map(nodes.value.map((node) => [node.id, node])))
@@ -169,6 +178,7 @@ export const useEditorStore = defineStore('editor', () => {
     page,
     nodes,
     canvas,
+    theme,
     dataSources,
     selectedNodeId,
     selectedNodeIds,

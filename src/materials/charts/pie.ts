@@ -1,6 +1,7 @@
 import type { MaterialDefinition } from '@/schema/material.ts'
 import ChartPreview from '@/materials/previews/ChartPreview.vue'
 import { commonChartSetters, createChartBaseOption } from '@/materials/charts/shared.ts'
+import { createThemeColorReference } from '@/theme/renderTheme.ts'
 
 export const pieMaterial: MaterialDefinition = {
   name: '饼图',
@@ -12,22 +13,22 @@ export const pieMaterial: MaterialDefinition = {
   setters: [
     ...commonChartSetters,
     {
-      component: 'color',
+      component: 'themeColor',
       label: '主色',
       field: 'props.option.color.0',
-      span: 8,
+      span: 12,
     },
     {
-      component: 'color',
+      component: 'themeColor',
       label: '辅助色',
       field: 'props.option.color.1',
-      span: 8,
+      span: 12,
     },
     {
-      component: 'color',
+      component: 'themeColor',
       label: '强调色',
       field: 'props.option.color.2',
-      span: 8,
+      span: 12,
     },
     {
       component: 'input',
@@ -112,7 +113,7 @@ export const pieMaterial: MaterialDefinition = {
     props: {
       option: {
         ...createChartBaseOption('流量来源构成'),
-        color: ['#7c8cff', '#22d3ee', '#fbbf24', '#34d399', '#fb7185'],
+        color: [createThemeColorReference('primary'), '#22d3ee', '#fbbf24', '#34d399', '#fb7185'],
         legend: {
           show: true,
           orient: 'vertical',
@@ -123,7 +124,7 @@ export const pieMaterial: MaterialDefinition = {
           itemGap: 15,
           icon: 'circle',
           textStyle: {
-            color: '#94a3b8',
+            color: createThemeColorReference('text-secondary'),
             fontSize: 11,
           },
         },
@@ -151,20 +152,20 @@ export const pieMaterial: MaterialDefinition = {
             avoidLabelOverlap: true,
             itemStyle: {
               borderRadius: 7,
-              borderColor: '#151a21',
+              borderColor: createThemeColorReference('page-background'),
               borderWidth: 2,
             },
             label: {
               show: false,
               position: 'outside',
-              color: '#cbd5e1',
+              color: createThemeColorReference('text-primary'),
               fontSize: 11,
             },
             labelLine: {
               length: 10,
               length2: 8,
               lineStyle: {
-                color: '#64748b',
+                color: createThemeColorReference('border'),
               },
             },
             emphasis: {

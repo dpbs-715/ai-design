@@ -17,6 +17,7 @@ import CanvasZoomControl from '@/editor/canvas/components/CanvasZoomControl.vue'
 import { dispatchEventHandlers } from '@/utils/dispatchEventHandlers.ts'
 import { useNodeContextMenu } from '@/editor/canvas/composables/useNodeContextMenu.ts'
 import { useCanvasViewport } from '@/editor/canvas/composables/useCanvasViewport.ts'
+import { useRenderTheme } from '@/theme/renderTheme.ts'
 
 defineOptions({
   name: 'CanvasRoot',
@@ -26,7 +27,8 @@ const moveableRef = useTemplateRef('moveable')
 const stageRef = useTemplateRef('stage')
 
 const { height: viewportHeight, width: viewportWidth } = useCanvasViewport()
-const { nodes } = storeToRefs(editorStore)
+const { canvas, nodes } = storeToRefs(editorStore)
+const { resolvedMode, rootStyle: renderThemeStyle, resolveColor } = useRenderTheme()
 
 const { active: dragCanvas } = useSpaceEventListener()
 const {
@@ -99,6 +101,12 @@ function getNodeStyle(node: MaterialSchema, index: number) {
     zIndex: index + 1,
   }
 }
+
+const stageStyle = computed(() => ({
+  ...canvasStyle.value,
+  ...renderThemeStyle.value,
+  backgroundColor: resolveColor(canvas.value.backgroundColor),
+}))
 </script>
 
 <template>
@@ -118,7 +126,14 @@ function getNodeStyle(node: MaterialSchema, index: number) {
       @zoomchange="onCanvasZoom"
     >
       <template #default>
-        <div ref="stage" class="canvas-stage" :style="canvasStyle" @dragover.prevent @drop="onDrop">
+        <div
+          ref="stage"
+          class="canvas-stage"
+          :data-render-theme="resolvedMode"
+          :style="stageStyle"
+          @dragover.prevent
+          @drop="onDrop"
+        >
           <div
             v-for="(node, index) in nodes"
             :key="node.id"

@@ -5,6 +5,7 @@ import {
   commonChartSetters,
   createCartesianOption,
 } from '@/materials/charts/shared.ts'
+import { createThemeColorReference } from '@/theme/renderTheme.ts'
 
 export const barMaterial: MaterialDefinition = {
   name: '柱状图',
@@ -16,14 +17,14 @@ export const barMaterial: MaterialDefinition = {
   setters: [
     ...commonChartSetters,
     {
-      component: 'color',
+      component: 'themeColor',
       label: '渐变顶部',
       field: 'props.option.series.0.itemStyle.color.colorStops.0.color',
       span: 12,
       props: { showAlpha: true },
     },
     {
-      component: 'color',
+      component: 'themeColor',
       label: '渐变底部',
       field: 'props.option.series.0.itemStyle.color.colorStops.1.color',
       span: 12,
@@ -102,7 +103,7 @@ export const barMaterial: MaterialDefinition = {
             label: {
               show: false,
               position: 'top',
-              color: '#cbd5e1',
+              color: createThemeColorReference('text-primary'),
               fontSize: 11,
             },
             itemStyle: {
@@ -114,14 +115,14 @@ export const barMaterial: MaterialDefinition = {
                 x2: 0,
                 y2: 1,
                 colorStops: [
-                  { offset: 0, color: '#7c8cff' },
-                  { offset: 1, color: '#4f5bd5' },
+                  { offset: 0, color: createThemeColorReference('primary') },
+                  { offset: 1, color: 'transparent' },
                 ],
               },
             },
             emphasis: {
               itemStyle: {
-                shadowColor: 'rgba(124, 140, 255, 0.34)',
+                shadowColor: createThemeColorReference('primary'),
                 shadowBlur: 14,
               },
             },

@@ -5,12 +5,14 @@ import { getMaterialComponent } from '@/materials'
 import type { PageSchema } from '@/schema/page.ts'
 import { createRuntimeContext } from '@/runtime/context.ts'
 import { runSandbox } from '@/runtime/sandbox.ts'
+import { provideRenderTheme } from '@/theme/renderTheme.ts'
 
 defineOptions({ name: 'ScreenRenderer' })
 
 const props = defineProps<{ page: PageSchema }>()
 
 const runtimePage = ref(props.page)
+const renderTheme = provideRenderTheme(() => runtimePage.value.theme)
 const context = createRuntimeContext(runtimePage)
 
 window.$context = context
@@ -26,9 +28,10 @@ const top = ref(0)
 provideDataSources(dataSources)
 
 const canvasStyle = computed(() => ({
+  ...renderTheme.rootStyle.value,
   width: `${canvas.value.width}px`,
   height: `${canvas.value.height}px`,
-  backgroundColor: canvas.value.backgroundColor,
+  backgroundColor: renderTheme.resolveColor(canvas.value.backgroundColor),
   transform: `translate(${left.value}px,${top.value}px) scale(${scale.value})`,
   transformOrigin: 'top left',
 }))
@@ -92,7 +95,11 @@ onMounted(() => {
 
 <template>
   <div class="preview-container">
-    <div class="canvas-root" :style="canvasStyle">
+    <div
+      class="canvas-root"
+      :data-render-theme="renderTheme.resolvedMode.value"
+      :style="canvasStyle"
+    >
       <div
         class="canvas-node"
         :style="getNodeStyle(node, index)"

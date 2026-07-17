@@ -11,6 +11,7 @@ import { provideDataSources } from '@/context'
 import { useRoute } from 'vue-router'
 import { getPublishPage } from '@/utils/publish.ts'
 import { useResponsiveEditorLayout } from '@/editor/composables/useResponsiveEditorLayout.ts'
+import { provideRenderTheme } from '@/theme/renderTheme.ts'
 
 defineOptions({ name: 'ScreenEditor' })
 
@@ -23,9 +24,10 @@ if (pageId) {
   editorStore.setPage(page)
 }
 
-const { dataSources } = storeToRefs(editorStore)
+const { dataSources, theme } = storeToRefs(editorStore)
 
 provideDataSources(dataSources)
+provideRenderTheme(theme)
 
 const { isNarrowWorkspace, materialWidth, layerWidth, propertyWidth } = useResponsiveEditorLayout()
 </script>

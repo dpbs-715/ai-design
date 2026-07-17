@@ -61,17 +61,17 @@ export const textMaterial: MaterialDefinition = {
       },
     },
     {
-      component: 'color',
+      component: 'themeColor',
       label: '文字颜色',
       field: 'style.color',
-      span: 12,
+      span: 24,
       props: { showAlpha: true },
     },
     {
-      component: 'color',
+      component: 'themeColor',
       label: '背景颜色',
       field: 'style.backgroundColor',
-      span: 12,
+      span: 24,
       props: { showAlpha: true },
     },
     {
@@ -188,7 +188,7 @@ export const textMaterial: MaterialDefinition = {
       height: 92,
     },
     style: {
-      color: '#eef2ff',
+      color: { type: 'theme', key: 'text-primary' },
       backgroundColor: '',
       fontFamily: 'Inter, "PingFang SC", "Microsoft YaHei", sans-serif',
       fontSize: 28,

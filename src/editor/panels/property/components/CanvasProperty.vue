@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { type CommonFormConfig } from '@vunio/ui'
 import { useConfigs } from '@vunio/hooks'
 import { useUndoRedo } from '@/hooks/useUndoRedo.ts'
+import RenderThemeSection from '@/editor/panels/property/components/RenderThemeSection.vue'
 
 defineOptions({
   name: 'CanvasProperty',
@@ -30,7 +31,7 @@ const { config } = useConfigs<CommonFormConfig>(
     {
       label: '背景色',
       field: 'backgroundColor',
-      component: 'color',
+      component: 'themeColor',
       span: 24,
     },
   ],
@@ -70,12 +71,14 @@ config.forEach((config) => {
         :config="config"
       />
     </div>
+    <RenderThemeSection />
   </div>
 </template>
 
 <style scoped lang="scss">
 .canvas-property {
   height: 100%;
+  overflow-y: auto;
   background: var(--surface-panel);
 }
 

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { CSSProperties } from 'vue'
 import type { MaterialSchema } from '@/schema/material.ts'
+import { useRenderTheme } from '@/theme/renderTheme.ts'
 
 defineOptions({
   name: 'TextMaterial',
@@ -9,12 +10,13 @@ defineOptions({
 const props = defineProps<{
   schema: MaterialSchema
 }>()
+const { resolveColor } = useRenderTheme()
 
 const containerStyle = computed<CSSProperties>(() => {
   const style = props.schema.style ?? {}
   return {
     justifyContent: props.schema.props.verticalAlign ?? 'center',
-    backgroundColor: style.backgroundColor ?? 'transparent',
+    backgroundColor: resolveColor(style.backgroundColor) || 'transparent',
     padding: `${style.padding ?? 0}px`,
     borderRadius: `${style.borderRadius ?? 0}px`,
   }
@@ -26,7 +28,7 @@ const textStyle = computed<CSSProperties>(() => {
   const wrap = textProps.wrap !== false
 
   return {
-    color: style.color ?? '#ffffff',
+    color: resolveColor(style.color) || '#ffffff',
     fontFamily: style.fontFamily,
     fontSize: `${style.fontSize ?? 16}px`,
     fontWeight: style.fontWeight ?? 400,

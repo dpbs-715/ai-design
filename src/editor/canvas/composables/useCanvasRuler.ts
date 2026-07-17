@@ -43,7 +43,6 @@ export function useCanvasRuler({ moveableRef, isMoveableActive }: UseCanvasRuler
     return {
       width: canvasWidth.value + 'px',
       height: canvasHeight.value + 'px',
-      backgroundColor: canvas.value.backgroundColor,
     }
   })
 

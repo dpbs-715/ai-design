@@ -10,6 +10,7 @@ import { registerComponent, registerComponentDefaultPropsMap } from '@vunio/ui'
 import { ElInputNumber, ElSwitch } from 'element-plus'
 import '@/mock/data.ts'
 import { initializeEditorTheme } from '@/editor/theme/editorTheme.ts'
+import ThemeColorPicker from '@/editor/theme/ThemeColorPicker.vue'
 
 initializeEditorTheme()
 
@@ -22,6 +23,7 @@ app.component('Icon', Icon)
 registerComponent({
   number: (props, { slots }) => h(ElInputNumber, { precision: 3, ...props }, slots),
   switch: ElSwitch,
+  themeColor: ThemeColorPicker,
 })
 registerComponentDefaultPropsMap({
   CommonForm: {

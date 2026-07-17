@@ -5,6 +5,7 @@ import {
   commonChartSetters,
   createCartesianOption,
 } from '@/materials/charts/shared.ts'
+import { createThemeColorReference } from '@/theme/renderTheme.ts'
 
 export const areaMaterial: MaterialDefinition = {
   name: '面积图',
@@ -16,20 +17,20 @@ export const areaMaterial: MaterialDefinition = {
   setters: [
     ...commonChartSetters,
     {
-      component: 'color',
+      component: 'themeColor',
       label: '轮廓颜色',
       field: 'props.option.color.0',
       span: 24,
     },
     {
-      component: 'color',
+      component: 'themeColor',
       label: '渐变顶部',
       field: 'props.option.series.0.areaStyle.color.colorStops.0.color',
       span: 12,
       props: { showAlpha: true },
     },
     {
-      component: 'color',
+      component: 'themeColor',
       label: '渐变底部',
       field: 'props.option.series.0.areaStyle.color.colorStops.1.color',
       span: 12,
@@ -79,7 +80,7 @@ export const areaMaterial: MaterialDefinition = {
     props: {
       option: {
         ...createCartesianOption('累计成交额'),
-        color: ['#4f5bd5'],
+        color: [createThemeColorReference('primary')],
         dataset: {
           source: [
             { label: '1月', value: 86 },
@@ -110,7 +111,7 @@ export const areaMaterial: MaterialDefinition = {
             lineStyle: {
               width: 2,
               cap: 'round',
-              shadowColor: '#7c8cff',
+              shadowColor: createThemeColorReference('primary'),
               shadowBlur: 10,
             },
             areaStyle: {
@@ -122,8 +123,8 @@ export const areaMaterial: MaterialDefinition = {
                 x2: 0,
                 y2: 1,
                 colorStops: [
-                  { offset: 0, color: 'rgb(123,139,253,0.9)' },
-                  { offset: 1, color: 'rgba(123,139,253,0.02)' },
+                  { offset: 0, color: createThemeColorReference('primary') },
+                  { offset: 1, color: 'transparent' },
                 ],
               },
             },

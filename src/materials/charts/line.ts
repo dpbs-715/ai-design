@@ -5,6 +5,7 @@ import {
   commonChartSetters,
   createCartesianOption,
 } from '@/materials/charts/shared.ts'
+import { createThemeColorReference } from '@/theme/renderTheme.ts'
 
 export const lineMaterial: MaterialDefinition = {
   name: '折线图',
@@ -16,13 +17,13 @@ export const lineMaterial: MaterialDefinition = {
   setters: [
     ...commonChartSetters,
     {
-      component: 'color',
+      component: 'themeColor',
       label: '折线颜色',
       field: 'props.option.series.0.lineStyle.color',
       span: 12,
     },
     {
-      component: 'color',
+      component: 'themeColor',
       label: '节点颜色',
       field: 'props.option.series.0.itemStyle.borderColor',
       span: 12,
@@ -84,7 +85,7 @@ export const lineMaterial: MaterialDefinition = {
     props: {
       option: {
         ...createCartesianOption('实时访问趋势'),
-        color: ['#7c8cff'],
+        color: [createThemeColorReference('primary')],
         dataset: {
           source: [
             { label: '08:00', value: 420 },
@@ -115,15 +116,15 @@ export const lineMaterial: MaterialDefinition = {
             lineStyle: {
               width: 3,
               type: 'solid',
-              color: '#8b9bff',
+              color: createThemeColorReference('primary'),
               cap: 'round',
               join: 'round',
-              shadowColor: 'rgba(124, 140, 255, 0.24)',
+              shadowColor: createThemeColorReference('primary'),
               shadowBlur: 10,
             },
             itemStyle: {
-              color: '#111827',
-              borderColor: '#a5b0ff',
+              color: createThemeColorReference('page-background'),
+              borderColor: createThemeColorReference('primary'),
               borderWidth: 2,
             },
             emphasis: {
@@ -134,11 +135,11 @@ export const lineMaterial: MaterialDefinition = {
               symbol: 'pin',
               symbolSize: 34,
               label: {
-                color: '#ffffff',
+                color: createThemeColorReference('page-background'),
                 fontSize: 10,
               },
               itemStyle: {
-                color: '#7c8cff',
+                color: createThemeColorReference('primary'),
               },
             },
           },

@@ -57,6 +57,29 @@ select {
   color: var(--text-primary);
 }
 
+body .CommonButton.CommonButton--primary:not(.is-plain) {
+  border-color: var(--accent-color);
+  background: var(--accent-color);
+  color: var(--accent-foreground);
+
+  &:hover:not(.is-disabled) {
+    border-color: var(--accent-color-hover);
+    background: var(--accent-color-hover);
+    color: var(--accent-foreground);
+  }
+}
+
+body .CommonButton.CommonButton--primary.is-plain {
+  border-color: var(--accent-color);
+  background: transparent;
+  color: var(--accent-color);
+
+  &:hover:not(.is-disabled) {
+    border-color: var(--accent-color-hover);
+    color: var(--accent-color-hover);
+  }
+}
+
 .commonTable {
   --el-table-bg-color: var(--surface-panel);
   --el-table-border-color: var(--border-color);

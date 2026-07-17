@@ -1,28 +1,52 @@
 :root {
   /* Single source for the complete editor accent family. */
 
-  --accent-color-hover: color-mix(in oklab, var(--accent-color) 86%, var(--text-primary));
+  --accent-color-hover: color-mix(in oklab, var(--accent-color) 86%, var(--surface-panel));
   --accent-foreground: var(--surface-workbench);
   --accent-soft: color-mix(in srgb, var(--accent-color) 12%, transparent);
   --accent-soft-hover: color-mix(in srgb, var(--accent-color) 20%, transparent);
   --accent-selection: color-mix(in srgb, var(--accent-color) 22%, transparent);
   --accent-selection-inactive: color-mix(in srgb, var(--accent-color) 14%, transparent);
 
-  /* Element Plus and Vunio derive their primary palette from the same accent. */
-  --el-color-primary: var(--accent-color);
-  --el-color-primary-light-3: color-mix(in srgb, var(--accent-color) 70%, var(--surface-panel));
-  --el-color-primary-light-5: color-mix(in srgb, var(--accent-color) 50%, var(--surface-panel));
-  --el-color-primary-light-7: color-mix(in srgb, var(--accent-color) 30%, var(--surface-panel));
-  --el-color-primary-light-8: color-mix(in srgb, var(--accent-color) 20%, var(--surface-panel));
-  --el-color-primary-light-9: color-mix(in srgb, var(--accent-color) 10%, var(--surface-panel));
-  --el-color-primary-dark-2: color-mix(in srgb, var(--accent-color) 80%, var(--text-primary));
+  /* Form controls need enough contrast against Element Plus' fixed white indicators. */
+  --el-color-primary: var(--control-accent-color);
+  --el-color-primary-light-3: color-mix(
+    in srgb,
+    var(--control-accent-color) 70%,
+    var(--surface-panel)
+  );
+  --el-color-primary-light-5: color-mix(
+    in srgb,
+    var(--control-accent-color) 50%,
+    var(--surface-panel)
+  );
+  --el-color-primary-light-7: color-mix(
+    in srgb,
+    var(--control-accent-color) 30%,
+    var(--surface-panel)
+  );
+  --el-color-primary-light-8: color-mix(
+    in srgb,
+    var(--control-accent-color) 20%,
+    var(--surface-panel)
+  );
+  --el-color-primary-light-9: color-mix(
+    in srgb,
+    var(--control-accent-color) 10%,
+    var(--surface-panel)
+  );
+  --el-color-primary-dark-2: color-mix(
+    in srgb,
+    var(--control-accent-color) 82%,
+    var(--surface-workbench)
+  );
 }
 
 :root,
 html.dark,
 html[data-editor-theme='dark'] {
   color-scheme: dark;
-  --accent-seed: #6673f0;
+  --accent-seed: #fff;
   /* Editor surfaces */
   --surface-workbench: #0d1015;
   --surface-panel: #151a21;
@@ -36,6 +60,8 @@ html[data-editor-theme='dark'] {
   --text-secondary: #a9b3c1;
   --text-muted: #788493;
   --accent-color: color-mix(in oklab, var(--accent-seed) 84%, white);
+  --control-accent-color: #5f6b7a;
+  --el-color-primary-rgb: 95, 107, 122;
 
   /* Backwards-compatible editor aliases */
   --bg-color: var(--surface-panel);
@@ -87,6 +113,8 @@ html[data-editor-theme='light'] {
   --text-secondary: #536071;
   --text-muted: #7a8797;
   --accent-color: color-mix(in oklab, var(--accent-seed) 88%, black);
+  --control-accent-color: var(--accent-color);
+  --el-color-primary-rgb: 0, 0, 0;
 
   --bg-color: var(--surface-panel);
 

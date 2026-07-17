@@ -1,4 +1,5 @@
 import type { MaterialSetter } from '@/schema/material.ts'
+import { createThemeColorReference } from '@/theme/renderTheme.ts'
 
 const alignmentOptions = [
   { label: '左对齐', value: 20 },
@@ -40,13 +41,13 @@ export const commonChartSetters: MaterialSetter[] = [
     props: { min: 12, max: 40 },
   },
   {
-    component: 'color',
+    component: 'themeColor',
     label: '标题颜色',
     field: 'props.option.title.textStyle.color',
     span: 12,
   },
   {
-    component: 'color',
+    component: 'themeColor',
     label: '背景颜色',
     field: 'props.option.backgroundColor',
     span: 12,
@@ -80,13 +81,13 @@ export const cartesianChartSetters: MaterialSetter[] = [
     span: 12,
   },
   {
-    component: 'color',
+    component: 'themeColor',
     label: '横轴文字色',
     field: 'props.option.xAxis.axisLabel.color',
     span: 12,
   },
   {
-    component: 'color',
+    component: 'themeColor',
     label: '纵轴文字色',
     field: 'props.option.yAxis.axisLabel.color',
     span: 12,
@@ -139,7 +140,7 @@ export function createChartBaseOption(title: string) {
       top: 16,
       left: 20,
       textStyle: {
-        color: '#f1f5f9',
+        color: createThemeColorReference('text-primary'),
         fontSize: 16,
         fontWeight: 600,
       },
@@ -152,24 +153,24 @@ export function createChartBaseOption(title: string) {
       itemHeight: 8,
       icon: 'circle',
       textStyle: {
-        color: '#94a3b8',
+        color: createThemeColorReference('text-secondary'),
       },
     },
     tooltip: {
       show: true,
       trigger: 'axis',
-      backgroundColor: 'rgba(15, 23, 42, 0.94)',
-      borderColor: 'rgba(148, 163, 184, 0.24)',
+      backgroundColor: createThemeColorReference('container-background'),
+      borderColor: createThemeColorReference('border'),
       borderWidth: 1,
       padding: [10, 12],
       textStyle: {
-        color: '#e2e8f0',
+        color: createThemeColorReference('text-primary'),
         fontSize: 12,
       },
       axisPointer: {
         type: 'line',
         lineStyle: {
-          color: 'rgba(148, 163, 184, 0.45)',
+          color: createThemeColorReference('border'),
           type: 'dashed',
         },
       },
@@ -191,7 +192,7 @@ export function createCartesianOption(title: string) {
       type: 'category',
       axisLine: {
         lineStyle: {
-          color: 'rgba(148, 163, 184, 0.28)',
+          color: createThemeColorReference('border'),
         },
       },
       axisTick: {
@@ -199,7 +200,7 @@ export function createCartesianOption(title: string) {
       },
       axisLabel: {
         show: true,
-        color: '#8793a5',
+        color: createThemeColorReference('text-secondary'),
         fontSize: 11,
         margin: 12,
       },
@@ -214,13 +215,13 @@ export function createCartesianOption(title: string) {
       },
       axisLabel: {
         show: true,
-        color: '#8793a5',
+        color: createThemeColorReference('text-secondary'),
         fontSize: 11,
       },
       splitLine: {
         show: true,
         lineStyle: {
-          color: 'rgba(148, 163, 184, 0.14)',
+          color: createThemeColorReference('border'),
           type: 'dashed',
         },
       },

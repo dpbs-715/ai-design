@@ -1,4 +1,5 @@
 import type { MaterialSchema } from '@/schema/material.ts'
+import type { RenderThemeConfig, ThemeColorValue } from '@/theme/renderTheme.ts'
 
 export interface DataSourceSchema {
   type: 'static' | 'api'
@@ -12,14 +13,15 @@ export interface DataSourceSchema {
   responsePath?: string
 }
 
-interface CanvasSchema {
+export interface CanvasSchema {
   width: number
   height: number
-  backgroundColor: string
+  backgroundColor: ThemeColorValue
 }
 
 export interface PageSchema {
   id?: string
+  theme: RenderThemeConfig
   canvas: CanvasSchema
   nodes: MaterialSchema[]
   dataSources: DataSourceSchema[]
