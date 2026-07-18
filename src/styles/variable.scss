@@ -1,4 +1,7 @@
-:root {
+:root,
+html.dark,
+html[data-editor-theme='dark'],
+html[data-editor-theme='light'] {
   /* Single source for the complete editor accent family. */
 
   --editor-header-height: 56px;
