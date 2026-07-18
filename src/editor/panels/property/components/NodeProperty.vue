@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { CommonFormConfig } from '@vunio/ui'
+import { SetFormFieldCommand, type CommonFormConfig } from '@vunio/ui'
 import { useConfigs } from '@vunio/hooks'
 import { ElMessage } from 'element-plus'
 import { storeToRefs } from 'pinia'
@@ -7,6 +7,7 @@ import DataSourceManager from '@/editor/toolbar/components/DataSourceManager.vue
 import DataSection from '@/editor/panels/property/components/DataSection.vue'
 import EventSection from '@/editor/panels/property/components/EventSection.vue'
 import EventWorkbench from '@/editor/panels/property/components/EventWorkbench.vue'
+import NodeNameEditor from '@/editor/panels/property/components/NodeNameEditor.vue'
 import { useUndoRedo } from '@/hooks/useUndoRedo.ts'
 import { getMaterialSetters } from '@/materials'
 import type { MaterialEvent } from '@/schema/material.ts'
@@ -85,6 +86,11 @@ const eventWorkbenchRef = useTemplateRef<EventWorkbenchExpose>('eventWorkbench')
 
 const editedEvent = computed(() => selectedNode.value.events?.[editedEventIndex.value])
 
+function renameNode(name: string) {
+  const nodeId = selectedNode.value.id
+  dispatchCommand(new SetFormFieldCommand(() => editorStore.requireNode(nodeId), 'name', name))
+}
+
 function previewJson() {
   jsonText.value = JSON.stringify(selectedNode.value, null, 2)
   jsonVisible.value = true
@@ -154,7 +160,7 @@ watch(
       <div class="node-identity">
         <span class="node-icon icon-tile"><Icon :icon="componentIcon" width="18" /></span>
         <span class="node-copy">
-          <strong>{{ selectedNode.name }}</strong>
+          <NodeNameEditor :name="selectedNode.name" @rename="renameNode" />
           <small>{{ selectedNode.type }}</small>
         </span>
       </div>
@@ -285,6 +291,7 @@ watch(
 .node-identity {
   display: flex;
   min-width: 0;
+  flex: 1;
   align-items: center;
   gap: 9px;
 }
@@ -292,16 +299,8 @@ watch(
 .node-copy {
   display: flex;
   min-width: 0;
+  flex: 1;
   flex-direction: column;
-
-  strong {
-    overflow: hidden;
-    color: var(--text-primary);
-    font-size: 13px;
-    font-weight: 500;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
 
   small {
     margin-top: 2px;
