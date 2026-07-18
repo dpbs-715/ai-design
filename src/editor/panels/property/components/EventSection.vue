@@ -226,6 +226,7 @@ function openCodeEditor() {
         </div>
       </div>
       <CommonForm
+        :key="selectedNode.type"
         label-position="top"
         :model-value="activeEvent"
         :config="eventFormConfig"
