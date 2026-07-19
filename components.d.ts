@@ -14,6 +14,7 @@ declare module 'vue' {
     CommonButton: typeof import('@vunio/ui')['CommonButton']
     CommonForm: typeof import('@vunio/ui')['CommonForm']
     ElCascader: typeof import('element-plus/es')['ElCascader']
+    ElDivider: typeof import('element-plus/es')['ElDivider']
     ElDrawer: typeof import('element-plus/es')['ElDrawer']
     ElDropdown: typeof import('element-plus/es')['ElDropdown']
     ElDropdownItem: typeof import('element-plus/es')['ElDropdownItem']

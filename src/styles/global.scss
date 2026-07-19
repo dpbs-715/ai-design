@@ -164,13 +164,6 @@ body .CommonButton.CommonButton--primary.is-plain {
   }
 }
 
-.toolbar-divider {
-  width: 1px;
-  height: 18px;
-  margin: 0 4px;
-  background: var(--border-color);
-}
-
 @media (max-width: 899px) {
   .toolbar-action {
     width: 30px;

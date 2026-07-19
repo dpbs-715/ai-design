@@ -73,7 +73,7 @@ const { isNarrowWorkspace, materialWidth, layerWidth, propertyWidth } = useRespo
   }
 
   .editor-toolbar {
-    width: 300px;
+    width: 500px;
     min-width: 0;
   }
 

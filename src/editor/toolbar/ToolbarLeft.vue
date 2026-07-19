@@ -2,6 +2,8 @@
 import { useEditorPanelStore } from '@/stores/editorPanel.ts'
 import { useUndoRedo } from '@/hooks/useUndoRedo.ts'
 import { storeToRefs } from 'pinia'
+import EditorAccentControl from '@/editor/theme/EditorAccentControl.vue'
+import EditorThemeControl from '@/editor/theme/EditorThemeControl.vue'
 defineOptions({ name: 'ToolbarLeft' })
 
 const editorPanelStore = useEditorPanelStore()
@@ -12,6 +14,10 @@ const { undo, redo, canUndo, canRedo } = useUndoRedo()
 
 <template>
   <div class="toolbar flex items-center">
+    <EditorThemeControl />
+    <EditorAccentControl />
+    <el-divider direction="vertical" />
+
     <button
       type="button"
       class="toolbar-button"
@@ -42,7 +48,7 @@ const { undo, redo, canUndo, canRedo } = useUndoRedo()
     >
       <Icon icon="fluent:panel-right-28-filled" />
     </button>
-    <span class="toolbar-divider"></span>
+    <el-divider direction="vertical" />
     <button
       type="button"
       class="toolbar-button"

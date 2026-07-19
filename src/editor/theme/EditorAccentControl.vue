@@ -109,8 +109,11 @@ onBeforeUnmount(() => {
   width: 30px;
   height: 30px;
   place-items: center;
-  padding: 0;
+  padding: 0 5px;
   cursor: pointer;
+  border: 1px solid var(--border-color);
+  border-radius: var(--el-border-radius-base);
+  background: color-mix(in srgb, var(--surface-workbench) 74%, transparent);
   transition:
     background-color 140ms ease,
     border-color 140ms ease;

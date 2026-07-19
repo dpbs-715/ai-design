@@ -11,14 +11,14 @@ export interface EditorAccentPreset {
 
 export const editorAccentPresets: EditorAccentPreset[] = [
   { key: 'default', name: '默认单色', seed: null },
-
-  { key: 'midnight', name: '夜蓝', seed: '#3F5873' },
-  { key: 'amethyst', name: '灰晶紫', seed: '#6F647D' },
-  { key: 'deepSea', name: '深海', seed: '#326B68' },
-  { key: 'olive', name: '橄榄', seed: '#6E7146' },
-  { key: 'bronze', name: '古铜', seed: '#98703C' },
-  { key: 'brick', name: '砖红', seed: '#985747' },
-  { key: 'burgundy', name: '勃艮第', seed: '#824858' },
+  { key: 'ultramarine', name: '群青', seed: '#3F5F96' },
+  { key: 'orpiment', name: '雌黄', seed: '#C6922F' },
+  { key: 'verdigris', name: '铜锈', seed: '#28766F' },
+  { key: 'madder', name: '茜草', seed: '#A94355' },
+  { key: 'celadon', name: '秘色', seed: '#688578' },
+  { key: 'aubergine', name: '茄衣', seed: '#684D72' },
+  { key: 'cinnabar', name: '朱砂', seed: '#B94E3A' },
+  { key: 'petrol', name: '石油蓝', seed: '#315F6B' },
 ]
 
 export interface ThemeTransitionOrigin {

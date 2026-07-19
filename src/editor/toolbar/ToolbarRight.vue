@@ -138,7 +138,7 @@ function onMoreAction(action: MoreAction) {
       </template>
     </el-dropdown>
 
-    <span class="toolbar-divider"></span>
+    <el-divider direction="vertical" />
 
     <button type="button" class="toolbar-action" aria-label="预览" @click="onPreview">
       <Icon icon="mdi:eye-outline" width="16" />
@@ -153,10 +153,6 @@ function onMoreAction(action: MoreAction) {
       <Icon icon="mdi:cloud-upload-outline" width="16" />
       <span>发布</span>
     </button>
-
-    <span class="toolbar-divider"></span>
-    <EditorThemeControl />
-    <EditorAccentControl />
 
     <input ref="inputRef" type="file" v-show="false" @change="onFileChange" />
 
