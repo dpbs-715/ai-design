@@ -50,10 +50,21 @@ function updatePreference(
   savePreference(nextPreference)
 }
 
-function getTransitionOriginRadius({ x, y }: ThemeTransitionOrigin) {
+function getTransitionClipPathKeyframes({ x, y }: ThemeTransitionOrigin) {
   const furthestX = Math.max(x, window.innerWidth - x)
   const furthestY = Math.max(y, window.innerHeight - y)
-  return Math.hypot(furthestX, furthestY)
+  const endRadius = Math.hypot(furthestX, furthestY)
+
+  // Relative values keep the reveal anchored when a high-DPI snapshot uses a scaled coordinate space.
+  const centerXPercent = (100 * x) / window.innerWidth
+  const centerYPercent = (100 * y) / window.innerHeight
+  const radiusReference = Math.hypot(window.innerWidth, window.innerHeight) / Math.SQRT2
+  const radiusPercent = (100 * endRadius) / radiusReference
+
+  return [
+    `circle(0% at ${centerXPercent}% ${centerYPercent}%)`,
+    `circle(${radiusPercent}% at ${centerXPercent}% ${centerYPercent}%)`,
+  ]
 }
 
 function supportsAnimatedThemeTransition(origin?: ThemeTransitionOrigin) {
@@ -103,13 +114,9 @@ export async function setEditorThemePreference(
 
   try {
     await transition.ready
-    const radius = getTransitionOriginRadius(origin!)
     document.documentElement.animate(
       {
-        clipPath: [
-          `circle(0 at ${origin!.x}px ${origin!.y}px)`,
-          `circle(${radius}px at ${origin!.x}px ${origin!.y}px)`,
-        ],
+        clipPath: getTransitionClipPathKeyframes(origin!),
       },
       {
         duration: THEME_TRANSITION_DURATION,
