@@ -15,6 +15,7 @@ interface CanvasTransform {
 }
 
 interface SketchRulerExpose {
+  cursorClass: string
   setTransform: (transform: Partial<CanvasTransform>) => void
 }
 
@@ -40,6 +41,10 @@ export function useCanvasZoom({
   scale,
 }: UseCanvasZoomOptions) {
   const sketchRulerRef = useTemplateRef<SketchRulerExpose>('sketchRuler')
+  const isCanvasPanning = computed(() => {
+    const cursorClass = sketchRulerRef.value?.cursorClass
+    return cursorClass === 'grab' || cursorClass === 'grabbing'
+  })
 
   function getFitTransform(): CanvasTransform {
     const availableWidth = viewportWidth.value * (1 - CANVAS_PADDING_RATIO)
@@ -91,6 +96,7 @@ export function useCanvasZoom({
   }
 
   return {
+    isCanvasPanning,
     fitCanvas,
     centerCanvas,
     setCanvasScale,

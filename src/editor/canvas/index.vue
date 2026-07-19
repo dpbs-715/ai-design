@@ -4,7 +4,6 @@ import Selecto from 'vue3-selecto'
 import Moveable from 'vue3-moveable'
 import { useEditorStore } from '@/stores/editor.ts'
 import { storeToRefs } from 'pinia'
-import { useSpaceEventListener } from '@/hooks/useSpaceEventListener.ts'
 import type { MaterialSchema } from '@/schema/material.ts'
 import SketchRuler from 'vue3-sketch-ruler'
 import 'vue3-sketch-ruler/lib/style.css'
@@ -17,12 +16,14 @@ import CanvasZoomControl from '@/editor/canvas/components/CanvasZoomControl.vue'
 import { dispatchEventHandlers } from '@/utils/dispatchEventHandlers.ts'
 import { useNodeContextMenu } from '@/editor/canvas/composables/useNodeContextMenu.ts'
 import { useCanvasViewport } from '@/editor/canvas/composables/useCanvasViewport.ts'
+import { useCanvasShortcutFocus } from '@/editor/canvas/composables/useCanvasShortcutFocus.ts'
 import { useRenderTheme } from '@/theme/renderTheme.ts'
 
 defineOptions({
   name: 'CanvasRoot',
 })
 const editorStore = useEditorStore()
+const canvasRootRef = useTemplateRef<HTMLDivElement>('canvasRoot')
 const moveableRef = useTemplateRef('moveable')
 const stageRef = useTemplateRef('stage')
 
@@ -30,11 +31,11 @@ const {
   height: viewportHeight,
   width: viewportWidth,
   measured: viewportMeasured,
-} = useCanvasViewport()
+} = useCanvasViewport(canvasRootRef)
+useCanvasShortcutFocus(canvasRootRef)
 const { canvas, nodes } = storeToRefs(editorStore)
 const { resolvedMode, rootStyle: renderThemeStyle, resolveColor } = useRenderTheme()
 
-const { active: dragCanvas } = useSpaceEventListener()
 const {
   isMoveableActive,
   moveableBounds,
@@ -50,7 +51,7 @@ const { canvasWidth, canvasHeight, canvasStyle, scale, lines, palette, onZoomCha
     moveableRef,
     isMoveableActive,
   })
-const { fitCanvas, centerCanvas, setCanvasScale, isCanvasFit } = useCanvasZoom({
+const { isCanvasPanning, fitCanvas, centerCanvas, setCanvasScale, isCanvasFit } = useCanvasZoom({
   viewportWidth,
   viewportHeight,
   viewportMeasured,
@@ -76,7 +77,12 @@ const {
 })
 
 function onStageMouseDown(event: MouseEvent) {
-  if (event.target === stageRef.value && !dragCanvas.value) onClearSelected()
+  if (event.target === stageRef.value && !isCanvasPanning.value) onClearSelected()
+}
+
+function onNodeMouseDown(node: MaterialSchema, event: MouseEvent) {
+  if (isCanvasPanning.value) return
+  onSelect(node, event)
 }
 
 const onCanvasMouseDown = dispatchEventHandlers(onStageMouseDown, closeContextMenu)
@@ -147,7 +153,7 @@ const stageStyle = computed(() => ({
             :style="getNodeStyle(node, index)"
             :data-node-id="node.id"
             :data-node-locked="node.locked"
-            @mousedown="(e) => onSelect(node, e)"
+            @mousedown="(event) => onNodeMouseDown(node, event)"
             @contextmenu.prevent.stop="(e) => openContextMenu(node, e)"
           >
             <component :is="getMaterialComponent(node.type)" :schema="node" />
@@ -180,7 +186,7 @@ const stageStyle = computed(() => ({
       </template>
     </el-dropdown>
     <Selecto
-      v-if="stageRef && !dragCanvas"
+      v-if="stageRef && !isCanvasPanning"
       :container="stageRef"
       :dragContainer="stageRef"
       :selectableTargets="['.canvas-node']"
@@ -191,7 +197,7 @@ const stageStyle = computed(() => ({
     <Moveable
       ref="moveable"
       :target="selectedTarget"
-      :draggable="!dragCanvas"
+      :draggable="!isCanvasPanning"
       :resizable="true"
       :origin="false"
       :snappable="true"
