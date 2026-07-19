@@ -41,6 +41,7 @@ export interface MaterialSetter {
 export interface EventOption {
   label: string
   value: string
+  payloadType?: string
 }
 
 export interface MaterialPreviewDefinition {

@@ -259,7 +259,12 @@ watch(
     </el-drawer>
 
     <el-drawer v-model="eventEditorVisible" destroy-on-close title="事件代码编辑器" :size="720">
-      <EventWorkbench v-if="editedEvent" ref="eventWorkbench" :event="editedEvent" />
+      <EventWorkbench
+        v-if="editedEvent"
+        ref="eventWorkbench"
+        :event="editedEvent"
+        :node="selectedNode"
+      />
       <template #footer>
         <CommonButton class="mr-10" type="normal" @click="closeCodeEditor">取消</CommonButton>
         <CommonButton type="primary" @click="saveEventCode">保存代码</CommonButton>

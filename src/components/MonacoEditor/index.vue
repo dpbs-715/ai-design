@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { editor } from 'monaco-editor'
+import { editor, typescript } from 'monaco-editor'
 import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
 import JsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker'
 import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker'
+import type { MonacoExtraLib } from './types.ts'
 import { useEditorTheme } from '@/editor/theme/editorTheme.ts'
 
 defineOptions({ name: 'MonacoEditor' })
@@ -19,7 +20,12 @@ window.MonacoEnvironment = {
   },
 }
 
-const props = defineProps<{ lang?: string }>()
+interface Props {
+  lang?: string
+  extraLibs?: MonacoExtraLib[]
+}
+
+const props = defineProps<Props>()
 
 const modelValue = defineModel<string>()
 
@@ -27,6 +33,24 @@ const editorElement = useTemplateRef('editorRef')
 const { resolvedTheme } = useEditorTheme()
 
 let instance: editor.IStandaloneCodeEditor | undefined
+let extraLibDisposables: Array<{ dispose: () => void }> = []
+
+function disposeExtraLibs() {
+  extraLibDisposables.forEach((disposable) => disposable.dispose())
+  extraLibDisposables = []
+}
+
+function applyExtraLibs() {
+  disposeExtraLibs()
+  if (!props.extraLibs?.length || !['javascript', 'typescript'].includes(props.lang ?? '')) return
+
+  const languageDefaults =
+    props.lang === 'typescript' ? typescript.typescriptDefaults : typescript.javascriptDefaults
+
+  extraLibDisposables = props.extraLibs.map((lib) =>
+    languageDefaults.addExtraLib(lib.content, lib.filePath),
+  )
+}
 
 function applyMonacoTheme() {
   const themeStyles = getComputedStyle(document.documentElement)
@@ -56,6 +80,7 @@ function applyMonacoTheme() {
 
 onMounted(() => {
   const themeName = applyMonacoTheme()
+  applyExtraLibs()
 
   instance = editor.create(editorElement.value, {
     value: modelValue.value,
@@ -69,10 +94,11 @@ onMounted(() => {
   instance.onDidChangeModelContent(() => {
     modelValue.value = instance.getValue()
   })
+})
 
-  onBeforeUnmount(() => {
-    instance.dispose()
-  })
+onBeforeUnmount(() => {
+  instance?.dispose()
+  disposeExtraLibs()
 })
 
 watch(modelValue, (newVal) => {
@@ -80,6 +106,7 @@ watch(modelValue, (newVal) => {
   instance.setValue(newVal)
 })
 
+watch(() => [props.lang, props.extraLibs] as const, applyExtraLibs)
 watch(resolvedTheme, applyMonacoTheme, { flush: 'post' })
 </script>
 

@@ -4,13 +4,16 @@ import { deepClone } from '@vunio/utils'
 import { ElMessage } from 'element-plus'
 import { storeToRefs } from 'pinia'
 import MonacoEditor from '@/components/MonacoEditor/index.vue'
-import type { MaterialEvent } from '@/schema/material.ts'
+import { createEventScriptExtraLib } from '@/editor/panels/property/eventScriptTypes.ts'
+import { getMaterialEventOptions } from '@/materials'
+import type { MaterialEvent, MaterialSchema } from '@/schema/material.ts'
 import { useEditorStore } from '@/stores/editor.ts'
 
 defineOptions({ name: 'EventWorkbench' })
 
-const { event } = defineProps<{
+const { event, node } = defineProps<{
   event: MaterialEvent
+  node: MaterialSchema
 }>()
 
 const editorStore = useEditorStore()
@@ -33,6 +36,12 @@ const dispatchOptions = computed(() =>
 )
 
 const functionSignature = computed(() => `function ${draft.value.name}($context, $node, $payload)`)
+const eventExtraLibs = computed(() => {
+  const eventOption = getMaterialEventOptions(node.type).find(
+    (option) => option.value === draft.value.type,
+  )
+  return [createEventScriptExtraLib(eventOption?.payloadType)]
+})
 
 async function copyNodeId(id: string) {
   await navigator.clipboard.writeText(id)
@@ -85,6 +94,7 @@ defineExpose({ getDraft })
         <el-cascader
           v-model="dispatchTarget"
           class="helper-select"
+          placement="left"
           placeholder="触发组件事件"
           :options="dispatchOptions"
           @change="insertDispatchCode"
@@ -94,7 +104,12 @@ defineExpose({ getDraft })
 
     <div class="code-editor">
       <div class="function-line">{{ functionSignature }} {</div>
-      <MonacoEditor v-model="draft.code" class="monaco" lang="javascript" />
+      <MonacoEditor
+        v-model="draft.code"
+        class="monaco"
+        lang="javascript"
+        :extra-libs="eventExtraLibs"
+      />
       <div class="function-line">}</div>
     </div>
   </div>

@@ -1,19 +1,11 @@
 import type { MaterialSchema } from '@/schema/material.ts'
 import type { PageSchema } from '@/schema/page.ts'
 import { setByKeyOrPath } from '@vunio/utils'
+import type { EventScriptContext } from './eventScriptContract.ts'
 
-interface RuntimeContext {
-  getNode: (id: string) => MaterialSchema | undefined
-  setAttribute: (id: string, key: string, value: any) => void
-  setProps: (id: string, key: string, value: any) => void
-  setStyle: (id: string, key: string, value: any) => void
-  setLayout: (id: string, key: string, value: any) => void
-
+export interface RuntimeContext extends EventScriptContext {
+  getNode(id: string): MaterialSchema | undefined
   registerNodeInstance(instances: Record<string, any>): void
-  trigger: (id: string, event: string, ...args: any[]) => any
-  refreshNodesByDataId: (dataId: string, ...args: any[]) => void
-
-  dispatch: (id: string, action: string, payload?: any) => any
 }
 
 export function createRuntimeContext(page: Ref<PageSchema>): RuntimeContext {

@@ -9,42 +9,52 @@ export const commonMaterialEventOptions: EventOption[] = [
   {
     label: '点击事件',
     value: 'click',
+    payloadType: 'MouseEvent',
   },
   {
     label: '双击事件',
     value: 'dblclick',
+    payloadType: 'MouseEvent',
   },
   {
     label: '右键事件',
     value: 'contextmenu',
+    payloadType: 'MouseEvent',
   },
   {
     label: '鼠标移入',
     value: 'mouseenter',
+    payloadType: 'MouseEvent',
   },
   {
     label: '鼠标移出',
     value: 'mouseleave',
+    payloadType: 'MouseEvent',
   },
   {
     label: '鼠标按下',
     value: 'mousedown',
+    payloadType: 'MouseEvent',
   },
   {
     label: '鼠标松开',
     value: 'mouseup',
+    payloadType: 'MouseEvent',
   },
   {
     label: '组件挂载',
     value: 'vnodeMounted',
+    payloadType: 'EventScriptVNode',
   },
   {
     label: '组件更新',
     value: 'vnodeUpdated',
+    payloadType: 'EventScriptVNode',
   },
   {
     label: '组件卸载',
     value: 'vnodeUnmounted',
+    payloadType: 'EventScriptVNode',
   },
 ]
 
