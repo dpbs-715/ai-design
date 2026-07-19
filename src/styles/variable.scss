@@ -63,6 +63,9 @@ html[data-editor-theme='dark'] {
   --text-primary: #e6eaf0;
   --text-secondary: #a9b3c1;
   --text-muted: #788493;
+  --code-editor-cursor: #e6eaf0;
+  --code-editor-selection: #264f78;
+  --code-editor-selection-inactive: #23313f;
   --accent-color: color-mix(in oklab, var(--accent-seed) 84%, white);
   --control-accent-color: #61616a;
   --el-color-primary-rgb: 97, 97, 106;
@@ -113,6 +116,9 @@ html[data-editor-theme='light'] {
   --text-primary: #1f2733;
   --text-secondary: #536071;
   --text-muted: #7a8797;
+  --code-editor-cursor: #1f2733;
+  --code-editor-selection: #add6ff;
+  --code-editor-selection-inactive: #e5ebf1;
   --accent-color: color-mix(in oklab, var(--accent-seed) 88%, black);
   --control-accent-color: var(--accent-color);
   --el-color-primary-rgb: 0, 0, 0;

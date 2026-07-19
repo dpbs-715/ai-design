@@ -40,13 +40,13 @@ function applyMonacoTheme() {
     colors: {
       'editor.background': themeColor('--surface-workbench'),
       'editor.foreground': themeColor('--text-primary'),
-      'editorCursor.foreground': themeColor('--accent-color'),
+      'editorCursor.foreground': themeColor('--code-editor-cursor'),
       'editorLineNumber.foreground': themeColor('--text-muted'),
       'editorLineNumber.activeForeground': themeColor('--text-secondary'),
       'editor.lineHighlightBackground': themeColor('--surface-panel'),
       'editorIndentGuide.background1': themeColor('--border-color'),
-      'editor.selectionBackground': themeColor('--accent-selection'),
-      'editor.inactiveSelectionBackground': themeColor('--accent-selection-inactive'),
+      'editor.selectionBackground': themeColor('--code-editor-selection'),
+      'editor.inactiveSelectionBackground': themeColor('--code-editor-selection-inactive'),
     },
   })
 
