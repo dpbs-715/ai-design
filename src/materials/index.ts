@@ -1,5 +1,8 @@
 import type { Component } from 'vue'
 import type { MaterialDefinition, MaterialSchema } from '@/schema/material.ts'
+import { commonMaterialEventOptions, createMaterialEventOptionGroups } from './events.ts'
+
+export { filterMaterialEventOptionGroups } from './events.ts'
 
 const materials: MaterialDefinition[] = []
 
@@ -46,7 +49,11 @@ export function getMaterialSetters(type: string) {
 }
 
 export function getMaterialEventOptions(type: string) {
-  return materialMap.get(type)?.eventOptions || []
+  return [...commonMaterialEventOptions, ...(materialMap.get(type)?.customEventOptions ?? [])]
+}
+
+export function getMaterialEventOptionGroups(type: string) {
+  return createMaterialEventOptionGroups(materialMap.get(type)?.customEventOptions ?? [])
 }
 
 export function getMaterialDataBindings(type: string) {

@@ -3,7 +3,11 @@ import type { CommonFormConfig } from '@vunio/ui'
 import { ElMessageBox } from 'element-plus'
 import { storeToRefs } from 'pinia'
 import { useUndoRedo } from '@/hooks/useUndoRedo.ts'
-import { getMaterialEventOptions } from '@/materials'
+import {
+  filterMaterialEventOptionGroups,
+  getMaterialEventOptionGroups,
+  getMaterialEventOptions,
+} from '@/materials'
 import type { MaterialEvent } from '@/schema/material.ts'
 import { useEditorStore } from '@/stores/editor.ts'
 
@@ -20,6 +24,11 @@ const selectedNode = computed(() => selectedNodeRef.value!)
 
 const events = computed(() => selectedNode.value.events ?? [])
 const eventOptions = computed(() => getMaterialEventOptions(selectedNode.value.type))
+const eventOptionGroups = computed(() => getMaterialEventOptionGroups(selectedNode.value.type))
+const eventSearchKeyword = ref('')
+const filteredEventOptionGroups = computed(() =>
+  filterMaterialEventOptionGroups(eventOptionGroups.value, eventSearchKeyword.value),
+)
 const selectedEventIndex = ref(0)
 const activeEvent = computed(() => events.value[selectedEventIndex.value])
 const CUSTOM_EVENT_COMMAND = '__custom_event__'
@@ -47,7 +56,7 @@ const eventFormConfig = computed<CommonFormConfig[]>(() => [
     field: 'type',
     component: 'commonSelect',
     props: {
-      options: eventOptions.value,
+      options: eventOptionGroups.value,
       filterable: true,
       allowCreate: true,
       placeholder: '选择事件类型',
@@ -145,6 +154,10 @@ function codeLineCount(event: MaterialEvent) {
 function openCodeEditor() {
   if (activeEvent.value) emit('openCodeEditor', selectedEventIndex.value)
 }
+
+function resetEventSearch(visible: boolean) {
+  if (!visible) eventSearchKeyword.value = ''
+}
 </script>
 
 <template>
@@ -155,19 +168,33 @@ function openCodeEditor() {
           <h3>事件</h3>
           <p>{{ events.length }} 个已配置事件</p>
         </div>
-        <el-dropdown trigger="click" @command="handleAddEvent">
+        <el-dropdown trigger="click" @command="handleAddEvent" @visible-change="resetEventSearch">
           <button type="button" class="add-event-button">
             <Icon icon="fluent:add-16-regular" width="16" />
             添加
           </button>
           <template #dropdown>
-            <el-dropdown-item
-              v-for="option in eventOptions"
-              :key="option.value"
-              :command="option.value"
-            >
-              {{ option.label }}
-            </el-dropdown-item>
+            <div class="event-option-search" @click.stop @keydown.stop>
+              <el-input
+                v-model="eventSearchKeyword"
+                size="small"
+                clearable
+                placeholder="搜索事件名称或类型"
+              />
+            </div>
+            <template v-for="group in filteredEventOptionGroups" :key="group.label">
+              <div class="event-option-group-label">{{ group.label }}</div>
+              <el-dropdown-item
+                v-for="option in group.options"
+                :key="option.value"
+                :command="option.value"
+              >
+                {{ option.label }}
+              </el-dropdown-item>
+            </template>
+            <div v-if="!filteredEventOptionGroups.length" class="event-option-empty">
+              没有匹配的事件
+            </div>
             <el-dropdown-item :command="CUSTOM_EVENT_COMMAND" :divided="eventOptions.length > 0">
               自定义事件类型
             </el-dropdown-item>
@@ -280,6 +307,25 @@ function openCodeEditor() {
     cursor: not-allowed;
     opacity: 0.45;
   }
+}
+
+.event-option-group-label {
+  padding: 6px 12px 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.event-option-search {
+  width: 220px;
+  padding: 8px 10px 4px;
+}
+
+.event-option-empty {
+  padding: 14px 12px;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-align: center;
 }
 
 .event-list {

@@ -62,7 +62,7 @@ export interface MaterialDefinition {
 
   setters: MaterialSetter[]
 
-  eventOptions?: EventOption[]
+  customEventOptions?: EventOption[]
   dataBindings?: MaterialDataBinding[]
 
   schema: Omit<MaterialSchema, 'id'>
