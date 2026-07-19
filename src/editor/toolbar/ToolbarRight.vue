@@ -6,6 +6,7 @@ import DataSourceManager from './components/DataSourceManager.vue'
 import { useRouter } from 'vue-router'
 import { publishPage } from '@/utils/publish.ts'
 import EditorThemeControl from '@/editor/theme/EditorThemeControl.vue'
+import EditorAccentControl from '@/editor/theme/EditorAccentControl.vue'
 
 defineOptions({ name: 'ToolbarRight' })
 
@@ -155,6 +156,7 @@ function onMoreAction(action: MoreAction) {
 
     <span class="toolbar-divider"></span>
     <EditorThemeControl />
+    <EditorAccentControl />
 
     <input ref="inputRef" type="file" v-show="false" @change="onFileChange" />
 

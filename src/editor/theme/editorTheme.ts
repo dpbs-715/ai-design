@@ -3,12 +3,31 @@ import { computed, nextTick, readonly, ref } from 'vue'
 export type EditorThemePreference = 'system' | 'light' | 'dark'
 export type ResolvedEditorTheme = Exclude<EditorThemePreference, 'system'>
 
+export interface EditorAccentPreset {
+  key: string
+  name: string
+  seed: string | null
+}
+
+export const editorAccentPresets: EditorAccentPreset[] = [
+  { key: 'default', name: '默认单色', seed: null },
+
+  { key: 'midnight', name: '夜蓝', seed: '#3F5873' },
+  { key: 'amethyst', name: '灰晶紫', seed: '#6F647D' },
+  { key: 'deepSea', name: '深海', seed: '#326B68' },
+  { key: 'olive', name: '橄榄', seed: '#6E7146' },
+  { key: 'bronze', name: '古铜', seed: '#98703C' },
+  { key: 'brick', name: '砖红', seed: '#985747' },
+  { key: 'burgundy', name: '勃艮第', seed: '#824858' },
+]
+
 export interface ThemeTransitionOrigin {
   x: number
   y: number
 }
 
 const EDITOR_THEME_STORAGE_KEY = 'ai-design:editor-theme'
+const EDITOR_ACCENT_STORAGE_KEY = 'ai-design:editor-accent'
 const DARK_MODE_QUERY = '(prefers-color-scheme: dark)'
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)'
 const THEME_TRANSITION_DURATION = 420
@@ -19,12 +38,69 @@ const resolvedTheme = computed<ResolvedEditorTheme>(() =>
   preference.value === 'system' ? systemTheme.value : preference.value,
 )
 
+const accentPreference = ref<string>('default')
+
 const readonlyPreference = readonly(preference)
+const readonlyAccentPreference = readonly(accentPreference)
 let initialized = false
 let darkModeMediaQuery: MediaQueryList | undefined
+let accentProbe: HTMLElement | undefined
 
 function isEditorThemePreference(value: string | null): value is EditorThemePreference {
   return value === 'system' || value === 'light' || value === 'dark'
+}
+
+function isCustomAccentColor(value: string) {
+  return /^#[0-9a-f]{3,8}$/i.test(value)
+}
+
+function isEditorAccentPreference(value: string | null): value is string {
+  return Boolean(
+    value &&
+    (editorAccentPresets.some((preset) => preset.key === value) || isCustomAccentColor(value)),
+  )
+}
+
+export function resolveEditorAccentSeed(accentValue: string): string | null {
+  const preset = editorAccentPresets.find((candidate) => candidate.key === accentValue)
+  if (preset) return preset.seed
+  return isCustomAccentColor(accentValue) ? accentValue : null
+}
+
+function getAccentProbe() {
+  if (!accentProbe) {
+    accentProbe = document.createElement('span')
+    accentProbe.style.cssText = 'position:absolute;visibility:hidden;pointer-events:none;'
+    document.body.appendChild(accentProbe)
+  }
+  return accentProbe
+}
+
+function resolveAccentPrimaryRgb() {
+  const probe = getAccentProbe()
+  probe.style.color = 'var(--accent-color)'
+  const channels = getComputedStyle(probe)
+    .color.match(/\d+(\.\d+)?/g)
+    ?.slice(0, 3)
+  return channels ? channels.join(', ') : null
+}
+
+function applyAccent() {
+  const root = document.documentElement
+  const seed = resolveEditorAccentSeed(accentPreference.value)
+
+  if (!seed) {
+    root.style.removeProperty('--accent-seed')
+    root.style.removeProperty('--control-accent-color')
+    root.style.removeProperty('--el-color-primary-rgb')
+    return
+  }
+
+  root.style.setProperty('--accent-seed', seed)
+  root.style.setProperty('--control-accent-color', 'var(--accent-color)')
+
+  const primaryRgb = resolveAccentPrimaryRgb()
+  if (primaryRgb) root.style.setProperty('--el-color-primary-rgb', primaryRgb)
 }
 
 function resolvePreference(nextPreference: EditorThemePreference): ResolvedEditorTheme {
@@ -35,6 +111,7 @@ function applyResolvedTheme(theme: ResolvedEditorTheme) {
   const root = document.documentElement
   root.dataset.editorTheme = theme
   root.classList.toggle('dark', theme === 'dark')
+  applyAccent()
 }
 
 function savePreference(nextPreference: EditorThemePreference) {
@@ -81,6 +158,10 @@ export function initializeEditorTheme() {
 
   const storedPreference = localStorage.getItem(EDITOR_THEME_STORAGE_KEY)
   preference.value = isEditorThemePreference(storedPreference) ? storedPreference : 'system'
+
+  const storedAccent = localStorage.getItem(EDITOR_ACCENT_STORAGE_KEY)
+  accentPreference.value = isEditorAccentPreference(storedAccent) ? storedAccent : 'default'
+
   applyResolvedTheme(resolvedTheme.value)
 
   darkModeMediaQuery.addEventListener('change', (event) => {
@@ -129,6 +210,15 @@ export async function setEditorThemePreference(
   }
 }
 
+export function setEditorAccentPreference(nextAccent: string) {
+  initializeEditorTheme()
+  if (!isEditorAccentPreference(nextAccent) || nextAccent === accentPreference.value) return
+
+  accentPreference.value = nextAccent
+  applyAccent()
+  localStorage.setItem(EDITOR_ACCENT_STORAGE_KEY, nextAccent)
+}
+
 export function useEditorTheme() {
   initializeEditorTheme()
 
@@ -136,5 +226,7 @@ export function useEditorTheme() {
     preference: readonlyPreference,
     resolvedTheme,
     setPreference: setEditorThemePreference,
+    accentPreference: readonlyAccentPreference,
+    setAccentPreference: setEditorAccentPreference,
   }
 }
