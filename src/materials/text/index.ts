@@ -44,6 +44,7 @@ const verticalAlignmentOptions = [
 export const textMaterial: MaterialDefinition = {
   name: '文本',
   group: 'info',
+  icon: 'fluent:text-font-20-filled',
   preview: {
     component: TextPreview,
   },

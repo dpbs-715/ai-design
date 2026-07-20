@@ -2,6 +2,7 @@ import type { MaterialDefinition } from '@/schema/material.ts'
 import ChartPreview from '@/materials/previews/ChartPreview.vue'
 import {
   cartesianChartSetters,
+  chartMaterialIcons,
   commonChartSetters,
   createCartesianOption,
 } from '@/materials/charts/shared.ts'
@@ -10,6 +11,7 @@ import { createThemeColorReference } from '@/theme/renderTheme.ts'
 export const areaMaterial: MaterialDefinition = {
   name: '面积图',
   group: 'charts',
+  icon: chartMaterialIcons.area,
   preview: {
     component: ChartPreview,
     props: { variant: 'area' },

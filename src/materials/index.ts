@@ -49,6 +49,12 @@ export function geyMaterialGroups() {
 export function getMaterialComponent(type: string) {
   return componentMap.get(type)
 }
+
+const defaultMaterialIcon = 'fluent:data-bar-vertical-20-filled'
+
+export function getMaterialIcon(type: string) {
+  return materialMap.get(type)?.icon ?? defaultMaterialIcon
+}
 export function getMaterialSetters(type: string) {
   return materialMap.get(type)?.setters || []
 }

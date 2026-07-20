@@ -7,6 +7,13 @@ const alignmentOptions = [
   { label: '右对齐', value: 'right' },
 ]
 
+export const chartMaterialIcons = {
+  bar: 'fluent:data-bar-vertical-20-filled',
+  line: 'fluent:data-line-20-filled',
+  area: 'fluent:data-area-20-filled',
+  pie: 'fluent:data-pie-20-filled',
+} as const
+
 export const commonChartSetters: MaterialSetter[] = [
   {
     component: 'input',

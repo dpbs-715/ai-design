@@ -9,7 +9,7 @@ import EventSection from '@/editor/panels/property/components/EventSection.vue'
 import EventWorkbench from '@/editor/panels/property/components/EventWorkbench.vue'
 import NodeNameEditor from '@/editor/panels/property/components/NodeNameEditor.vue'
 import { useUndoRedo } from '@/hooks/useUndoRedo.ts'
-import { getMaterialSetters } from '@/materials'
+import { getMaterialIcon, getMaterialSetters } from '@/materials'
 import type { MaterialEvent } from '@/schema/material.ts'
 import { useEditorStore } from '@/stores/editor.ts'
 
@@ -44,11 +44,7 @@ const { dispatchCommand, startBatch, commitBatch } = useUndoRedo()
 const selectedNode = computed(() => selectedNodeRef.value!)
 
 const activeSection = ref<PropertySection>('appearance')
-const componentIcon = computed(() =>
-  selectedNode.value.type === 'text'
-    ? 'fluent:text-font-20-filled'
-    : 'fluent:data-bar-vertical-20-filled',
-)
+const componentIcon = computed(() => getMaterialIcon(selectedNode.value.type))
 
 function withBatchEvents(configs: CommonFormConfig[]) {
   return configs.map((config) => ({

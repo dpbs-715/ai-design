@@ -58,6 +58,7 @@ export interface MaterialDefinition {
   //region 物料元数据
   name: string
   group: string
+  icon?: string
   preview: MaterialPreviewDefinition
   //endregion
 

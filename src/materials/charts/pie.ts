@@ -1,11 +1,12 @@
 import type { MaterialDefinition } from '@/schema/material.ts'
 import ChartPreview from '@/materials/previews/ChartPreview.vue'
-import { commonChartSetters, createChartBaseOption } from '@/materials/charts/shared.ts'
+import { chartMaterialIcons, commonChartSetters, createChartBaseOption } from '@/materials/charts/shared.ts'
 import { createThemeColorReference } from '@/theme/renderTheme.ts'
 
 export const pieMaterial: MaterialDefinition = {
   name: '饼图',
   group: 'charts',
+  icon: chartMaterialIcons.pie,
   preview: {
     component: ChartPreview,
     props: { variant: 'pie' },
