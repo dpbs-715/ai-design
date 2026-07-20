@@ -10,17 +10,26 @@ defineOptions({ name: 'ImageMaterialPreview' })
         <stop offset="1" class="sky-stop sky-stop-end" />
       </linearGradient>
       <clipPath id="image-preview-clip">
-        <rect x="20" y="8" width="120" height="40" rx="5" />
+        <rect x="44" y="8" width="72" height="40" rx="6" />
       </clipPath>
     </defs>
 
-    <rect class="frame" x="20" y="8" width="120" height="40" rx="5" />
+    <rect class="photo-back" x="50" y="9" width="64" height="38" rx="5" transform="rotate(5 82 28)" />
+
     <g clip-path="url('#image-preview-clip')">
-      <rect class="sky" x="20" y="8" width="120" height="40" />
-      <circle class="sun" cx="116" cy="18" r="4.5" />
-      <path class="hill hill-far" d="M20 42 L48 26 L74 35 L96 25 L118 33 L140 27 L140 48 L20 48 Z" />
-      <path class="hill hill-near" d="M20 48 L52 34 L86 43 L114 36 L140 42 L140 48 Z" />
+      <rect class="sky" x="44" y="8" width="72" height="40" />
+      <circle class="sun-halo" cx="100" cy="20" r="7.5" />
+      <circle class="sun" cx="100" cy="20" r="4.5" />
+      <path
+        class="hill hill-far"
+        d="M44 40C54 28 64 28 74 34C84 40 96 30 116 34V48H44Z"
+      />
+      <path
+        class="hill hill-near"
+        d="M44 44C58 34 72 46 86 40C100 34 108 42 116 40V48H44Z"
+      />
     </g>
+    <rect class="frame" x="44" y="8" width="72" height="40" rx="6" />
   </svg>
 </template>
 
@@ -29,6 +38,12 @@ defineOptions({ name: 'ImageMaterialPreview' })
   display: block;
   width: 100%;
   height: 100%;
+}
+
+.photo-back {
+  fill: color-mix(in srgb, var(--accent-color) 16%, var(--surface-workbench));
+  stroke: var(--border-color);
+  stroke-width: 1;
 }
 
 .frame {
@@ -51,9 +66,14 @@ defineOptions({ name: 'ImageMaterialPreview' })
   stop-opacity: 0.06;
 }
 
+.sun-halo {
+  fill: var(--accent-color);
+  opacity: 0.22;
+}
+
 .sun {
   fill: var(--accent-color);
-  opacity: 0.8;
+  opacity: 0.85;
 }
 
 .hill-far {

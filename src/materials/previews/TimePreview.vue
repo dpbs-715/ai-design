@@ -4,36 +4,29 @@ defineOptions({ name: 'TimeMaterialPreview' })
 
 <template>
   <svg class="time-preview" viewBox="0 0 160 56" aria-hidden="true">
-    <g class="digit-tile">
-      <rect x="20" y="10" width="12" height="32" rx="3" />
-      <text x="26" y="31">1</text>
-    </g>
-    <g class="digit-tile">
-      <rect x="35" y="10" width="12" height="32" rx="3" />
-      <text x="41" y="31">8</text>
-    </g>
-    <circle class="colon-dot" cx="56" cy="21" r="1.6" />
-    <circle class="colon-dot" cx="56" cy="31" r="1.6" />
-    <g class="digit-tile">
-      <rect x="65" y="10" width="12" height="32" rx="3" />
-      <text x="71" y="31">3</text>
-    </g>
-    <g class="digit-tile">
-      <rect x="80" y="10" width="12" height="32" rx="3" />
-      <text x="86" y="31">0</text>
-    </g>
-    <circle class="colon-dot colon-dot-muted" cx="101" cy="21" r="1.6" />
-    <circle class="colon-dot colon-dot-muted" cx="101" cy="31" r="1.6" />
-    <g class="digit-tile digit-tile-muted">
-      <rect x="110" y="10" width="12" height="32" rx="3" />
-      <text x="116" y="31">4</text>
-    </g>
-    <g class="digit-tile digit-tile-muted">
-      <rect x="125" y="10" width="12" height="32" rx="3" />
-      <text x="131" y="31">5</text>
-    </g>
-    <rect class="date-line" x="20" y="47" width="48" height="4" rx="2" />
-    <rect class="date-line date-line-short" x="72" y="47" width="24" height="4" rx="2" />
+    <defs>
+      <linearGradient id="time-preview-tile" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" class="tile-stop tile-stop-start" />
+        <stop offset="1" class="tile-stop tile-stop-end" />
+      </linearGradient>
+    </defs>
+
+    <rect class="tile" x="22" y="14" width="32" height="28" rx="6" />
+    <rect class="tile" x="64" y="14" width="32" height="28" rx="6" />
+    <rect class="tile tile-soft" x="106" y="14" width="32" height="28" rx="6" />
+
+    <line class="tile-split" x1="24" y1="28" x2="52" y2="28" />
+    <line class="tile-split" x1="66" y1="28" x2="94" y2="28" />
+    <line class="tile-split" x1="108" y1="28" x2="136" y2="28" />
+
+    <text class="tile-digits" x="38" y="33.5" text-anchor="middle">12</text>
+    <text class="tile-digits" x="80" y="33.5" text-anchor="middle">34</text>
+    <text class="tile-digits" x="122" y="33.5" text-anchor="middle">56</text>
+
+    <circle class="colon-dot" cx="59" cy="23.5" r="1.7" />
+    <circle class="colon-dot" cx="59" cy="32.5" r="1.7" />
+    <circle class="colon-dot" cx="101" cy="23.5" r="1.7" />
+    <circle class="colon-dot" cx="101" cy="32.5" r="1.7" />
   </svg>
 </template>
 
@@ -44,47 +37,39 @@ defineOptions({ name: 'TimeMaterialPreview' })
   height: 100%;
 }
 
-.digit-tile {
-  rect {
-    fill: var(--accent-soft);
-    stroke: color-mix(in srgb, var(--accent-color) 48%, var(--border-color));
-    stroke-width: 1;
-  }
-
-  text {
-    fill: var(--accent-color);
-    font-family: 'DIN Alternate', 'Arial Narrow', Arial, sans-serif;
-    font-size: 16px;
-    font-weight: 700;
-    text-anchor: middle;
-  }
+.tile {
+  fill: url('#time-preview-tile');
 }
 
-.digit-tile-muted {
-  rect {
-    fill: var(--surface-panel);
-    stroke: var(--border-color);
-  }
+.tile-soft {
+  fill: color-mix(in srgb, var(--accent-color) 68%, var(--surface-workbench));
+}
 
-  text {
-    fill: var(--text-muted);
-  }
+.tile-stop-start {
+  stop-color: var(--accent-color);
+}
+
+.tile-stop-end {
+  stop-color: color-mix(in srgb, var(--accent-color) 68%, var(--surface-workbench));
+}
+
+.tile-split {
+  stroke: var(--surface-workbench);
+  stroke-width: 1;
+  opacity: 0.35;
+}
+
+.tile-digits {
+  fill: var(--surface-workbench);
+  font-family: 'DIN Alternate', 'Arial Narrow', monospace;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
 }
 
 .colon-dot {
   fill: var(--accent-color);
+  opacity: 0.85;
 }
 
-.colon-dot-muted {
-  fill: var(--text-muted);
-}
-
-.date-line {
-  fill: var(--text-muted);
-  opacity: 0.45;
-}
-
-.date-line-short {
-  opacity: 0.25;
-}
 </style>
