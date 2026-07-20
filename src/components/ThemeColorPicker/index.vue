@@ -111,7 +111,6 @@ function onFocusOut(event: FocusEvent) {
     <CommonColorPicker
       v-if="source === 'custom'"
       v-model="fixedColor"
-      size="small"
       class="color-editor"
       :disabled="disabled"
       :readonly="readonly"
