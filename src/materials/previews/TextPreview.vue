@@ -3,75 +3,41 @@ defineOptions({ name: 'TextMaterialPreview' })
 </script>
 
 <template>
-  <div class="text-preview" aria-hidden="true">
-    <span class="type-mark">
-      <strong>Aa</strong>
-      <small>TYPE</small>
-    </span>
-    <span class="sample-copy">
-      <strong>文本信息</strong>
-      <small>清晰表达每一个重点</small>
-    </span>
-  </div>
+  <svg class="text-preview" viewBox="0 0 160 56" aria-hidden="true">
+    <text class="type-glyph" x="10" y="40">Aa</text>
+    <rect class="title-bar" x="65" y="14" width="66" height="7" rx="3.5" />
+    <rect class="text-line" x="65" y="27" width="78" height="4" rx="2" />
+    <rect class="text-line" x="65" y="35" width="70" height="4" rx="2" />
+    <rect class="text-line text-line-short" x="65" y="43" width="42" height="4" rx="2" />
+  </svg>
 </template>
 
 <style scoped lang="scss">
 .text-preview {
-  display: flex;
+  display: block;
   width: 100%;
   height: 100%;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  color: var(--text-secondary);
 }
 
-.type-mark {
-  display: flex;
-  width: 42px;
-  height: 36px;
-  flex: none;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid color-mix(in srgb, var(--accent-color) 48%, var(--border-color));
-  border-radius: 8px 3px 8px 3px;
-  background: var(--accent-soft);
-  color: var(--accent-color);
-
-  strong {
-    font-family: Georgia, 'Times New Roman', serif;
-    font-size: 19px;
-    font-weight: 600;
-    letter-spacing: -0.06em;
-    line-height: 0.9;
-  }
-
-  small {
-    margin-top: 4px;
-    font-size: 6px;
-    font-weight: 700;
-    letter-spacing: 0.16em;
-  }
+.type-glyph {
+  fill: var(--accent-color);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
 }
 
-.sample-copy {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 3px;
+.title-bar {
+  fill: var(--text-primary);
+  opacity: 0.85;
+}
 
-  strong {
-    color: var(--text-primary);
-    font-size: 13px;
-    font-weight: 650;
-    letter-spacing: 0.04em;
-  }
+.text-line {
+  fill: var(--text-muted);
+  opacity: 0.55;
+}
 
-  small {
-    color: var(--text-muted);
-    font-size: 9px;
-    letter-spacing: 0.06em;
-  }
+.text-line-short {
+  opacity: 0.35;
 }
 </style>
