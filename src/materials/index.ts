@@ -31,6 +31,11 @@ const group = [
     icon: 'fluent:text-font-20-filled',
     key: 'info',
   },
+  {
+    name: '图片',
+    icon: 'fluent:image-20-filled',
+    key: 'media',
+  },
 ]
 
 export function getMaterialByGroup(group: string) {
