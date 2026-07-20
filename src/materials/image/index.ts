@@ -52,11 +52,11 @@ export const imageMaterial: MaterialDefinition = {
       props: { min: 0, max: 1, step: 0.05, precision: 2 },
     },
     {
-      component: 'themeColor',
-      label: '背景颜色',
-      field: 'style.backgroundColor',
+      component: 'number',
+      label: '边框宽度',
+      field: 'style.borderWidth',
       span: 12,
-      props: { showAlpha: true },
+      props: { min: 0, max: 20 },
     },
     {
       component: 'number',
@@ -66,16 +66,16 @@ export const imageMaterial: MaterialDefinition = {
       props: { min: 0, max: 200 },
     },
     {
-      component: 'number',
-      label: '边框宽度',
-      field: 'style.borderWidth',
-      span: 12,
-      props: { min: 0, max: 20 },
-    },
-    {
       component: 'themeColor',
       label: '边框颜色',
       field: 'style.borderColor',
+      span: 12,
+      props: { showAlpha: true },
+    },
+    {
+      component: 'themeColor',
+      label: '背景颜色',
+      field: 'style.backgroundColor',
       span: 12,
       props: { showAlpha: true },
     },
@@ -103,14 +103,7 @@ export const imageMaterial: MaterialDefinition = {
       fit: 'cover',
       opacity: 1,
     },
-    events: [
-      {
-        type: 'click',
-        name: 'clickFn',
-        title: '点击事件',
-        code: ``,
-      },
-    ],
+    events: [],
   },
 }
 
