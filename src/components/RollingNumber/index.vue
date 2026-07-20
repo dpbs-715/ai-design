@@ -2,8 +2,9 @@
 defineOptions({ name: 'RollingNumber' })
 
 interface Props {
-  value: number
+  value: number | string
   unit?: string
+  animated?: boolean
 }
 
 interface DigitSlot {
@@ -16,17 +17,17 @@ type RollDirection = 'up' | 'down'
 const ROLL_DURATION_MS = 120
 const ROLL_SETTLE_DELAY_MS = 20
 
-const { value, unit = '' } = defineProps<Props>()
+const { value, unit = '', animated = true } = defineProps<Props>()
 
-const displayedValue = ref(Math.round(value))
+const displayedValue = ref(String(typeof value === 'number' ? Math.round(value) : value))
 const direction = ref<RollDirection>('up')
 
-let pendingValue = displayedValue.value
+let pendingValue: number | undefined
 let rolling = false
 let rollTimer: number | undefined
 
 const digitSlots = computed<DigitSlot[]>(() => {
-  const digits = String(displayedValue.value).split('')
+  const digits = displayedValue.value.split('')
 
   return digits.map((digit, index) => ({
     place: digits.length - index - 1,
@@ -35,10 +36,12 @@ const digitSlots = computed<DigitSlot[]>(() => {
 })
 
 function flushPendingValue() {
-  if (rolling || pendingValue === displayedValue.value) return
+  if (pendingValue === undefined) return
+  const current = Number(displayedValue.value)
+  if (rolling || pendingValue === current) return
 
-  direction.value = pendingValue > displayedValue.value ? 'up' : 'down'
-  displayedValue.value = pendingValue
+  direction.value = pendingValue > current ? 'up' : 'down'
+  displayedValue.value = String(pendingValue)
   rolling = true
 
   rollTimer = window.setTimeout(() => {
@@ -48,10 +51,15 @@ function flushPendingValue() {
 }
 
 watch(
-  () => Math.round(value),
+  () => (typeof value === 'number' ? Math.round(value) : value),
   (nextValue) => {
-    pendingValue = nextValue
-    flushPendingValue()
+    if (typeof nextValue === 'number') {
+      pendingValue = nextValue
+      flushPendingValue()
+      return
+    }
+    direction.value = 'up'
+    displayedValue.value = nextValue
   },
   { flush: 'sync' },
 )
@@ -64,12 +72,17 @@ onScopeDispose(() => {
 <template>
   <span class="rolling-number" :style="{ '--rolling-number-duration': `${ROLL_DURATION_MS}ms` }">
     <TransitionGroup
-      :name="`rolling-number-place-${direction}`"
+      :name="animated ? `rolling-number-place-${direction}` : ''"
       tag="span"
       class="rolling-number__digits"
     >
-      <span v-for="slot in digitSlots" :key="slot.place" class="rolling-number__slot">
-        <Transition :name="`rolling-number-digit-${direction}`">
+      <span
+        v-for="slot in digitSlots"
+        :key="slot.place"
+        class="rolling-number__slot"
+        :class="{ 'rolling-number__slot--separator': !/\d/.test(slot.digit) }"
+      >
+        <Transition :name="animated ? `rolling-number-digit-${direction}` : ''">
           <span :key="slot.digit" class="rolling-number__digit">
             {{ slot.digit }}
           </span>
@@ -103,6 +116,14 @@ onScopeDispose(() => {
   width: 0.62em;
   height: 1em;
   overflow: hidden;
+}
+
+.rolling-number__slot--separator {
+  width: auto;
+
+  .rolling-number__digit {
+    position: static;
+  }
 }
 
 .rolling-number__digit {

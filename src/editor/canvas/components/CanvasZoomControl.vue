@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import RollingNumber from '@/editor/canvas/components/RollingNumber.vue'
+import RollingNumber from '@/components/RollingNumber/index.vue'
 
 defineOptions({ name: 'CanvasZoomControl' })
 

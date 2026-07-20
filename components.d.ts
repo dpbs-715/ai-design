@@ -23,9 +23,11 @@ declare module 'vue' {
     ElPopover: typeof import('element-plus/es')['ElPopover']
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
     MonacoEditor: typeof import('./src/components/MonacoEditor/index.vue')['default']
+    RollingNumber: typeof import('./src/components/RollingNumber/index.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     ScreenRenderer: typeof import('./src/components/ScreenRenderer/index.vue')['default']
+    ThemeColorPicker: typeof import('./src/components/ThemeColorPicker/index.vue')['default']
   }
   export interface GlobalDirectives {
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']

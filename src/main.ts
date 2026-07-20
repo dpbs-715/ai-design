@@ -10,7 +10,7 @@ import { registerComponent, registerComponentDefaultPropsMap } from '@vunio/ui'
 import { ElInputNumber, ElSwitch } from 'element-plus'
 import '@/mock/data.ts'
 import { initializeEditorTheme } from '@/editor/theme/editorTheme.ts'
-import ThemeColorPicker from '@/editor/theme/ThemeColorPicker.vue'
+import ThemeColorPicker from '@/components/ThemeColorPicker/index.vue'
 
 initializeEditorTheme()
 
