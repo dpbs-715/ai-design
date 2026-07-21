@@ -36,6 +36,11 @@ const group = [
     icon: 'fluent:image-20-filled',
     key: 'media',
   },
+  {
+    name: '标注',
+    icon: 'fluent:draw-shape-20-filled',
+    key: 'annotation',
+  },
 ]
 
 export function getMaterialByGroup(group: string) {
