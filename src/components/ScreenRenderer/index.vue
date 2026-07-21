@@ -6,11 +6,13 @@ import type { PageSchema } from '@/schema/page.ts'
 import { createRuntimeContext } from '@/runtime/context.ts'
 import { runSandbox } from '@/runtime/sandbox.ts'
 import { provideRenderTheme } from '@/theme/renderTheme.ts'
+import { provideMaterialRenderContext } from '@/context/materialRender.ts'
 
 defineOptions({ name: 'ScreenRenderer' })
 
 const props = defineProps<{ page: PageSchema }>()
 
+provideMaterialRenderContext({ mode: 'runtime' })
 const runtimePage = ref(props.page)
 const renderTheme = provideRenderTheme(() => runtimePage.value.theme)
 const context = createRuntimeContext(runtimePage)

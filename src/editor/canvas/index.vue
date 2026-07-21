@@ -18,11 +18,13 @@ import { useNodeContextMenu } from '@/editor/canvas/composables/useNodeContextMe
 import { useCanvasViewport } from '@/editor/canvas/composables/useCanvasViewport.ts'
 import { useCanvasShortcutFocus } from '@/editor/canvas/composables/useCanvasShortcutFocus.ts'
 import { useRenderTheme } from '@/theme/renderTheme.ts'
+import { provideMaterialRenderContext } from '@/context/materialRender.ts'
 
 defineOptions({
   name: 'CanvasRoot',
 })
 const editorStore = useEditorStore()
+provideMaterialRenderContext({ mode: 'editor' })
 const canvasRootRef = useTemplateRef<HTMLDivElement>('canvasRoot')
 const moveableRef = useTemplateRef('moveable')
 const stageRef = useTemplateRef('stage')
