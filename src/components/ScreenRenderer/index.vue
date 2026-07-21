@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useEventListener } from '@vunio/hooks'
 import { provideDataSources } from '@/context'
 import type { MaterialSchema } from '@/schema/material.ts'
 import { getMaterialComponent } from '@/materials'
@@ -58,6 +59,7 @@ function init() {
 }
 
 const vm = getCurrentInstance()
+useEventListener('resize', init)
 
 function registerNodeInstance() {
   const refs = {}
@@ -88,10 +90,6 @@ function createEvents(node: MaterialSchema) {
 onMounted(() => {
   registerNodeInstance()
   init()
-  addEventListener('resize', init)
-  onBeforeUnmount(() => {
-    removeEventListener('resize', init)
-  })
 })
 </script>
 

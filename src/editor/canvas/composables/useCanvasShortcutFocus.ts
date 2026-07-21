@@ -1,3 +1,4 @@
+import { useEventListener } from '@vunio/hooks'
 import type { ShallowRef } from 'vue'
 
 // vue3-sketch-ruler scopes Space panning to this viewport element.
@@ -46,14 +47,5 @@ function releaseStaleControlFocus(event: PointerEvent) {
 }
 
 export function useCanvasShortcutFocus(canvasRootRef: CanvasRootRef) {
-  let canvasRoot: HTMLDivElement | null = null
-
-  onMounted(() => {
-    canvasRoot = canvasRootRef.value
-    canvasRoot?.addEventListener('pointermove', releaseStaleControlFocus)
-  })
-
-  onUnmounted(() => {
-    canvasRoot?.removeEventListener('pointermove', releaseStaleControlFocus)
-  })
+  useEventListener(canvasRootRef, 'pointermove', releaseStaleControlFocus)
 }

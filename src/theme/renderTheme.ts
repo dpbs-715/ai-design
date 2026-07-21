@@ -1,3 +1,4 @@
+import { useEventListener } from '@vunio/hooks'
 import type { CSSProperties, InjectionKey, MaybeRefOrGetter, Ref } from 'vue'
 import { inject, provide, toValue } from 'vue'
 
@@ -171,21 +172,18 @@ function isPlainRecord(value: object): value is Record<string, unknown> {
 
 export function provideRenderTheme(themeSource: MaybeRefOrGetter<RenderThemeConfig | undefined>) {
   const systemMode = ref<ResolvedRenderThemeMode>('light')
-  let systemThemeQuery: MediaQueryList | undefined
+  const systemThemeQuery = shallowRef<MediaQueryList>()
 
   function syncSystemMode(query: MediaQueryList | MediaQueryListEvent) {
     systemMode.value = query.matches ? 'dark' : 'light'
   }
 
   onMounted(() => {
-    systemThemeQuery = window.matchMedia(SYSTEM_DARK_QUERY)
-    syncSystemMode(systemThemeQuery)
-    systemThemeQuery.addEventListener('change', syncSystemMode)
+    systemThemeQuery.value = window.matchMedia(SYSTEM_DARK_QUERY)
+    syncSystemMode(systemThemeQuery.value)
   })
 
-  onBeforeUnmount(() => {
-    systemThemeQuery?.removeEventListener('change', syncSystemMode)
-  })
+  useEventListener<MediaQueryListEvent>(systemThemeQuery, 'change', syncSystemMode)
 
   const theme = computed(() => normalizeRenderTheme(toValue(themeSource)))
   const resolvedMode = computed<ResolvedRenderThemeMode>(() => {

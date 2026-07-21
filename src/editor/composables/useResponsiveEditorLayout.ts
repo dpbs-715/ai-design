@@ -1,3 +1,4 @@
+import { useEventListener } from '@vunio/hooks'
 import { useEditorPanelStore } from '@/stores/editorPanel.ts'
 
 const NARROW_WORKSPACE_QUERY = '(max-width: 1199px)'
@@ -5,7 +6,7 @@ const NARROW_WORKSPACE_QUERY = '(max-width: 1199px)'
 export function useResponsiveEditorLayout() {
   const editorPanelStore = useEditorPanelStore()
   const isNarrowWorkspace = ref(false)
-  let narrowWorkspaceQuery: MediaQueryList | undefined
+  const narrowWorkspaceQuery = shallowRef<MediaQueryList>()
 
   function syncWorkspaceLayout(query: MediaQueryList | MediaQueryListEvent) {
     isNarrowWorkspace.value = query.matches
@@ -13,13 +14,13 @@ export function useResponsiveEditorLayout() {
   }
 
   onMounted(() => {
-    narrowWorkspaceQuery = window.matchMedia(NARROW_WORKSPACE_QUERY)
-    syncWorkspaceLayout(narrowWorkspaceQuery)
-    narrowWorkspaceQuery.addEventListener('change', syncWorkspaceLayout)
+    narrowWorkspaceQuery.value = window.matchMedia(NARROW_WORKSPACE_QUERY)
+    syncWorkspaceLayout(narrowWorkspaceQuery.value)
   })
 
+  useEventListener<MediaQueryListEvent>(narrowWorkspaceQuery, 'change', syncWorkspaceLayout)
+
   onBeforeUnmount(() => {
-    narrowWorkspaceQuery?.removeEventListener('change', syncWorkspaceLayout)
     editorPanelStore.setNarrowPanelLayout(false)
   })
 

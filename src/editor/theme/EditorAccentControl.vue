@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useEventListener } from '@vunio/hooks'
 import { CommonColorPicker } from '@vunio/ui'
 import {
   editorAccentPresets,
@@ -43,17 +44,8 @@ function onDocumentClick(event: MouseEvent) {
   popoverVisible.value = false
 }
 
-watch(popoverVisible, (visible) => {
-  if (visible) {
-    document.addEventListener('click', onDocumentClick)
-  } else {
-    document.removeEventListener('click', onDocumentClick)
-  }
-})
-
-onBeforeUnmount(() => {
-  document.removeEventListener('click', onDocumentClick)
-})
+const documentTarget = computed(() => (popoverVisible.value ? document : undefined))
+useEventListener<MouseEvent>(documentTarget, 'click', onDocumentClick)
 </script>
 
 <template>
