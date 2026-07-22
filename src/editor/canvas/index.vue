@@ -35,7 +35,7 @@ const {
   measured: viewportMeasured,
 } = useCanvasViewport(canvasRootRef)
 useCanvasShortcutFocus(canvasRootRef)
-const { canvas, nodes } = storeToRefs(editorStore)
+const { canvas, nodes, selectedNodeIds } = storeToRefs(editorStore)
 const { resolvedMode, rootStyle: renderThemeStyle, resolveColor } = useRenderTheme()
 
 const {
@@ -67,24 +67,44 @@ const { selectedTarget, onSelect, onClearSelected, onSelectEnd } = useSelection(
   isMoveableActive,
 })
 const {
-  contextMenuNode,
+  contextMenuTarget,
+  contextMenuNodes,
   contextMenuAnchor,
   openContextMenu,
   closeContextMenu,
   onContextMenuCommand,
-} = useNodeContextMenu({
-  onNodeLockChange: () => {
-    selectedTarget.value = []
-  },
-})
+} = useNodeContextMenu()
 
 function onStageMouseDown(event: MouseEvent) {
   if (event.target === stageRef.value && !isCanvasPanning.value) onClearSelected()
 }
 
 function onNodeMouseDown(node: MaterialSchema, event: MouseEvent) {
-  if (isCanvasPanning.value) return
+  if (event.button !== 0 || isCanvasPanning.value) return
+  if (node.lockKey) {
+    onClearSelected()
+    return
+  }
   onSelect(node, event)
+}
+
+function getContextMenuNode(event: MouseEvent) {
+  // Moveable controls can be above a selected node, so event.target is not reliable here.
+  const nodeElement = document
+    .elementsFromPoint(event.clientX, event.clientY)
+    .find((element) => element.closest('.canvas-node'))
+    ?.closest<HTMLElement>('.canvas-node')
+
+  return editorStore.findNode(nodeElement?.dataset.nodeId)
+}
+
+function onCanvasContextMenu(event: MouseEvent) {
+  const node = getContextMenuNode(event)
+  if (!node) return
+
+  event.preventDefault()
+  event.stopPropagation()
+  openContextMenu(node, event)
 }
 
 const onCanvasMouseDown = dispatchEventHandlers(onStageMouseDown, closeContextMenu)
@@ -123,7 +143,12 @@ const stageStyle = computed(() => ({
 </script>
 
 <template>
-  <div class="canvas-root" ref="canvasRoot" @mousedown.capture="onCanvasMouseDown">
+  <div
+    class="canvas-root"
+    ref="canvasRoot"
+    @mousedown.capture="onCanvasMouseDown"
+    @contextmenu.capture="onCanvasContextMenu"
+  >
     <SketchRuler
       v-if="viewportMeasured"
       ref="sketchRuler"
@@ -152,11 +177,10 @@ const stageStyle = computed(() => ({
             v-for="(node, index) in nodes"
             :key="node.id"
             class="canvas-node"
+            :class="{ 'is-locked': node.lockKey }"
             :style="getNodeStyle(node, index)"
             :data-node-id="node.id"
-            :data-node-locked="node.locked"
             @mousedown="(event) => onNodeMouseDown(node, event)"
-            @contextmenu.prevent.stop="(e) => openContextMenu(node, e)"
           >
             <component :is="getMaterialComponent(node.type)" :schema="node" />
           </div>
@@ -183,20 +207,21 @@ const stageStyle = computed(() => ({
       popper-class="node-context-menu-popper"
       @command="onContextMenuCommand"
     >
-      <template v-if="contextMenuNode" #dropdown>
-        <NodeContextMenu :node="contextMenuNode" />
+      <template v-if="contextMenuTarget && contextMenuNodes.length" #dropdown>
+        <NodeContextMenu :nodes="contextMenuNodes" :target-kind="contextMenuTarget.kind" />
       </template>
     </el-dropdown>
     <Selecto
       v-if="stageRef && !isCanvasPanning"
       :container="stageRef"
       :dragContainer="stageRef"
-      :selectableTargets="['.canvas-node']"
+      :selectableTargets="['.canvas-node:not(.is-locked)']"
       :selectFromInside="false"
       :toggleContinueSelect="'shift'"
       @selectEnd="onSelectEnd"
     ></Selecto>
     <Moveable
+      v-if="selectedNodeIds.length && selectedTarget.length"
       ref="moveable"
       :target="selectedTarget"
       :draggable="!isCanvasPanning"

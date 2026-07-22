@@ -9,7 +9,11 @@ const editorStore = useEditorStore()
 
 const { nodes, selectedNodeIds } = storeToRefs(editorStore)
 
-useDraggable('.layer-panel', nodes, { animation: 150, direction: 'horizontal' })
+useDraggable('.layer-panel', nodes, {
+  animation: 150,
+  direction: 'horizontal',
+  filter: '.is-locked',
+})
 </script>
 
 <template>
@@ -18,7 +22,7 @@ useDraggable('.layer-panel', nodes, { animation: 150, direction: 'horizontal' })
       <div
         v-for="node in nodes"
         :key="node.id"
-        :class="{ active: selectedNodeIds.includes(node.id) }"
+        :class="{ active: selectedNodeIds.includes(node.id), 'is-locked': node.lockKey }"
         @click="editorStore.selectNode(node.id)"
       >
         <span>{{ node.name }}</span>

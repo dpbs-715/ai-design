@@ -19,20 +19,23 @@ export function useSelection({ stageRef, moveableRef, isMoveableActive }: UseSel
   const selectedTarget = shallowRef<HTMLElement[]>([])
   const { selectedNodeIds } = storeToRefs(editorStore)
 
-  function onSelect(node: MaterialSchema, e: MouseEvent) {
-    editorStore.selectNode(node.id)
+  function onSelect(node: MaterialSchema, event: MouseEvent) {
+    if (!editorStore.isNodeSelected(node.id)) editorStore.selectNode(node.id)
 
     nextTick(() => {
-      moveableRef.value?.dragStart(e)
+      moveableRef.value?.dragStart(event)
     })
   }
 
   function onClearSelected() {
-    editorStore.clearSelectedNode()
+    editorStore.clearSelection()
   }
 
   function onSelectEnd(e) {
-    const ids = e.selected.map((element) => element.getAttribute('data-node-id'))
+    const ids = e.selected.flatMap((element) => {
+      const id = element.getAttribute('data-node-id')
+      return id ? [id] : []
+    })
     editorStore.selectNodes(ids)
   }
 
@@ -45,10 +48,9 @@ export function useSelection({ stageRef, moveableRef, isMoveableActive }: UseSel
         return
       }
 
-      const selectedIds = new Set(ids)
+      const movableIds = new Set(ids)
       const targets = Array.from(stage.querySelectorAll<HTMLElement>('.canvas-node')).filter(
-        (element) =>
-          selectedIds.has(element.dataset.nodeId ?? '') && element.dataset.nodeLocked !== 'true',
+        (element) => movableIds.has(element.dataset.nodeId ?? ''),
       )
 
       selectedTarget.value = targets

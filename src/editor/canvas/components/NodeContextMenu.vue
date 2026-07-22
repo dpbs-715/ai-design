@@ -1,17 +1,40 @@
 <script setup lang="ts">
 import type { MaterialSchema } from '@/schema/material.ts'
-import { nodeContextMenuCommands } from '@/editor/canvas/contextMenu.ts'
+import {
+  nodeContextMenuCommands,
+  type NodeContextMenuTargetKind,
+} from '@/editor/canvas/contextMenu.ts'
 
 defineOptions({ name: 'NodeContextMenu' })
 
-const { node } = defineProps<{
-  node: MaterialSchema
+const { nodes, targetKind } = defineProps<{
+  nodes: MaterialSchema[]
+  targetKind: NodeContextMenuTargetKind
 }>()
 
+const node = computed(() => nodes[0]!)
+const isMultiple = computed(() => nodes.length > 1)
+const isLockedGroup = computed(() => targetKind === 'locked-group')
 const nodeIcon = computed(() =>
-  node.type === 'text' ? 'fluent:text-font-20-filled' : 'fluent:data-bar-vertical-20-filled',
+  node.value.type === 'text' ? 'fluent:text-font-20-filled' : 'fluent:data-bar-vertical-20-filled',
 )
-const nodeKind = computed(() => (node.type === 'text' ? '文本节点' : '图表节点'))
+const nodeKind = computed(() => (node.value.type === 'text' ? '文本节点' : '图表节点'))
+const menuTitle = computed(() => {
+  if (!isMultiple.value) return node.value.name
+  return isLockedGroup.value ? `已锁定 ${nodes.length} 个物料` : `已选择 ${nodes.length} 个物料`
+})
+const menuKind = computed(() => {
+  if (!isMultiple.value) return nodeKind.value
+  return isLockedGroup.value ? '锁定组' : '批量操作'
+})
+const lockCommandLabel = computed(() => {
+  if (isLockedGroup.value) return isMultiple.value ? '解锁锁定组' : '解锁节点'
+  return isMultiple.value ? '锁定所选' : '锁定节点'
+})
+const removeCommandLabel = computed(() => {
+  if (!isMultiple.value) return '删除节点'
+  return isLockedGroup.value ? '删除锁定组' : '删除所选'
+})
 </script>
 
 <template>
@@ -21,40 +44,57 @@ const nodeKind = computed(() => (node.type === 'text' ? '文本节点' : '图表
         <Icon :icon="nodeIcon" width="17" />
       </span>
       <span class="node-context-menu__identity">
-        <strong>{{ node.name }}</strong>
-        <small>{{ nodeKind }}</small>
+        <strong>{{ menuTitle }}</strong>
+        <small>{{ menuKind }}</small>
       </span>
-      <span class="node-context-menu__state" :class="{ 'is-locked': node.locked }">
-        {{ node.locked ? '已锁定' : '已选中' }}
+      <span class="node-context-menu__state" :class="{ 'is-locked': isLockedGroup }">
+        {{ isLockedGroup ? '已锁定' : '已选中' }}
       </span>
     </li>
 
     <el-dropdown-item
+      v-if="!isLockedGroup"
       class="node-context-menu__layer-action node-context-menu__layer-action--first"
-      :command="nodeContextMenuCommands.moveTop"
+      :command="nodeContextMenuCommands.moveFront"
     >
       <Icon icon="mdi:arrange-bring-to-front" width="17" />
-      <span>置顶</span>
+      <span>置于顶层</span>
     </el-dropdown-item>
     <el-dropdown-item
+      v-if="!isLockedGroup"
       class="node-context-menu__layer-action node-context-menu__layer-action--last"
-      :command="nodeContextMenuCommands.moveBottom"
+      :command="nodeContextMenuCommands.moveBack"
     >
       <Icon icon="mdi:arrange-send-to-back" width="17" />
-      <span>置底</span>
+      <span>置于底层</span>
     </el-dropdown-item>
 
-    <el-dropdown-item class="node-context-menu__item" :command="nodeContextMenuCommands.copy">
+    <el-dropdown-item
+      v-if="!isLockedGroup"
+      class="node-context-menu__item"
+      :command="nodeContextMenuCommands.copy"
+    >
       <Icon icon="fluent:copy-20-regular" width="16" />
-      <span>复制节点</span>
+      <span>{{ isMultiple ? '复制所选' : '复制节点' }}</span>
     </el-dropdown-item>
-    <el-dropdown-item class="node-context-menu__item" :command="nodeContextMenuCommands.toggleLock">
+    <el-dropdown-item
+      v-if="!isLockedGroup"
+      class="node-context-menu__item"
+      :command="nodeContextMenuCommands.copyJson"
+    >
+      <Icon icon="fluent:code-20-regular" width="16" />
+      <span>{{ isMultiple ? '复制所选 JSON' : '复制节点 JSON' }}</span>
+    </el-dropdown-item>
+    <el-dropdown-item
+      class="node-context-menu__item"
+      :command="nodeContextMenuCommands.toggleSelectionLock"
+    >
       <Icon
-        :icon="node.locked ? 'fluent:lock-open-20-regular' : 'fluent:lock-closed-20-regular'"
+        :icon="isLockedGroup ? 'fluent:lock-open-20-regular' : 'fluent:lock-closed-20-regular'"
         width="16"
       />
-      <span>{{ node.locked ? '解锁节点' : '锁定节点' }}</span>
-      <span class="node-context-menu__status-dot" :class="{ 'is-active': node.locked }"></span>
+      <span>{{ lockCommandLabel }}</span>
+      <span class="node-context-menu__status-dot" :class="{ 'is-active': isLockedGroup }"></span>
     </el-dropdown-item>
 
     <li class="node-context-menu__separator" role="separator"></li>
@@ -64,7 +104,7 @@ const nodeKind = computed(() => (node.type === 'text' ? '文本节点' : '图表
       :command="nodeContextMenuCommands.remove"
     >
       <Icon icon="fluent:delete-20-regular" width="16" />
-      <span>删除节点</span>
+      <span>{{ removeCommandLabel }}</span>
     </el-dropdown-item>
   </el-dropdown-menu>
 </template>
@@ -100,6 +140,11 @@ const nodeKind = computed(() => (node.type === 'text' ? '文本节点' : '图表
     padding: 12px;
     border-bottom: 1px solid color-mix(in srgb, var(--border-color) 72%, transparent);
     list-style: none;
+  }
+
+  .el-dropdown-menu__item:focus-visible {
+    outline: none;
+    outline-offset: 0;
   }
 
   .node-context-menu__identity {

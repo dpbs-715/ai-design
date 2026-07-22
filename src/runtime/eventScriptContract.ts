@@ -15,7 +15,7 @@ export interface EventScriptNode {
   id: string
   type: string
   name: string
-  locked?: boolean
+  lockKey?: string
   layout: EventScriptLayout
   style?: Record<string, unknown>
   props: Record<string, unknown>
