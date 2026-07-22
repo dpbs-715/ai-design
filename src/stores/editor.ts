@@ -12,7 +12,7 @@ import {
 } from '@/theme/renderTheme.ts'
 
 export const useEditorStore = defineStore('editor', () => {
-  const { dispatchCommand } = useUndoRedo()
+  const { dispatchCommand, startBatch, commitBatch } = useUndoRedo()
 
   const page = ref<PageSchema>({
     theme: createDefaultRenderTheme(),
@@ -121,6 +121,15 @@ export const useEditorStore = defineStore('editor', () => {
     )
   }
 
+  function dispatchCommandBatch(callback: () => void) {
+    startBatch()
+    try {
+      callback()
+    } finally {
+      commitBatch()
+    }
+  }
+
   function findNode(id: string | null | undefined) {
     return id ? nodeMap.value.get(id) : undefined
   }
@@ -168,7 +177,7 @@ export const useEditorStore = defineStore('editor', () => {
     })
   }
 
-  function copyNodes(ids: string[]) {
+  function duplicateNodes(ids: string[]) {
     const copies = getNodesByIds(ids)
       .filter((node) => !node.lockKey)
       .map((node) => {
@@ -182,6 +191,107 @@ export const useEditorStore = defineStore('editor', () => {
 
     setNodes([...nodes.value, ...copies])
     selectNodes(copies.map((node) => node.id))
+  }
+
+  function pasteNodesAt(sourceNodes: MaterialSchema[], point: { x: number; y: number }) {
+    if (!sourceNodes.length) return 0
+
+    const minX = Math.min(...sourceNodes.map((node) => node.layout.x))
+    const minY = Math.min(...sourceNodes.map((node) => node.layout.y))
+    const maxX = Math.max(...sourceNodes.map((node) => node.layout.x + node.layout.width))
+    const maxY = Math.max(...sourceNodes.map((node) => node.layout.y + node.layout.height))
+    const groupWidth = maxX - minX
+    const groupHeight = maxY - minY
+    const left = Math.min(
+      Math.max(point.x - groupWidth / 2, 0),
+      Math.max(canvas.value.width - groupWidth, 0),
+    )
+    const top = Math.min(
+      Math.max(point.y - groupHeight / 2, 0),
+      Math.max(canvas.value.height - groupHeight, 0),
+    )
+    const offsetX = left - minX
+    const offsetY = top - minY
+
+    const pastedNodes = sourceNodes.map((sourceNode) => {
+      const node = deepClone(sourceNode)
+      node.id = crypto.randomUUID()
+      node.lockKey = undefined
+      node.layout.x += offsetX
+      node.layout.y += offsetY
+      return node
+    })
+
+    dispatchCommandBatch(() => {
+      setNodes([...nodes.value, ...pastedNodes])
+    })
+    selectNodes(pastedNodes.map((node) => node.id))
+    return pastedNodes.length
+  }
+
+  function mergePage(sourcePage: PageSchema) {
+    const usedDataSourceIds = new Set(dataSources.value.map((source) => source.id))
+    const dataSourceIdMap = new Map<string, string>()
+    const mergedDataSources = sourcePage.dataSources.map((source) => {
+      const clonedSource = deepClone(source)
+      let nextId = source.id
+      while (usedDataSourceIds.has(nextId)) nextId = crypto.randomUUID()
+      usedDataSourceIds.add(nextId)
+      dataSourceIdMap.set(source.id, nextId)
+      clonedSource.id = nextId
+      return clonedSource
+    })
+
+    const mergedNodes = sourcePage.nodes.map((sourceNode) => {
+      const node = deepClone(sourceNode)
+      node.id = crypto.randomUUID()
+      node.lockKey = undefined
+      if (typeof node.dataId === 'string') {
+        node.dataId = dataSourceIdMap.get(node.dataId) ?? node.dataId
+      }
+      return node
+    })
+
+    const currentThemeVariableKeys = new Set(theme.value.variables.map((variable) => variable.key))
+    const missingThemeVariables = sourcePage.theme.variables
+      .filter((variable) => !currentThemeVariableKeys.has(variable.key))
+      .map((variable) => deepClone(variable))
+
+    dispatchCommandBatch(() => {
+      if (mergedNodes.length) setNodes([...nodes.value, ...mergedNodes])
+      if (mergedDataSources.length) {
+        dispatchCommand(
+          new SetFormFieldCommand(
+            getPageData,
+            'dataSources',
+            [...dataSources.value, ...mergedDataSources],
+            { clone: 'shallow' },
+          ),
+        )
+      }
+      if (missingThemeVariables.length) {
+        dispatchCommand(
+          new SetFormFieldCommand(
+            getPageData,
+            'theme',
+            {
+              ...theme.value,
+              variables: [...theme.value.variables, ...missingThemeVariables],
+            },
+            { clone: 'shallow' },
+          ),
+        )
+      }
+    })
+
+    selectNodes(mergedNodes.map((node) => node.id))
+    return {
+      nodeCount: mergedNodes.length,
+      dataSourceCount: mergedDataSources.length,
+      hasEventScripts: sourcePage.nodes.some((node) =>
+        node.events?.some((event) => Boolean(event.code)),
+      ),
+    }
   }
 
   function removeNodes(ids: string[]) {
@@ -262,7 +372,9 @@ export const useEditorStore = defineStore('editor', () => {
     findNode,
     findNodesByLockKey,
     requireNode,
-    copyNodes,
+    duplicateNodes,
+    pasteNodesAt,
+    mergePage,
     removeNodes,
     moveNodesToFront,
     moveNodesToBack,

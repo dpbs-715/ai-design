@@ -1,17 +1,24 @@
-export const nodeContextMenuCommands = {
+export const canvasContextMenuCommands = {
+  duplicate: 'duplicate',
   copy: 'copy',
-  copyJson: 'copyJson',
+  paste: 'paste',
   remove: 'remove',
   moveFront: 'moveFront',
   moveBack: 'moveBack',
   toggleSelectionLock: 'toggleSelectionLock',
 } as const
 
-export type NodeContextMenuCommand =
-  (typeof nodeContextMenuCommands)[keyof typeof nodeContextMenuCommands]
+export type CanvasContextMenuCommand =
+  (typeof canvasContextMenuCommands)[keyof typeof canvasContextMenuCommands]
 
-export type NodeContextMenuTarget =
-  | { kind: 'selection'; nodeIds: string[] }
-  | { kind: 'locked-group'; lockKey: string }
+export interface CanvasPoint {
+  x: number
+  y: number
+}
 
-export type NodeContextMenuTargetKind = NodeContextMenuTarget['kind']
+export type CanvasContextMenuTarget =
+  | { kind: 'canvas'; point: CanvasPoint }
+  | { kind: 'selection'; nodeIds: string[]; point: CanvasPoint }
+  | { kind: 'locked-group'; lockKey: string; point: CanvasPoint }
+
+export type NodeContextMenuTargetKind = Exclude<CanvasContextMenuTarget['kind'], 'canvas'>

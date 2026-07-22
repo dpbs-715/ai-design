@@ -12,9 +12,10 @@ import { useCanvasZoom } from '@/editor/canvas/composables/useCanvasZoom.ts'
 import { useMoveable } from '@/editor/canvas/composables/useMoveable.ts'
 import { useSelection } from '@/editor/canvas/composables/useSelection.ts'
 import NodeContextMenu from '@/editor/canvas/components/NodeContextMenu.vue'
+import CanvasContextMenu from '@/editor/canvas/components/CanvasContextMenu.vue'
 import CanvasZoomControl from '@/editor/canvas/components/CanvasZoomControl.vue'
 import { dispatchEventHandlers } from '@/utils/dispatchEventHandlers.ts'
-import { useNodeContextMenu } from '@/editor/canvas/composables/useNodeContextMenu.ts'
+import { useCanvasContextMenu } from '@/editor/canvas/composables/useCanvasContextMenu.ts'
 import { useCanvasViewport } from '@/editor/canvas/composables/useCanvasViewport.ts'
 import { useCanvasShortcutFocus } from '@/editor/canvas/composables/useCanvasShortcutFocus.ts'
 import { useRenderTheme } from '@/theme/renderTheme.ts'
@@ -70,10 +71,10 @@ const {
   contextMenuTarget,
   contextMenuNodes,
   contextMenuAnchor,
-  openContextMenu,
+  onContextMenu,
   closeContextMenu,
   onContextMenuCommand,
-} = useNodeContextMenu()
+} = useCanvasContextMenu({ canvasRootRef, stageRef, scale })
 
 function onStageMouseDown(event: MouseEvent) {
   if (event.target === stageRef.value && !isCanvasPanning.value) onClearSelected()
@@ -86,25 +87,6 @@ function onNodeMouseDown(node: MaterialSchema, event: MouseEvent) {
     return
   }
   onSelect(node, event)
-}
-
-function getContextMenuNode(event: MouseEvent) {
-  // Moveable controls can be above a selected node, so event.target is not reliable here.
-  const nodeElement = document
-    .elementsFromPoint(event.clientX, event.clientY)
-    .find((element) => element.closest('.canvas-node'))
-    ?.closest<HTMLElement>('.canvas-node')
-
-  return editorStore.findNode(nodeElement?.dataset.nodeId)
-}
-
-function onCanvasContextMenu(event: MouseEvent) {
-  const node = getContextMenuNode(event)
-  if (!node) return
-
-  event.preventDefault()
-  event.stopPropagation()
-  openContextMenu(node, event)
 }
 
 const onCanvasMouseDown = dispatchEventHandlers(onStageMouseDown, closeContextMenu)
@@ -147,7 +129,7 @@ const stageStyle = computed(() => ({
     class="canvas-root"
     ref="canvasRoot"
     @mousedown.capture="onCanvasMouseDown"
-    @contextmenu.capture="onCanvasContextMenu"
+    @contextmenu.capture="onContextMenu"
   >
     <SketchRuler
       v-if="viewportMeasured"
@@ -207,8 +189,9 @@ const stageStyle = computed(() => ({
       popper-class="node-context-menu-popper"
       @command="onContextMenuCommand"
     >
-      <template v-if="contextMenuTarget && contextMenuNodes.length" #dropdown>
-        <NodeContextMenu :nodes="contextMenuNodes" :target-kind="contextMenuTarget.kind" />
+      <template v-if="contextMenuTarget" #dropdown>
+        <CanvasContextMenu v-if="contextMenuTarget.kind === 'canvas'" />
+        <NodeContextMenu v-else :nodes="contextMenuNodes" :target-kind="contextMenuTarget.kind" />
       </template>
     </el-dropdown>
     <Selecto

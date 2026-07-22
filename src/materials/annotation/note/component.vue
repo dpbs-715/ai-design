@@ -4,6 +4,7 @@ import { ElMessage } from 'element-plus'
 import type { MaterialSchema } from '@/schema/material.ts'
 import { useRenderTheme } from '@/theme/renderTheme.ts'
 import { injectMaterialRenderContext } from '@/context/materialRender.ts'
+import { writeClipboardText } from '@/utils/clipboard.ts'
 
 defineOptions({ name: 'AnnotationNoteMaterial' })
 
@@ -19,7 +20,7 @@ async function copyNote() {
   const text = [props.schema.props.title, props.schema.props.content].filter(Boolean).join('\n')
 
   try {
-    await navigator.clipboard.writeText(text)
+    await writeClipboardText(text)
     ElMessage.success('备注已复制')
   } catch {
     ElMessage.error('复制失败，请手动选择文字复制')

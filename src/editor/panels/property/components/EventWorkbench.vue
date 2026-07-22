@@ -8,6 +8,7 @@ import { createEventScriptExtraLib } from '@/editor/panels/property/eventScriptT
 import { getMaterialEventOptions } from '@/materials'
 import type { MaterialEvent, MaterialSchema } from '@/schema/material.ts'
 import { useEditorStore } from '@/stores/editor.ts'
+import { writeClipboardText } from '@/utils/clipboard.ts'
 
 defineOptions({ name: 'EventWorkbench' })
 
@@ -44,8 +45,12 @@ const eventExtraLibs = computed(() => {
 })
 
 async function copyNodeId(id: string) {
-  await navigator.clipboard.writeText(id)
-  ElMessage.success('节点 ID 已复制')
+  try {
+    await writeClipboardText(id)
+    ElMessage.success('节点 ID 已复制')
+  } catch {
+    ElMessage.error('复制失败，请检查浏览器剪贴板权限')
+  }
 }
 
 function insertDispatchCode(value: unknown) {

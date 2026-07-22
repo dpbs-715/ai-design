@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { MaterialSchema } from '@/schema/material.ts'
 import {
-  nodeContextMenuCommands,
+  canvasContextMenuCommands,
   type NodeContextMenuTargetKind,
 } from '@/editor/canvas/contextMenu.ts'
 
@@ -55,7 +55,7 @@ const removeCommandLabel = computed(() => {
     <el-dropdown-item
       v-if="!isLockedGroup"
       class="node-context-menu__layer-action node-context-menu__layer-action--first"
-      :command="nodeContextMenuCommands.moveFront"
+      :command="canvasContextMenuCommands.moveFront"
     >
       <Icon icon="mdi:arrange-bring-to-front" width="17" />
       <span>置于顶层</span>
@@ -63,7 +63,7 @@ const removeCommandLabel = computed(() => {
     <el-dropdown-item
       v-if="!isLockedGroup"
       class="node-context-menu__layer-action node-context-menu__layer-action--last"
-      :command="nodeContextMenuCommands.moveBack"
+      :command="canvasContextMenuCommands.moveBack"
     >
       <Icon icon="mdi:arrange-send-to-back" width="17" />
       <span>置于底层</span>
@@ -72,22 +72,22 @@ const removeCommandLabel = computed(() => {
     <el-dropdown-item
       v-if="!isLockedGroup"
       class="node-context-menu__item"
-      :command="nodeContextMenuCommands.copy"
+      :command="canvasContextMenuCommands.duplicate"
     >
+      <Icon icon="fluent:copy-add-20-regular" width="16" />
+      <span>{{ isMultiple ? '创建所选副本' : '创建副本' }}</span>
+    </el-dropdown-item>
+    <el-dropdown-item class="node-context-menu__item" :command="canvasContextMenuCommands.copy">
       <Icon icon="fluent:copy-20-regular" width="16" />
       <span>{{ isMultiple ? '复制所选' : '复制节点' }}</span>
     </el-dropdown-item>
-    <el-dropdown-item
-      v-if="!isLockedGroup"
-      class="node-context-menu__item"
-      :command="nodeContextMenuCommands.copyJson"
-    >
-      <Icon icon="fluent:code-20-regular" width="16" />
-      <span>{{ isMultiple ? '复制所选 JSON' : '复制节点 JSON' }}</span>
+    <el-dropdown-item class="node-context-menu__item" :command="canvasContextMenuCommands.paste">
+      <Icon icon="fluent:clipboard-paste-20-regular" width="16" />
+      <span>粘贴 JSON 到此处</span>
     </el-dropdown-item>
     <el-dropdown-item
       class="node-context-menu__item"
-      :command="nodeContextMenuCommands.toggleSelectionLock"
+      :command="canvasContextMenuCommands.toggleSelectionLock"
     >
       <Icon
         :icon="isLockedGroup ? 'fluent:lock-open-20-regular' : 'fluent:lock-closed-20-regular'"
@@ -101,7 +101,7 @@ const removeCommandLabel = computed(() => {
 
     <el-dropdown-item
       class="node-context-menu__item node-context-menu__item--danger"
-      :command="nodeContextMenuCommands.remove"
+      :command="canvasContextMenuCommands.remove"
     >
       <Icon icon="fluent:delete-20-regular" width="16" />
       <span>{{ removeCommandLabel }}</span>

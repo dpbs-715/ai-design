@@ -4,6 +4,7 @@ import { ElMessage } from 'element-plus'
 import type { MaterialSchema } from '@/schema/material.ts'
 import { useRenderTheme } from '@/theme/renderTheme.ts'
 import { injectMaterialRenderContext } from '@/context/materialRender.ts'
+import { writeClipboardText } from '@/utils/clipboard.ts'
 
 defineOptions({ name: 'AnnotationFrameMaterial' })
 
@@ -19,7 +20,7 @@ const hasDescription = computed(() => Boolean(props.schema.props.description?.tr
 
 async function copyDescription() {
   try {
-    await navigator.clipboard.writeText(props.schema.props.description)
+    await writeClipboardText(props.schema.props.description)
     ElMessage.success('描述已复制')
   } catch {
     ElMessage.error('复制失败，请手动选择文字复制')
@@ -45,15 +46,9 @@ const labelStyle = computed<CSSProperties>(() => ({
 
 const detailsStyle = computed<CSSProperties>(() => ({
   '--annotation-accent': resolveColor(props.schema.style?.color, 'value') || 'currentColor',
-  '--el-bg-color-overlay': resolveColor(
-    { type: 'theme', key: 'container-background' },
-    'value',
-  ),
+  '--el-bg-color-overlay': resolveColor({ type: 'theme', key: 'container-background' }, 'value'),
   '--el-border-color-light': resolveColor({ type: 'theme', key: 'border' }, 'value'),
-  '--el-popover-bg-color': resolveColor(
-    { type: 'theme', key: 'container-background' },
-    'value',
-  ),
+  '--el-popover-bg-color': resolveColor({ type: 'theme', key: 'container-background' }, 'value'),
   backgroundColor: resolveColor({ type: 'theme', key: 'container-background' }, 'value'),
   borderColor: resolveColor({ type: 'theme', key: 'border' }, 'value'),
   borderRadius: '8px',
