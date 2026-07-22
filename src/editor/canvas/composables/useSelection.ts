@@ -17,7 +17,7 @@ interface UseSelectionOptions {
 export function useSelection({ stageRef, moveableRef, isMoveableActive }: UseSelectionOptions) {
   const editorStore = useEditorStore()
   const selectedTarget = shallowRef<HTMLElement[]>([])
-  const { selectedNodeIds } = storeToRefs(editorStore)
+  const { nodes, selectedNodeIds } = storeToRefs(editorStore)
 
   function onSelect(node: MaterialSchema, event: MouseEvent) {
     if (!editorStore.isNodeSelected(node.id)) editorStore.selectNode(node.id)
@@ -40,15 +40,17 @@ export function useSelection({ stageRef, moveableRef, isMoveableActive }: UseSel
   }
 
   watch(
-    selectedNodeIds,
-    (ids) => {
+    [nodes, selectedNodeIds],
+    async () => {
+      await nextTick()
+
       const stage = stageRef.value
       if (!stage) {
         selectedTarget.value = []
         return
       }
 
-      const movableIds = new Set(ids)
+      const movableIds = new Set(editorStore.selectedNodeIds)
       const targets = Array.from(stage.querySelectorAll<HTMLElement>('.canvas-node')).filter(
         (element) => movableIds.has(element.dataset.nodeId ?? ''),
       )

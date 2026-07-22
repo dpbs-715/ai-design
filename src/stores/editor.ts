@@ -11,6 +11,12 @@ import {
   normalizeRenderTheme,
 } from '@/theme/renderTheme.ts'
 
+export type NodePastePlacement =
+  | { kind: 'preserve' }
+  | { kind: 'offset'; x: number; y: number }
+  | { kind: 'cascade'; x: number; y: number }
+  | { kind: 'point'; point: { x: number; y: number } }
+
 export const useEditorStore = defineStore('editor', () => {
   const { dispatchCommand, startBatch, commitBatch } = useUndoRedo()
 
@@ -177,24 +183,12 @@ export const useEditorStore = defineStore('editor', () => {
     })
   }
 
-  function duplicateNodes(ids: string[]) {
-    const copies = getNodesByIds(ids)
-      .filter((node) => !node.lockKey)
-      .map((node) => {
-        const copy = deepClone(node)
-        copy.id = crypto.randomUUID()
-        copy.layout.x += 20
-        copy.layout.y += 20
-        return copy
-      })
-    if (!copies.length) return
-
-    setNodes([...nodes.value, ...copies])
-    selectNodes(copies.map((node) => node.id))
+  function selectAllNodes() {
+    selectNodes(nodes.value.map((node) => node.id))
   }
 
-  function pasteNodesAt(sourceNodes: MaterialSchema[], point: { x: number; y: number }) {
-    if (!sourceNodes.length) return 0
+  function getBoundedNodeTranslation(sourceNodes: MaterialSchema[], placement: NodePastePlacement) {
+    if (!sourceNodes.length) return { x: 0, y: 0 }
 
     const minX = Math.min(...sourceNodes.map((node) => node.layout.x))
     const minY = Math.min(...sourceNodes.map((node) => node.layout.y))
@@ -202,23 +196,65 @@ export const useEditorStore = defineStore('editor', () => {
     const maxY = Math.max(...sourceNodes.map((node) => node.layout.y + node.layout.height))
     const groupWidth = maxX - minX
     const groupHeight = maxY - minY
-    const left = Math.min(
-      Math.max(point.x - groupWidth / 2, 0),
-      Math.max(canvas.value.width - groupWidth, 0),
-    )
-    const top = Math.min(
-      Math.max(point.y - groupHeight / 2, 0),
-      Math.max(canvas.value.height - groupHeight, 0),
-    )
-    const offsetX = left - minX
-    const offsetY = top - minY
+    const maxLeft = Math.max(canvas.value.width - groupWidth, 0)
+    const maxTop = Math.max(canvas.value.height - groupHeight, 0)
+
+    function getCascadePosition(position: number, offset: number, maxPosition: number) {
+      const forwardPosition = position + offset
+      if (forwardPosition >= 0 && forwardPosition <= maxPosition) return forwardPosition
+
+      const backwardPosition = position - offset
+      if (backwardPosition >= 0 && backwardPosition <= maxPosition) return backwardPosition
+
+      return Math.min(Math.max(forwardPosition, 0), maxPosition)
+    }
+
+    let desiredLeft = minX
+    let desiredTop = minY
+    if (placement.kind === 'offset') {
+      desiredLeft += placement.x
+      desiredTop += placement.y
+    } else if (placement.kind === 'cascade') {
+      desiredLeft = getCascadePosition(minX, placement.x, maxLeft)
+      desiredTop = getCascadePosition(minY, placement.y, maxTop)
+    } else if (placement.kind === 'point') {
+      desiredLeft = placement.point.x - groupWidth / 2
+      desiredTop = placement.point.y - groupHeight / 2
+    }
+
+    const left = Math.min(Math.max(desiredLeft, 0), maxLeft)
+    const top = Math.min(Math.max(desiredTop, 0), maxTop)
+
+    return { x: left - minX, y: top - minY }
+  }
+
+  function duplicateNodes(ids: string[]) {
+    const sourceNodes = getNodesByIds(ids).filter((node) => !node.lockKey)
+    const translation = getBoundedNodeTranslation(sourceNodes, { kind: 'cascade', x: 20, y: 20 })
+    const copies = sourceNodes.map((node) => {
+      const copy = deepClone(node)
+      copy.id = crypto.randomUUID()
+      copy.layout.x += translation.x
+      copy.layout.y += translation.y
+      return copy
+    })
+    if (!copies.length) return
+
+    setNodes([...nodes.value, ...copies])
+    selectNodes(copies.map((node) => node.id))
+  }
+
+  function pasteNodes(sourceNodes: MaterialSchema[], placement: NodePastePlacement) {
+    if (!sourceNodes.length) return 0
+
+    const translation = getBoundedNodeTranslation(sourceNodes, placement)
 
     const pastedNodes = sourceNodes.map((sourceNode) => {
       const node = deepClone(sourceNode)
       node.id = crypto.randomUUID()
       node.lockKey = undefined
-      node.layout.x += offsetX
-      node.layout.y += offsetY
+      node.layout.x += translation.x
+      node.layout.y += translation.y
       return node
     })
 
@@ -250,6 +286,11 @@ export const useEditorStore = defineStore('editor', () => {
         node.dataId = dataSourceIdMap.get(node.dataId) ?? node.dataId
       }
       return node
+    })
+    const translation = getBoundedNodeTranslation(mergedNodes, { kind: 'preserve' })
+    mergedNodes.forEach((node) => {
+      node.layout.x += translation.x
+      node.layout.y += translation.y
     })
 
     const currentThemeVariableKeys = new Set(theme.value.variables.map((variable) => variable.key))
@@ -301,6 +342,34 @@ export const useEditorStore = defineStore('editor', () => {
     const selectedIds = new Set(selectedNodes.map((node) => node.id))
     const remainingNodes = nodes.value.filter((node) => !selectedIds.has(node.id))
     setNodes(remainingNodes)
+  }
+
+  function moveNodesBy(ids: string[], offset: { x: number; y: number }) {
+    const movableNodes = getNodesByIds(ids).filter((node) => !node.lockKey)
+    if (!movableNodes.length) return
+
+    const translation = getBoundedNodeTranslation(movableNodes, {
+      kind: 'offset',
+      x: offset.x,
+      y: offset.y,
+    })
+    if (!translation.x && !translation.y) return
+
+    const movableIds = new Set(movableNodes.map((node) => node.id))
+    setNodes(
+      nodes.value.map((node) =>
+        movableIds.has(node.id)
+          ? {
+              ...node,
+              layout: {
+                ...node.layout,
+                x: node.layout.x + translation.x,
+                y: node.layout.y + translation.y,
+              },
+            }
+          : node,
+      ),
+    )
   }
 
   function reorderNodes(ids: string[], position: 'front' | 'back') {
@@ -369,13 +438,15 @@ export const useEditorStore = defineStore('editor', () => {
     isNodeSelected,
     clearSelection,
     selectNodes,
+    selectAllNodes,
     findNode,
     findNodesByLockKey,
     requireNode,
     duplicateNodes,
-    pasteNodesAt,
+    pasteNodes,
     mergePage,
     removeNodes,
+    moveNodesBy,
     moveNodesToFront,
     moveNodesToBack,
     lockNodes,

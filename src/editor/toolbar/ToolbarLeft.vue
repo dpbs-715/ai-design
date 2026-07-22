@@ -4,12 +4,14 @@ import { useUndoRedo } from '@/hooks/useUndoRedo.ts'
 import { storeToRefs } from 'pinia'
 import EditorAccentControl from '@/editor/theme/EditorAccentControl.vue'
 import EditorThemeControl from '@/editor/theme/EditorThemeControl.vue'
+import { getEditorShortcutLabels } from '@/editor/shortcuts.ts'
 defineOptions({ name: 'ToolbarLeft' })
 
 const editorPanelStore = useEditorPanelStore()
 const { panelVisible } = storeToRefs(editorPanelStore)
 
 const { undo, redo, canUndo, canRedo } = useUndoRedo()
+const shortcutLabels = getEditorShortcutLabels()
 </script>
 
 <template>
@@ -53,7 +55,7 @@ const { undo, redo, canUndo, canRedo } = useUndoRedo()
       type="button"
       class="toolbar-button"
       :disabled="!canUndo"
-      title="撤销"
+      :title="`撤销 (${shortcutLabels.undo})`"
       aria-label="撤销"
       @click="undo"
     >
@@ -63,7 +65,7 @@ const { undo, redo, canUndo, canRedo } = useUndoRedo()
       type="button"
       class="toolbar-button"
       :disabled="!canRedo"
-      title="重做"
+      :title="`重做 (${shortcutLabels.redo})`"
       aria-label="重做"
       @click="redo"
     >

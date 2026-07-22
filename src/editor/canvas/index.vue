@@ -18,6 +18,8 @@ import { dispatchEventHandlers } from '@/utils/dispatchEventHandlers.ts'
 import { useCanvasContextMenu } from '@/editor/canvas/composables/useCanvasContextMenu.ts'
 import { useCanvasViewport } from '@/editor/canvas/composables/useCanvasViewport.ts'
 import { useCanvasShortcutFocus } from '@/editor/canvas/composables/useCanvasShortcutFocus.ts'
+import { useCanvasClipboardActions } from '@/editor/canvas/composables/useCanvasClipboardActions.ts'
+import { useCanvasShortcuts } from '@/editor/canvas/composables/useCanvasShortcuts.ts'
 import { useRenderTheme } from '@/theme/renderTheme.ts'
 import { provideMaterialRenderContext } from '@/context/materialRender.ts'
 
@@ -67,6 +69,7 @@ const { selectedTarget, onSelect, onClearSelected, onSelectEnd } = useSelection(
   moveableRef,
   isMoveableActive,
 })
+const { copyNodes, cutNodes, pasteAt, pasteFromClipboard } = useCanvasClipboardActions()
 const {
   contextMenuTarget,
   contextMenuNodes,
@@ -74,7 +77,8 @@ const {
   onContextMenu,
   closeContextMenu,
   onContextMenuCommand,
-} = useCanvasContextMenu({ canvasRootRef, stageRef, scale })
+} = useCanvasContextMenu({ canvasRootRef, stageRef, scale, copyNodes, pasteAt })
+useCanvasShortcuts({ copyNodes, cutNodes, pasteFromClipboard, closeContextMenu })
 
 function onStageMouseDown(event: MouseEvent) {
   if (event.target === stageRef.value && !isCanvasPanning.value) onClearSelected()

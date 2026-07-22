@@ -7,22 +7,22 @@ import {
   type CanvasContextMenuTarget,
   type CanvasPoint,
 } from '@/editor/canvas/contextMenu.ts'
-import {
-  readEditorClipboardPayload,
-  writeEditorNodesToClipboard,
-} from '@/editor/canvas/clipboard.ts'
 import { useEditorStore } from '@/stores/editor.ts'
 
 interface UseCanvasContextMenuOptions {
   canvasRootRef: Readonly<ShallowRef<HTMLElement | null>>
   stageRef: Readonly<ShallowRef<HTMLElement | null>>
   scale: Readonly<Ref<number>>
+  copyNodes: (nodes: MaterialSchema[]) => Promise<boolean>
+  pasteAt: (point: CanvasPoint) => Promise<void>
 }
 
 export function useCanvasContextMenu({
   canvasRootRef,
   stageRef,
   scale,
+  copyNodes,
+  pasteAt,
 }: UseCanvasContextMenuOptions) {
   const editorStore = useEditorStore()
   const contextMenuRef = useTemplateRef<DropdownInstance>('contextMenu')
@@ -109,41 +109,6 @@ export function useCanvasContextMenu({
     event.preventDefault()
     event.stopPropagation()
     void openContextMenu(findContextMenuNode(event), point, event)
-  }
-
-  async function copyNodes(nodes: MaterialSchema[]) {
-    try {
-      await writeEditorNodesToClipboard(nodes)
-      ElMessage.success(`已复制 ${nodes.length} 个物料`)
-    } catch {
-      ElMessage.error('复制失败，请检查浏览器剪贴板权限')
-    }
-  }
-
-  async function pasteAt(point: CanvasPoint) {
-    try {
-      const payload = await readEditorClipboardPayload()
-      if (!payload) {
-        ElMessage.warning('剪贴板中没有可识别的设计 JSON')
-        return
-      }
-
-      if (payload.kind === 'nodes') {
-        const count = editorStore.pasteNodesAt(payload.nodes, point)
-        if (count) ElMessage.success(`已粘贴 ${count} 个物料`)
-        else ElMessage.warning('剪贴板中的节点列表为空')
-        return
-      }
-
-      const result = editorStore.mergePage(payload.page)
-      if (result.hasEventScripts) {
-        ElMessage.warning('页面已合并；事件脚本中引用的节点 ID 可能需要手动调整')
-      } else {
-        ElMessage.success(`已合并 ${result.nodeCount} 个物料和 ${result.dataSourceCount} 个数据源`)
-      }
-    } catch {
-      ElMessage.error('无法读取剪贴板，请检查浏览器权限')
-    }
   }
 
   function onContextMenuCommand(command: CanvasContextMenuCommand) {

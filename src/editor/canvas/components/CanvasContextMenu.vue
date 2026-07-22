@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { canvasContextMenuCommands } from '@/editor/canvas/contextMenu.ts'
+import { getEditorShortcutLabels } from '@/editor/shortcuts.ts'
 
 defineOptions({ name: 'CanvasContextMenu' })
+const shortcutLabels = getEditorShortcutLabels()
 </script>
 
 <template>
@@ -19,6 +21,7 @@ defineOptions({ name: 'CanvasContextMenu' })
     <el-dropdown-item class="node-context-menu__item" :command="canvasContextMenuCommands.paste">
       <Icon icon="fluent:clipboard-paste-20-regular" width="16" />
       <span>粘贴 JSON 到此处</span>
+      <kbd class="node-context-menu__shortcut">{{ shortcutLabels.paste }}</kbd>
     </el-dropdown-item>
   </el-dropdown-menu>
 </template>

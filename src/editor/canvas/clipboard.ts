@@ -19,6 +19,10 @@ export type EditorClipboardPayload =
       page: PageSchema
     }
 
+export type ParsedEditorClipboardPayload = EditorClipboardPayload & {
+  origin: 'editor' | 'external'
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -87,7 +91,7 @@ function createNodesPayload(nodes: MaterialSchema[]): EditorClipboardPayload {
   }
 }
 
-export function parseEditorClipboardText(text: string): EditorClipboardPayload | null {
+export function parseEditorClipboardText(text: string): ParsedEditorClipboardPayload | null {
   let value: unknown
   try {
     value = JSON.parse(text)
@@ -96,14 +100,19 @@ export function parseEditorClipboardText(text: string): EditorClipboardPayload |
   }
 
   // Keep manual JSON workflows convenient while all editor-generated copies use the envelope.
-  if (Array.isArray(value) && value.every(isMaterialSchema)) return createNodesPayload(value)
-  if (isMaterialSchema(value)) return createNodesPayload([value])
+  if (Array.isArray(value) && value.every(isMaterialSchema)) {
+    return { ...createNodesPayload(value), origin: 'external' }
+  }
+  if (isMaterialSchema(value)) {
+    return { ...createNodesPayload([value]), origin: 'external' }
+  }
   if (isPageSchema(value)) {
     return {
       source: EDITOR_CLIPBOARD_SOURCE,
       version: EDITOR_CLIPBOARD_VERSION,
       kind: 'page',
       page: value,
+      origin: 'external',
     }
   }
 
@@ -116,7 +125,7 @@ export function parseEditorClipboardText(text: string): EditorClipboardPayload |
   }
 
   if (value.kind === 'nodes' && Array.isArray(value.nodes) && value.nodes.every(isMaterialSchema)) {
-    return createNodesPayload(value.nodes)
+    return { ...createNodesPayload(value.nodes), origin: 'editor' }
   }
   if (value.kind === 'page' && isPageSchema(value.page)) {
     return {
@@ -124,6 +133,7 @@ export function parseEditorClipboardText(text: string): EditorClipboardPayload |
       version: EDITOR_CLIPBOARD_VERSION,
       kind: 'page',
       page: value.page,
+      origin: 'editor',
     }
   }
   return null

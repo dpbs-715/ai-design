@@ -4,6 +4,7 @@ import {
   canvasContextMenuCommands,
   type NodeContextMenuTargetKind,
 } from '@/editor/canvas/contextMenu.ts'
+import { getEditorShortcutLabels } from '@/editor/shortcuts.ts'
 
 defineOptions({ name: 'NodeContextMenu' })
 
@@ -11,6 +12,7 @@ const { nodes, targetKind } = defineProps<{
   nodes: MaterialSchema[]
   targetKind: NodeContextMenuTargetKind
 }>()
+const shortcutLabels = getEditorShortcutLabels()
 
 const node = computed(() => nodes[0]!)
 const isMultiple = computed(() => nodes.length > 1)
@@ -76,14 +78,17 @@ const removeCommandLabel = computed(() => {
     >
       <Icon icon="fluent:copy-add-20-regular" width="16" />
       <span>{{ isMultiple ? '创建所选副本' : '创建副本' }}</span>
+      <kbd class="node-context-menu__shortcut">{{ shortcutLabels.duplicate }}</kbd>
     </el-dropdown-item>
     <el-dropdown-item class="node-context-menu__item" :command="canvasContextMenuCommands.copy">
       <Icon icon="fluent:copy-20-regular" width="16" />
       <span>{{ isMultiple ? '复制所选' : '复制节点' }}</span>
+      <kbd class="node-context-menu__shortcut">{{ shortcutLabels.copy }}</kbd>
     </el-dropdown-item>
     <el-dropdown-item class="node-context-menu__item" :command="canvasContextMenuCommands.paste">
       <Icon icon="fluent:clipboard-paste-20-regular" width="16" />
       <span>粘贴 JSON 到此处</span>
+      <kbd class="node-context-menu__shortcut">{{ shortcutLabels.paste }}</kbd>
     </el-dropdown-item>
     <el-dropdown-item
       class="node-context-menu__item"
@@ -105,6 +110,7 @@ const removeCommandLabel = computed(() => {
     >
       <Icon icon="fluent:delete-20-regular" width="16" />
       <span>{{ removeCommandLabel }}</span>
+      <kbd class="node-context-menu__shortcut">{{ shortcutLabels.remove }}</kbd>
     </el-dropdown-item>
   </el-dropdown-menu>
 </template>
@@ -265,6 +271,13 @@ const removeCommandLabel = computed(() => {
       box-shadow: 0 0 0 3px var(--accent-soft);
       opacity: 1;
     }
+  }
+
+  .node-context-menu__shortcut {
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 10px;
+    line-height: 1;
   }
 
   .node-context-menu__separator {
