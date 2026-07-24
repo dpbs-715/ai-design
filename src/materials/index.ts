@@ -1,9 +1,5 @@
 import type { Component } from 'vue'
-import type {
-  MaterialDefinition,
-  MaterialSchema,
-  MaterialTemplate,
-} from '@/schema/material.ts'
+import type { MaterialDefinition, MaterialSchema, MaterialTemplate } from '@/schema/material.ts'
 import type { PageRootSchema } from '@/schema/page.ts'
 import { deepClone } from '@vunio/utils'
 import { commonMaterialEventOptions, createMaterialEventOptionGroups } from './events.ts'
@@ -13,11 +9,15 @@ export { filterMaterialEventOptionGroups } from './events.ts'
 const materials: MaterialDefinition[] = []
 
 const componentMap = new Map<string, Component>()
+const editorComponentMap = new Map<string, Component>()
 const materialMap = new Map<string, MaterialDefinition>()
 
 export function register(material: MaterialDefinition, component: Component) {
   materials.push(material)
   componentMap.set(material.schema.type, component)
+  if (material.editorComponent) {
+    editorComponentMap.set(material.schema.type, material.editorComponent)
+  }
   materialMap.set(material.schema.type, material)
 }
 
@@ -52,6 +52,11 @@ const group = [
     icon: 'fluent:draw-shape-20-filled',
     key: 'annotation',
   },
+  {
+    name: '表单',
+    icon: 'fluent:form-20-filled',
+    key: 'form',
+  },
 ]
 
 export function getMaterialByGroup(group: string) {
@@ -62,8 +67,10 @@ export function geyMaterialGroups() {
   return group
 }
 
-export function getMaterialComponent(type: string) {
-  return componentMap.get(type)
+export function getMaterialComponent(type: string, mode: 'editor' | 'runtime' = 'runtime') {
+  return mode === 'editor'
+    ? (editorComponentMap.get(type) ?? componentMap.get(type))
+    : componentMap.get(type)
 }
 
 export function getMaterialDefinition(type: string) {
@@ -74,18 +81,31 @@ export function isContainerMaterial(type: string) {
   return materialMap.get(type)?.capability?.kind === 'container'
 }
 
+export function isMaterialChildrenRenderer(type: string) {
+  return materialMap.get(type)?.childrenRenderer !== 'material'
+}
+
+export function canMaterialTypeBeChild(parent: MaterialSchema | PageRootSchema, childType: string) {
+  const childRoles = materialMap.get(childType)?.capability?.roles ?? ['canvas-content']
+  const acceptedRoles =
+    parent.type === 'page-root'
+      ? ['canvas-content']
+      : materialMap.get(parent.type)?.capability?.accepts
+
+  if (parent.type !== 'page-root') {
+    const parentCapability = materialMap.get(parent.type)?.capability
+    if (parentCapability?.kind !== 'container') return false
+  }
+
+  if (!acceptedRoles?.length) return false
+  return childRoles.some((role) => acceptedRoles.includes(role))
+}
+
 export function canMaterialAcceptChild(
   parent: MaterialSchema | PageRootSchema,
   child: MaterialSchema,
 ) {
-  if (parent.type === 'page-root') return true
-
-  const parentCapability = materialMap.get(parent.type)?.capability
-  if (parentCapability?.kind !== 'container') return false
-  if (!parentCapability.accepts?.length) return true
-
-  const childRoles = materialMap.get(child.type)?.capability?.roles ?? ['canvas-content']
-  return childRoles.some((role) => parentCapability.accepts?.includes(role))
+  return canMaterialTypeBeChild(parent, child.type)
 }
 
 const defaultMaterialIcon = 'fluent:data-bar-vertical-20-filled'

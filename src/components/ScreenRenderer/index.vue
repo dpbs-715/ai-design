@@ -5,6 +5,7 @@ import type { PageSchema } from '@/schema/page.ts'
 import { createRuntimeContext } from '@/runtime/context.ts'
 import { provideRenderTheme } from '@/theme/renderTheme.ts'
 import { provideMaterialRenderContext } from '@/context/materialRender.ts'
+import { provideRuntimeContext } from '@/runtime/runtimeContextProvider.ts'
 import CanvasBackground from '@/components/CanvasBackground/index.vue'
 import ScreenNode from './ScreenNode.vue'
 
@@ -16,6 +17,7 @@ provideMaterialRenderContext({ mode: 'runtime' })
 const runtimePage = ref(props.page)
 const renderTheme = provideRenderTheme(() => runtimePage.value.theme)
 const context = createRuntimeContext(runtimePage)
+provideRuntimeContext(context)
 
 window.$context = context
 
@@ -57,12 +59,7 @@ onMounted(init)
       :style="canvasStyle"
     >
       <CanvasBackground :background="root.style.background" />
-      <ScreenNode
-        v-for="node in root.children"
-        :key="node.id"
-        :node="node"
-        :context="context"
-      />
+      <ScreenNode v-for="node in root.children" :key="node.id" :node="node" :context="context" />
     </div>
   </div>
 </template>

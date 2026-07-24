@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { CSSProperties } from 'vue'
-import type { MaterialSchema } from '@/schema/material.ts'
-import { getMaterialComponent, isContainerMaterial } from '@/materials'
+import { isAbsolutePlacement, type MaterialSchema } from '@/schema/material.ts'
+import { getMaterialComponent, isContainerMaterial, isMaterialChildrenRenderer } from '@/materials'
 import { useEditorStore } from '@/stores/editor.ts'
 
 defineOptions({ name: 'CanvasNode' })
@@ -15,13 +15,17 @@ const props = defineProps<{
   onNodeMouseDown: (node: MaterialSchema, event: MouseEvent) => void
 }>()
 
-const nodeStyle = computed<CSSProperties>(() => ({
-  width: `${props.node.placement.width}px`,
-  height: `${props.node.placement.height}px`,
-  left: `${props.node.placement.x}px`,
-  top: `${props.node.placement.y}px`,
-}))
+const nodeStyle = computed<CSSProperties>(() => {
+  if (!isAbsolutePlacement(props.node.placement)) return {}
+  return {
+    width: `${props.node.placement.width}px`,
+    height: `${props.node.placement.height}px`,
+    left: `${props.node.placement.x}px`,
+    top: `${props.node.placement.y}px`,
+  }
+})
 const isContainer = computed(() => isContainerMaterial(props.node.type))
+const rendersChildren = computed(() => isMaterialChildrenRenderer(props.node.type))
 const isDropTarget = computed(() => isContainer.value && props.node.id === props.dropTargetId)
 const effectiveLockKey = computed(() => editorStore.getNodeLockKey(props.node.id))
 
@@ -45,18 +49,20 @@ function onMouseDown(event: MouseEvent) {
     @mousedown.stop="onMouseDown"
   >
     <component
-      :is="getMaterialComponent(node.type)"
+      :is="getMaterialComponent(node.type, 'editor')"
       :schema="node"
       :data-container-id="isContainer ? node.id : undefined"
     >
-      <CanvasNode
-        v-for="child in node.children"
-        :key="child.id"
-        :node="child"
-        :parent-id="node.id"
-        :drop-target-id="dropTargetId"
-        :on-node-mouse-down="onNodeMouseDown"
-      />
+      <template v-if="rendersChildren">
+        <CanvasNode
+          v-for="child in node.children"
+          :key="child.id"
+          :node="child"
+          :parent-id="node.id"
+          :drop-target-id="dropTargetId"
+          :on-node-mouse-down="onNodeMouseDown"
+        />
+      </template>
     </component>
     <div v-if="isDropTarget" class="canvas-node__drop-feedback" aria-hidden="true">
       <span class="canvas-node__drop-label">

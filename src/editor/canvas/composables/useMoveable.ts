@@ -9,7 +9,11 @@ import {
 import { useEditorStore } from '@/stores/editor.ts'
 import { useUndoRedo } from '@/hooks/useUndoRedo.ts'
 import { SetFormFieldCommand } from '@vunio/ui'
-import type { AbsolutePlacement, MaterialSchema } from '@/schema/material.ts'
+import {
+  isAbsolutePlacement,
+  type AbsolutePlacement,
+  type MaterialSchema,
+} from '@/schema/material.ts'
 
 const MIN_NODE_SIZE = 1
 
@@ -30,9 +34,9 @@ export function useMoveable() {
     if (pendingPlacement) return pendingPlacement
 
     const node = editorStore.findNode(target.dataset.nodeId)
-    if (!node) return
+    if (!node || !isAbsolutePlacement(node.placement)) return
 
-    const initialPlacement = { ...node.placement }
+    const initialPlacement: AbsolutePlacement = { ...node.placement }
     const created = {
       nodeId: node.id,
       initialPlacement,
@@ -96,7 +100,7 @@ export function useMoveable() {
     pending.placement.x = e.left
     pending.placement.y = e.top
     const node = editorStore.findNode(pending.nodeId)
-    if (node) {
+    if (node && isAbsolutePlacement(node.placement)) {
       node.placement.x = e.left
       node.placement.y = e.top
     }
@@ -112,7 +116,7 @@ export function useMoveable() {
     pending.placement.width = e.width
     pending.placement.height = e.height
     const node = editorStore.findNode(pending.nodeId)
-    if (node) {
+    if (node && isAbsolutePlacement(node.placement)) {
       node.placement.width = e.width
       node.placement.height = e.height
     }

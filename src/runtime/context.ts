@@ -10,10 +10,12 @@ export interface RuntimeContext extends EventScriptContext {
   executeEvent(node: MaterialSchema, event: MaterialEvent, payload: unknown): unknown
   registerNodeInstance(id: string, instance: unknown): void
   unregisterNodeInstance(id: string): void
+  registerNodeValue(id: string, getValue: () => unknown): () => void
 }
 
 export function createRuntimeContext(page: Ref<PageSchema>): RuntimeContext {
   const instanceMap = new Map<string, any>()
+  const nodeValueGetters = shallowReactive(new Map<string, () => unknown>())
   const treeIndex = computed(() =>
     createMaterialTreeIndex(page.value.root.children, page.value.root.id),
   )
@@ -49,6 +51,17 @@ export function createRuntimeContext(page: Ref<PageSchema>): RuntimeContext {
 
   const unregisterNodeInstance: RuntimeContext['unregisterNodeInstance'] = (id) => {
     instanceMap.delete(id)
+  }
+
+  const registerNodeValue: RuntimeContext['registerNodeValue'] = (id, getValue) => {
+    nodeValueGetters.set(id, getValue)
+    return () => {
+      if (nodeValueGetters.get(id) === getValue) nodeValueGetters.delete(id)
+    }
+  }
+
+  const getNodeValue: RuntimeContext['getNodeValue'] = (id) => {
+    return nodeValueGetters.get(id)?.()
   }
 
   const trigger: RuntimeContext['trigger'] = (id, event, ...args) => {
@@ -97,6 +110,8 @@ export function createRuntimeContext(page: Ref<PageSchema>): RuntimeContext {
     setPlacement,
     registerNodeInstance,
     unregisterNodeInstance,
+    registerNodeValue,
+    getNodeValue,
     trigger,
     refreshNodesByDataId,
     dispatch,

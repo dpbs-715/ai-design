@@ -1,31 +1,105 @@
 <script setup lang="ts">
-import { CommonTable, type CommonFormConfig, type CommonTableConfig } from '@vunio/ui'
+import {
+  CommonTable,
+  SetFormFieldCommand,
+  type CommonFormCommand,
+  type CommonFormConfig,
+  type CommonTableConfig,
+} from '@vunio/ui'
 import { getByKeyOrPath } from '@vunio/utils'
 import { storeToRefs } from 'pinia'
 import { fetchData } from '@/hooks/useDataSource.ts'
 import { useUndoRedo } from '@/hooks/useUndoRedo.ts'
 import { getMaterialDataBindings } from '@/materials'
+import { resolveDataQuery } from '@/runtime/dataQuery.ts'
+import { isFormItemPlacement, type MaterialDataQueryParam } from '@/schema/material.ts'
 import { useEditorStore } from '@/stores/editor.ts'
 
 defineOptions({ name: 'PropertyDataSection' })
+
+const props = withDefaults(
+  defineProps<{
+    config?: CommonFormConfig[]
+    commandDispatcher?: (command: CommonFormCommand) => void
+  }>(),
+  {
+    config: () => [],
+    commandDispatcher: undefined,
+  },
+)
 
 const emit = defineEmits<{
   openSourceManager: []
 }>()
 
 const editorStore = useEditorStore()
-const { dataSources, selectedNode: selectedNodeRef } = storeToRefs(editorStore)
+const { dataSources, nodes, selectedNode: selectedNodeRef } = storeToRefs(editorStore)
 const { dispatchCommand } = useUndoRedo()
 
 const selectedNode = computed(() => selectedNodeRef.value!)
 const dataBindings = computed(() => getMaterialDataBindings(selectedNode.value.type))
+const hasComponentData = computed(() => props.config.length > 0)
 const supportsDataBinding = computed(() => dataBindings.value.length > 0)
 const selectedSource = computed(() =>
   dataSources.value.find((source) => source.id === selectedNode.value.dataId),
 )
+const isApiSource = computed(() => selectedSource.value?.type === 'api')
 const dataSourceOptions = computed(() =>
   dataSources.value.map((source) => ({ id: source.id, name: source.name })),
 )
+const formItemOptions = computed(() =>
+  nodes.value
+    .filter(
+      (node) => isFormItemPlacement(node.placement) && node.id !== selectedNode.value.id,
+    )
+    .map((node) => ({
+      label: `${node.name} · ${String(node.props.field ?? node.id)}`,
+      value: node.id,
+    })),
+)
+const dynamicParams = computed(() => selectedNode.value.dataQuery?.params ?? [])
+
+const dynamicParamConfig = computed<CommonFormConfig[]>(() => [
+  {
+    label: '参数名',
+    field: 'name',
+    component: 'input',
+    span: 24,
+    props: { placeholder: '例如 provinceId' },
+  },
+  {
+    label: '值来源',
+    field: 'source.nodeId',
+    component: 'commonSelect',
+    span: 18,
+    props: {
+      options: formItemOptions.value,
+      componentType: 'ElSelect',
+      clearable: false,
+      filterable: true,
+      placeholder: '选择表单项',
+    },
+  },
+  {
+    label: '必填',
+    field: 'required',
+    component: 'switch',
+    span: 6,
+  },
+])
+
+const debounceConfig = computed<CommonFormConfig[]>(() => [
+  {
+    label: '请求防抖（毫秒）',
+    field: 'dataQuery.debounce',
+    component: 'number',
+    props: {
+      min: 0,
+      precision: 0,
+      placeholder: '0 表示立即请求',
+    },
+  },
+])
 
 const sourceConfig = computed<CommonFormConfig[]>(() => [
   {
@@ -49,6 +123,53 @@ const previewRecordCount = ref(0)
 const previewLoading = ref(false)
 const previewError = ref('')
 let previewRequestId = 0
+
+const previewQuery = computed(() =>
+  resolveDataQuery(selectedNode.value.dataQuery, (nodeId) => {
+    return editorStore.findNode(nodeId)?.props.initialValue
+  }),
+)
+
+function dispatchNodeCommand(command: CommonFormCommand) {
+  const dispatcher = props.commandDispatcher ?? dispatchCommand
+  dispatcher(command)
+}
+
+function setDataQuery(params: MaterialDataQueryParam[]) {
+  const nodeId = selectedNode.value.id
+  const nextQuery = {
+    params,
+    debounce: selectedNode.value.dataQuery?.debounce ?? 0,
+  }
+  dispatchNodeCommand(
+    new SetFormFieldCommand(() => editorStore.requireNode(nodeId), 'dataQuery', nextQuery),
+  )
+}
+
+function addDynamicParam() {
+  const sourceNodeId = formItemOptions.value[0]?.value
+  if (!sourceNodeId) return
+  const usedNames = new Set(dynamicParams.value.map((param) => param.name))
+  let index = dynamicParams.value.length + 1
+  while (usedNames.has(`param${index}`)) index += 1
+
+  setDataQuery([
+    ...dynamicParams.value,
+    {
+      id: crypto.randomUUID(),
+      name: `param${index}`,
+      source: {
+        type: 'form-item',
+        nodeId: sourceNodeId,
+      },
+      required: true,
+    },
+  ])
+}
+
+function removeDynamicParam(paramId: string) {
+  setDataQuery(dynamicParams.value.filter((param) => param.id !== paramId))
+}
 
 function normalizeRows(payload: unknown): PreviewRow[] {
   const rows = Array.isArray(payload) ? payload : payload == null ? [] : [payload]
@@ -74,7 +195,16 @@ async function loadPreview() {
 
   previewLoading.value = true
   try {
-    const payload = source.type === 'static' ? source.data : await fetchData(source)
+    if (source.type === 'api' && !previewQuery.value.ready) {
+      previewRows.value = []
+      previewRecordCount.value = 0
+      previewError.value = '必填动态参数没有可用的表单初始值'
+      return
+    }
+    const payload =
+      source.type === 'static'
+        ? source.data
+        : await fetchData(source, previewQuery.value.params)
     if (requestId === previewRequestId) previewRows.value = normalizeRows(payload)
   } catch (error) {
     if (requestId === previewRequestId) {
@@ -87,7 +217,7 @@ async function loadPreview() {
   }
 }
 
-watch(selectedSource, () => void loadPreview(), { immediate: true })
+watch([selectedSource, previewQuery], () => void loadPreview(), { immediate: true })
 
 const previewFields = computed(() => {
   const fields = new Set<string>()
@@ -154,6 +284,21 @@ function openSourceManager() {
 
 <template>
   <div class="data-section">
+    <section v-if="hasComponentData" class="property-group">
+      <div class="section-heading">
+        <div>
+          <h3>组件数据</h3>
+          <p>配置组件的初始值</p>
+        </div>
+      </div>
+      <CommonForm
+        label-position="top"
+        :model-value="selectedNode"
+        :config="config"
+        :command-dispatcher="commandDispatcher"
+      />
+    </section>
+
     <template v-if="supportsDataBinding">
       <section class="property-group">
         <div class="section-heading">
@@ -167,7 +312,7 @@ function openSourceManager() {
           label-position="top"
           :model-value="selectedNode"
           :config="sourceConfig"
-          :command-dispatcher="dispatchCommand"
+          :command-dispatcher="commandDispatcher ?? dispatchCommand"
         />
       </section>
 
@@ -183,8 +328,57 @@ function openSourceManager() {
             label-position="top"
             :model-value="selectedNode"
             :config="bindingConfig"
-            :command-dispatcher="dispatchCommand"
+            :command-dispatcher="commandDispatcher ?? dispatchCommand"
           />
+        </section>
+
+        <section v-if="isApiSource" class="property-group">
+          <div class="section-heading">
+            <div>
+              <h3>动态参数</h3>
+              <p>表单项变化后自动重新请求</p>
+            </div>
+            <CommonButton
+              size="small"
+              type="normal"
+              :disabled="!formItemOptions.length"
+              @click="addDynamicParam"
+            >
+              添加参数
+            </CommonButton>
+          </div>
+
+          <div v-if="dynamicParams.length" class="dynamic-param-list">
+            <div v-for="param in dynamicParams" :key="param.id" class="dynamic-param-card">
+              <button
+                type="button"
+                class="dynamic-param-remove icon-button"
+                :aria-label="`删除参数 ${param.name}`"
+                @click="removeDynamicParam(param.id)"
+              >
+                <Icon icon="fluent:delete-16-regular" width="15" />
+              </button>
+              <CommonForm
+                label-position="top"
+                :model-value="param"
+                :config="dynamicParamConfig"
+                :command-dispatcher="commandDispatcher ?? dispatchCommand"
+              />
+            </div>
+            <CommonForm
+              label-position="top"
+              :model-value="selectedNode"
+              :config="debounceConfig"
+              :command-dispatcher="commandDispatcher ?? dispatchCommand"
+            />
+          </div>
+          <div v-else class="dynamic-param-empty">
+            {{
+              formItemOptions.length
+                ? '可将表单项值映射为接口请求参数'
+                : '当前页面还没有可作为参数来源的表单项'
+            }}
+          </div>
         </section>
 
         <section class="property-group preview-group">
@@ -228,7 +422,7 @@ function openSourceManager() {
       </div>
     </template>
 
-    <div v-else class="empty-state unsupported-state">
+    <div v-else-if="!hasComponentData" class="empty-state unsupported-state">
       <Icon icon="fluent:database-20-regular" width="24" />
       <strong>该组件暂不支持数据绑定</strong>
       <span>当前组件没有声明可映射的数据字段</span>
@@ -257,6 +451,41 @@ function openSourceManager() {
 
 .icon-action {
   color: var(--accent-color);
+}
+
+.dynamic-param-list {
+  display: grid;
+  gap: 10px;
+}
+
+.dynamic-param-card {
+  position: relative;
+  padding: 10px 30px 0 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--surface-raised);
+}
+
+.dynamic-param-remove {
+  position: absolute;
+  z-index: 1;
+  top: 8px;
+  right: 8px;
+  color: var(--text-muted);
+}
+
+.dynamic-param-remove:hover {
+  color: var(--el-color-danger);
+}
+
+.dynamic-param-empty {
+  padding: 14px;
+  border: 1px dashed var(--border-color);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
 }
 
 .preview-table-wrap {

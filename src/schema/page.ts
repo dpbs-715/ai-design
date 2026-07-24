@@ -112,7 +112,7 @@ export const dataSourcesSchema = z.array(dataSourceSchema).superRefine((sources,
 })
 
 export const pageSchema = z.strictObject({
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(2),
   id: z.string().optional(),
   theme: renderThemeSchema,
   root: pageRootSchema,
@@ -173,7 +173,7 @@ export interface PageRootSchema {
 }
 
 export interface PageSchema {
-  schemaVersion: 1
+  schemaVersion: 2
   id?: string
   theme: RenderThemeConfig
   root: PageRootSchema

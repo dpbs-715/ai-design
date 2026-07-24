@@ -16,10 +16,29 @@ export const absolutePlacementSchema = z.strictObject({
   height: positiveDimensionSchema,
 })
 
+export const formItemPlacementSchema = z.strictObject({
+  type: z.literal('form-item'),
+  span: z.number().int('栅格跨度必须是整数').min(1).max(24),
+})
+
+export const materialPlacementSchema = z.discriminatedUnion('type', [
+  absolutePlacementSchema,
+  formItemPlacementSchema,
+])
+
 export const absoluteChildrenLayoutSchema = z.strictObject({
   type: z.literal('absolute'),
   clip: z.boolean(),
 })
+
+export const formGridChildrenLayoutSchema = z.strictObject({
+  type: z.literal('form-grid'),
+})
+
+export const materialChildrenLayoutSchema = z.discriminatedUnion('type', [
+  absoluteChildrenLayoutSchema,
+  formGridChildrenLayoutSchema,
+])
 
 export const materialEventSchema = z.strictObject({
   type: z.string().min(1),
@@ -42,25 +61,59 @@ export const materialEventsSchema = z.array(materialEventSchema).superRefine((ev
   })
 })
 
+export const materialDataQueryParamSchema = z.strictObject({
+  id: z.string().min(1),
+  name: z.string().trim().min(1, '参数名不能为空'),
+  source: z.strictObject({
+    type: z.literal('form-item'),
+    nodeId: z.string().min(1, '请选择参数来源'),
+  }),
+  required: z.boolean(),
+})
+
+export const materialDataQuerySchema = z.strictObject({
+  params: z.array(materialDataQueryParamSchema).superRefine((params, context) => {
+    const usedNames = new Set<string>()
+    params.forEach((param, index) => {
+      if (usedNames.has(param.name)) {
+        context.addIssue({
+          code: 'custom',
+          path: [index, 'name'],
+          message: `动态参数名 “${param.name}” 不能重复`,
+        })
+      }
+      usedNames.add(param.name)
+    })
+  }),
+  debounce: z.number().finite().nonnegative('防抖时间不能小于 0').optional(),
+})
+
 export const materialSchema = z.strictObject({
   type: z.string().min(1),
   name: z.string().min(1),
   id: z.string().min(1),
   lockKey: z.string().optional(),
-  placement: absolutePlacementSchema,
-  childrenLayout: absoluteChildrenLayoutSchema.optional(),
+  placement: materialPlacementSchema,
+  childrenLayout: materialChildrenLayoutSchema.optional(),
   get children(): z.ZodArray<typeof materialSchema> {
     return z.array(materialSchema)
   },
   style: jsonObjectSchema.optional(),
   props: jsonObjectSchema,
   dataId: z.union([z.string(), z.number()]).optional(),
+  dataQuery: materialDataQuerySchema.optional(),
   events: materialEventsSchema.optional(),
 })
 
 export type AbsolutePlacement = z.infer<typeof absolutePlacementSchema>
+export type FormItemPlacement = z.infer<typeof formItemPlacementSchema>
+export type MaterialPlacement = AbsolutePlacement | FormItemPlacement
 export type AbsoluteChildrenLayout = z.infer<typeof absoluteChildrenLayoutSchema>
+export type FormGridChildrenLayout = z.infer<typeof formGridChildrenLayoutSchema>
+export type MaterialChildrenLayout = AbsoluteChildrenLayout | FormGridChildrenLayout
 export type MaterialEvent = z.infer<typeof materialEventSchema>
+export type MaterialDataQueryParam = z.infer<typeof materialDataQueryParamSchema>
+export type MaterialDataQuery = z.infer<typeof materialDataQuerySchema>
 
 // `strictNullChecks` is disabled at project level, so Zod's inferred object keys become
 // optional in TypeScript. Keep the parsed domain contract explicit until strict mode is enabled.
@@ -69,12 +122,13 @@ export interface MaterialSchema {
   name: string
   id: string
   lockKey?: string
-  placement: AbsolutePlacement
-  childrenLayout?: AbsoluteChildrenLayout
+  placement: MaterialPlacement
+  childrenLayout?: MaterialChildrenLayout
   children: MaterialSchema[]
   style?: Record<string, any>
   props: Record<string, any>
   dataId?: string | number
+  dataQuery?: MaterialDataQuery
   events?: MaterialEvent[]
 }
 
@@ -86,6 +140,7 @@ export interface MaterialSetter {
   field: string
   label: string
   component: string
+  section?: 'config' | 'data'
   [key: string]: any
 }
 
@@ -120,10 +175,21 @@ export interface MaterialDefinition {
   //endregion
 
   capability?: MaterialCapability
+  editorComponent?: Component
+  childrenRenderer?: 'renderer' | 'material'
+  validationSchema?: z.ZodType
   setters: MaterialSetter[]
 
   customEventOptions?: EventOption[]
   dataBindings?: MaterialDataBinding[]
 
   schema: MaterialTemplate
+}
+
+export function isAbsolutePlacement(placement: MaterialPlacement): placement is AbsolutePlacement {
+  return placement.type === 'absolute'
+}
+
+export function isFormItemPlacement(placement: MaterialPlacement): placement is FormItemPlacement {
+  return placement.type === 'form-item'
 }

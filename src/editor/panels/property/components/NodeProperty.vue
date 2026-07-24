@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { SetFormFieldCommand, type CommonFormConfig } from '@vunio/ui'
+import { SetFormFieldCommand, type CommonFormCommand, type CommonFormConfig } from '@vunio/ui'
 import { useConfigs } from '@vunio/hooks'
 import { ElMessage } from 'element-plus'
 import { storeToRefs } from 'pinia'
@@ -10,13 +10,17 @@ import EventWorkbench from '@/editor/panels/property/components/EventWorkbench.v
 import NodeNameEditor from '@/editor/panels/property/components/NodeNameEditor.vue'
 import { useUndoRedo } from '@/hooks/useUndoRedo.ts'
 import { getMaterialIcon, getMaterialSetters } from '@/materials'
-import type { MaterialEvent } from '@/schema/material.ts'
+import { isFormItemPlacement, type MaterialEvent } from '@/schema/material.ts'
 import { useEditorStore } from '@/stores/editor.ts'
-import { formatSchemaValidationIssue, parseMaterialSchema } from '@/schema/validation.ts'
+import {
+  formatSchemaValidationIssue,
+  parseMaterialSchema,
+  parsePageSchema,
+} from '@/schema/validation.ts'
 
 defineOptions({ name: 'NodeProperty' })
 
-type PropertySection = 'layout' | 'appearance' | 'data' | 'event'
+type PropertySection = 'layout' | 'config' | 'data' | 'event'
 
 interface PropertySectionOption {
   name: PropertySection
@@ -34,7 +38,7 @@ interface EventWorkbenchExpose {
 
 const sectionOptions: PropertySectionOption[] = [
   { name: 'layout', label: '布局', icon: 'fluent:resize-20-regular' },
-  { name: 'appearance', label: '外观', icon: 'fluent:paint-brush-20-regular' },
+  { name: 'config', label: '配置', icon: 'fluent:settings-20-regular' },
   { name: 'data', label: '数据', icon: 'fluent:database-20-regular' },
   { name: 'event', label: '事件', icon: 'fluent:flash-20-regular' },
 ]
@@ -44,7 +48,7 @@ const { selectedNode: selectedNodeRef } = storeToRefs(editorStore)
 const { dispatchCommand, startBatch, commitBatch } = useUndoRedo()
 const selectedNode = computed(() => selectedNodeRef.value!)
 
-const activeSection = ref<PropertySection>('appearance')
+const activeSection = ref<PropertySection>('config')
 const componentIcon = computed(() => getMaterialIcon(selectedNode.value.type))
 
 function withBatchEvents(configs: CommonFormConfig[]) {
@@ -58,32 +62,58 @@ function withBatchEvents(configs: CommonFormConfig[]) {
   }))
 }
 
-const [layoutConfig] = useConfigs<CommonFormConfig>(
-  withBatchEvents([
-    { label: 'X', field: 'x', component: 'number', span: 12 },
-    { label: 'Y', field: 'y', component: 'number', span: 12 },
-    {
-      label: '宽度',
-      field: 'width',
-      component: 'number',
-      span: 12,
-      props: { min: 1 },
-    },
-    {
-      label: '高度',
-      field: 'height',
-      component: 'number',
-      span: 12,
-      props: { min: 1 },
-    },
-  ]),
-  false,
+const formItemSpanValues = [6, 8, 12, 24]
+const layoutSetters = computed<CommonFormConfig[]>(() =>
+  withBatchEvents(
+    isFormItemPlacement(selectedNode.value.placement)
+      ? [
+          {
+            label: '栅格跨度',
+            field: 'span',
+            component: 'number',
+            span: 24,
+            props: { min: 1, max: 24, precision: 0 },
+          },
+        ]
+      : [
+          { label: 'X', field: 'x', component: 'number', span: 12 },
+          { label: 'Y', field: 'y', component: 'number', span: 12 },
+          {
+            label: '宽度',
+            field: 'width',
+            component: 'number',
+            span: 12,
+            props: { min: 1 },
+          },
+          {
+            label: '高度',
+            field: 'height',
+            component: 'number',
+            span: 12,
+            props: { min: 1 },
+          },
+        ],
+  ),
 )
+const [layoutConfig] = useConfigs<CommonFormConfig>(layoutSetters, false)
 
-const nodeSetters = computed(() =>
-  withBatchEvents(getMaterialSetters(selectedNode.value.type) ?? []),
-)
-const [appearanceConfig] = useConfigs<CommonFormConfig>(nodeSetters, false)
+function getSectionSetters(section: 'config' | 'data') {
+  const setters = getMaterialSetters(selectedNode.value.type)
+    .filter((setter) =>
+      section === 'data' ? setter.section === 'data' : setter.section !== 'data',
+    )
+    .map((setter) => {
+      const config = { ...setter }
+      delete config.section
+      return config
+    })
+  return withBatchEvents(setters)
+}
+
+const componentSetters = computed(() => getSectionSetters('config'))
+const dataSetters = computed(() => getSectionSetters('data'))
+const [componentConfig] = useConfigs<CommonFormConfig>(componentSetters, false)
+const [dataConfig] = useConfigs<CommonFormConfig>(dataSetters, false)
 
 const jsonVisible = ref(false)
 const jsonText = ref('')
@@ -98,6 +128,18 @@ const editedEvent = computed(() => selectedNode.value.events?.[editedEventIndex.
 function renameNode(name: string) {
   const nodeId = selectedNode.value.id
   dispatchCommand(new SetFormFieldCommand(() => editorStore.requireNode(nodeId), 'name', name))
+}
+
+function dispatchValidatedNodeCommand(command: CommonFormCommand) {
+  command.execute()
+  const result = parsePageSchema(editorStore.page)
+  command.undo()
+
+  if (result.success === false) {
+    ElMessage.error(formatSchemaValidationIssue(result.issues[0]))
+    return
+  }
+  dispatchCommand(command)
 }
 
 function previewJson() {
@@ -228,22 +270,46 @@ watch(
               label-position="top"
               :model-value="selectedNode.placement"
               :config="layoutConfig"
-              :command-dispatcher="dispatchCommand"
-            />
+              :command-dispatcher="dispatchValidatedNodeCommand"
+            >
+              <template #span="{ modelValue, updateModelValue }">
+                <div class="span-editor">
+                  <el-input-number
+                    :model-value="modelValue"
+                    :min="1"
+                    :max="24"
+                    :precision="0"
+                    controls-position="right"
+                    @update:model-value="updateModelValue($event ?? 1)"
+                  />
+                  <div class="span-editor__presets">
+                    <CommonButton
+                      v-for="span in formItemSpanValues"
+                      :key="span"
+                      size="small"
+                      :type="modelValue === span ? 'primary' : 'normal'"
+                      @click="updateModelValue(span)"
+                    >
+                      {{ span }}
+                    </CommonButton>
+                  </div>
+                </div>
+              </template>
+            </CommonForm>
           </div>
         </section>
 
-        <section v-else-if="activeSection === 'appearance'" class="property-section">
+        <section v-else-if="activeSection === 'config'" class="property-section">
           <div class="content-heading">
-            <h2>外观</h2>
-            <span>内容与视觉样式</span>
+            <h2>配置</h2>
+            <span>内容、行为与视觉样式</span>
           </div>
           <div class="form-area">
             <CommonForm
               label-position="top"
               :model-value="selectedNode"
-              :config="appearanceConfig"
-              :command-dispatcher="dispatchCommand"
+              :config="componentConfig"
+              :command-dispatcher="dispatchValidatedNodeCommand"
             />
           </div>
         </section>
@@ -251,9 +317,13 @@ watch(
         <section v-else-if="activeSection === 'data'" class="property-section">
           <div class="content-heading">
             <h2>数据</h2>
-            <span>绑定与字段映射</span>
+            <span>默认值、选项与字段映射</span>
           </div>
-          <DataSection @open-source-manager="openSourceManager" />
+          <DataSection
+            :config="dataConfig"
+            :command-dispatcher="dispatchValidatedNodeCommand"
+            @open-source-manager="openSourceManager"
+          />
         </section>
 
         <section v-else class="property-section">
@@ -298,6 +368,22 @@ watch(
 </template>
 
 <style scoped lang="scss">
+.span-editor {
+  display: grid;
+  width: 100%;
+  gap: 8px;
+
+  :deep(.el-input-number) {
+    width: 100%;
+  }
+}
+
+.span-editor__presets {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
 .node-property {
   display: flex;
   height: 100%;

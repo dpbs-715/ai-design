@@ -3,6 +3,8 @@ import type { MaterialSchema } from '@/schema/material.ts'
 import { init, type EChartsType } from 'echarts'
 import { useRefResizeObserver } from '@/hooks/useRefResizeObserver.ts'
 import { useDataSource } from '@/hooks/useDataSource.ts'
+import { useMaterialDataQuery } from '@/runtime/dataQuery.ts'
+import { injectRuntimeContext } from '@/runtime/runtimeContextProvider.ts'
 import { useRenderTheme } from '@/theme/renderTheme.ts'
 
 defineOptions({
@@ -14,9 +16,10 @@ const props = defineProps<{ schema: MaterialSchema }>()
 const chartRef = useTemplateRef('chartRef')
 const { resolveReferences } = useRenderTheme()
 
+const runtimeContext = injectRuntimeContext(null)
 const dataId = computed(() => props.schema.dataId)
-
-const { data, loading, refresh } = useDataSource(dataId)
+const dataQuery = useMaterialDataQuery(() => props.schema, runtimeContext)
+const { data, loading, refresh } = useDataSource(dataId, dataQuery)
 
 const option = computed(() => {
   const _option = props.schema.props.option

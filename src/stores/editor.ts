@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 
-import type { MaterialSchema } from '@/schema/material.ts'
+import { isAbsolutePlacement, isFormItemPlacement, type MaterialSchema } from '@/schema/material.ts'
 import type { PageRootSchema, PageSchema } from '@/schema/page.ts'
 import { createMaterialTreeIndex, mapMaterialTree, someMaterialNode } from '@/schema/nodeTree.ts'
 import { deepClone } from '@vunio/utils'
@@ -29,7 +29,7 @@ export interface CanvasRect {
 
 function createDefaultPage(): PageSchema {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     theme: createDefaultRenderTheme(),
     root: {
       id: 'page-root',
@@ -94,19 +94,36 @@ function createDefaultPage(): PageSchema {
 
 function cloneNodeTree(
   sourceNode: MaterialSchema,
+  nodeIdMap: ReadonlyMap<string, string>,
   dataSourceIdMap?: ReadonlyMap<string, string>,
 ): MaterialSchema {
   const { children, ...nodeSource } = sourceNode
   const node = deepClone(nodeSource)
-  node.id = crypto.randomUUID()
+  node.id = nodeIdMap.get(sourceNode.id) ?? crypto.randomUUID()
   node.lockKey = undefined
   if (typeof node.dataId === 'string') {
     node.dataId = dataSourceIdMap?.get(node.dataId) ?? node.dataId
   }
+  node.dataQuery?.params.forEach((param) => {
+    param.source.nodeId = nodeIdMap.get(param.source.nodeId) ?? param.source.nodeId
+  })
   return {
     ...node,
-    children: children.map((child) => cloneNodeTree(child, dataSourceIdMap)),
+    children: children.map((child) => cloneNodeTree(child, nodeIdMap, dataSourceIdMap)),
   }
+}
+
+function cloneNodeForest(
+  sourceNodes: MaterialSchema[],
+  dataSourceIdMap?: ReadonlyMap<string, string>,
+) {
+  const nodeIdMap = new Map<string, string>()
+  const collectNodeIds = (node: MaterialSchema) => {
+    nodeIdMap.set(node.id, crypto.randomUUID())
+    node.children.forEach(collectNodeIds)
+  }
+  sourceNodes.forEach(collectNodeIds)
+  return sourceNodes.map((node) => cloneNodeTree(node, nodeIdMap, dataSourceIdMap))
 }
 
 export const useEditorStore = defineStore('editor', () => {
@@ -224,7 +241,11 @@ export const useEditorStore = defineStore('editor', () => {
     return nodes.value.filter((node) => node.lockKey === lockKey)
   }
 
-  function addNode(node: MaterialSchema, parentId = root.value.id) {
+  function addNode(
+    node: MaterialSchema,
+    parentId = root.value.id,
+    insertionIndex = getChildren(parentId).length,
+  ) {
     const parent = getContainer(parentId)
     if (
       !parent ||
@@ -233,7 +254,11 @@ export const useEditorStore = defineStore('editor', () => {
     ) {
       return false
     }
-    setChildren(parentId, [...getChildren(parentId), node])
+    const children = getChildren(parentId)
+    ensureUniqueFormFields([node], children)
+    const nextChildren = [...children]
+    nextChildren.splice(Math.min(Math.max(insertionIndex, 0), nextChildren.length), 0, node)
+    setChildren(parentId, nextChildren)
     return true
   }
 
@@ -310,11 +335,13 @@ export const useEditorStore = defineStore('editor', () => {
     let x = 0
     let y = 0
     ancestors.forEach((ancestor) => {
+      if (!isAbsolutePlacement(ancestor.placement)) return
       const borderWidth = getNodeBorderWidth(ancestor)
       x += ancestor.placement.x + borderWidth
       y += ancestor.placement.y + borderWidth
     })
 
+    if (!isAbsolutePlacement(parent.placement)) return
     const borderWidth = getNodeBorderWidth(parent)
     return {
       x,
@@ -327,7 +354,7 @@ export const useEditorStore = defineStore('editor', () => {
   function getNodeCanvasRect(id: string): CanvasRect | undefined {
     const node = findNode(id)
     const parentId = findParentId(id)
-    if (!node || !parentId) return
+    if (!node || !parentId || !isAbsolutePlacement(node.placement)) return
 
     const parentRect = getContainerContentRect(parentId)
     if (!parentRect) return
@@ -347,10 +374,15 @@ export const useEditorStore = defineStore('editor', () => {
   ) {
     if (!sourceNodes.length) return { x: 0, y: 0 }
 
-    const minX = Math.min(...sourceNodes.map((node) => node.placement.x))
-    const minY = Math.min(...sourceNodes.map((node) => node.placement.y))
-    const maxX = Math.max(...sourceNodes.map((node) => node.placement.x + node.placement.width))
-    const maxY = Math.max(...sourceNodes.map((node) => node.placement.y + node.placement.height))
+    const absolutePlacements = sourceNodes.flatMap((node) =>
+      isAbsolutePlacement(node.placement) ? [node.placement] : [],
+    )
+    if (absolutePlacements.length !== sourceNodes.length) return { x: 0, y: 0 }
+
+    const minX = Math.min(...absolutePlacements.map((placement) => placement.x))
+    const minY = Math.min(...absolutePlacements.map((placement) => placement.y))
+    const maxX = Math.max(...absolutePlacements.map((placement) => placement.x + placement.width))
+    const maxY = Math.max(...absolutePlacements.map((placement) => placement.y + placement.height))
     const groupWidth = maxX - minX
     const groupHeight = maxY - minY
     const parentRect = getContainerContentRect(parentId)
@@ -392,23 +424,52 @@ export const useEditorStore = defineStore('editor', () => {
     return sourceNodes.every((node) => findParentId(node.id) === parentId) ? parentId : undefined
   }
 
+  function ensureUniqueFormFields(nodesToInsert: MaterialSchema[], siblings: MaterialSchema[]) {
+    const usedFields = new Set(
+      siblings.flatMap((node) => {
+        const field = node.props.field
+        return isFormItemPlacement(node.placement) && typeof field === 'string' ? [field] : []
+      }),
+    )
+
+    nodesToInsert.forEach((node) => {
+      const field = node.props.field
+      if (!isFormItemPlacement(node.placement) || typeof field !== 'string') return
+
+      const baseField = field.trim() || 'field'
+      let candidate = baseField
+      let suffix = 2
+      while (usedFields.has(candidate)) {
+        candidate = `${baseField}${suffix}`
+        suffix += 1
+      }
+      node.props.field = candidate
+      usedFields.add(candidate)
+    })
+  }
+
   function duplicateNodes(ids: string[]) {
     const sourceNodes = getNodesByIds(ids).filter((node) => !getNodeLockKey(node.id))
     const parentId = getCommonParentId(sourceNodes)
     if (!parentId) return
 
-    const translation = getBoundedNodeTranslation(
-      sourceNodes,
-      { kind: 'cascade', x: 20, y: 20 },
-      parentId,
-    )
-    const copies = sourceNodes.map((sourceNode) => {
-      const copy = cloneNodeTree(sourceNode)
-      copy.placement.x += translation.x
-      copy.placement.y += translation.y
-      return copy
-    })
+    const copies = cloneNodeForest(sourceNodes)
     if (!copies.length) return
+
+    if (copies.every((node) => isAbsolutePlacement(node.placement))) {
+      const translation = getBoundedNodeTranslation(
+        sourceNodes,
+        { kind: 'cascade', x: 20, y: 20 },
+        parentId,
+      )
+      copies.forEach((copy) => {
+        if (!isAbsolutePlacement(copy.placement)) return
+        copy.placement.x += translation.x
+        copy.placement.y += translation.y
+      })
+    } else {
+      ensureUniqueFormFields(copies, getChildren(parentId))
+    }
 
     setChildren(parentId, [...getChildren(parentId), ...copies])
     selectNodes(copies.map((node) => node.id))
@@ -429,13 +490,18 @@ export const useEditorStore = defineStore('editor', () => {
       return 0
     }
 
-    const translation = getBoundedNodeTranslation(sourceNodes, placement, parentId)
-    const pastedNodes = sourceNodes.map((sourceNode) => {
-      const node = cloneNodeTree(sourceNode)
-      node.placement.x += translation.x
-      node.placement.y += translation.y
-      return node
-    })
+    const pastedNodes = cloneNodeForest(sourceNodes)
+
+    if (pastedNodes.every((node) => isAbsolutePlacement(node.placement))) {
+      const translation = getBoundedNodeTranslation(sourceNodes, placement, parentId)
+      pastedNodes.forEach((node) => {
+        if (!isAbsolutePlacement(node.placement)) return
+        node.placement.x += translation.x
+        node.placement.y += translation.y
+      })
+    } else {
+      ensureUniqueFormFields(pastedNodes, getChildren(parentId))
+    }
 
     setChildren(parentId, [...getChildren(parentId), ...pastedNodes])
     selectNodes(pastedNodes.map((node) => node.id))
@@ -455,11 +521,10 @@ export const useEditorStore = defineStore('editor', () => {
       return clonedSource
     })
 
-    const mergedNodes = sourcePage.root.children.map((sourceNode) =>
-      cloneNodeTree(sourceNode, dataSourceIdMap),
-    )
+    const mergedNodes = cloneNodeForest(sourcePage.root.children, dataSourceIdMap)
     const translation = getBoundedNodeTranslation(mergedNodes, { kind: 'preserve' }, root.value.id)
     mergedNodes.forEach((node) => {
+      if (!isAbsolutePlacement(node.placement)) return
       node.placement.x += translation.x
       node.placement.y += translation.y
     })
@@ -532,7 +597,9 @@ export const useEditorStore = defineStore('editor', () => {
   }
 
   function moveNodesBy(ids: string[], offset: { x: number; y: number }) {
-    const movableNodes = getNodesByIds(ids).filter((node) => !getNodeLockKey(node.id))
+    const movableNodes = getNodesByIds(ids).filter(
+      (node) => !getNodeLockKey(node.id) && isAbsolutePlacement(node.placement),
+    )
     const parentId = getCommonParentId(movableNodes)
     if (!parentId) return
 
@@ -547,7 +614,7 @@ export const useEditorStore = defineStore('editor', () => {
     setChildren(
       parentId,
       getChildren(parentId).map((node) =>
-        movableIds.has(node.id)
+        movableIds.has(node.id) && isAbsolutePlacement(node.placement)
           ? {
               ...node,
               placement: {
@@ -602,6 +669,24 @@ export const useEditorStore = defineStore('editor', () => {
 
     const reordered = siblings.filter((node) => node.id !== sourceId)
     reordered.splice(targetIndex, 0, source)
+    setChildren(parentId, reordered)
+  }
+
+  function reorderChildren(parentId: string, oldIndex: number, newIndex: number) {
+    const children = getChildren(parentId)
+    if (
+      oldIndex === newIndex ||
+      oldIndex < 0 ||
+      newIndex < 0 ||
+      oldIndex >= children.length ||
+      newIndex >= children.length
+    ) {
+      return
+    }
+
+    const reordered = [...children]
+    const [movedNode] = reordered.splice(oldIndex, 1)
+    reordered.splice(newIndex, 0, movedNode)
     setChildren(parentId, reordered)
   }
 
@@ -705,6 +790,7 @@ export const useEditorStore = defineStore('editor', () => {
     moveNodesToFront,
     moveNodesToBack,
     moveNodeToSiblingPosition,
+    reorderChildren,
     lockNodes,
     unlockNodes,
     updateNode,

@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { canMaterialAcceptChild, createNode } from '@/materials'
+import { canMaterialAcceptChild, canMaterialTypeBeChild, createNode } from '@/materials'
 import Selecto from 'vue3-selecto'
 import Moveable from 'vue3-moveable'
 import { useEventListener } from '@vunio/hooks'
 import { useEditorStore } from '@/stores/editor.ts'
 import { storeToRefs } from 'pinia'
-import type { MaterialSchema } from '@/schema/material.ts'
+import { isAbsolutePlacement, type MaterialSchema } from '@/schema/material.ts'
 import SketchRuler from 'vue3-sketch-ruler'
 import 'vue3-sketch-ruler/lib/style.css'
 import { useCanvasRuler } from '@/editor/canvas/composables/useCanvasRuler.ts'
@@ -25,6 +25,8 @@ import { useCanvasShortcuts } from '@/editor/canvas/composables/useCanvasShortcu
 import { useRenderTheme } from '@/theme/renderTheme.ts'
 import { provideMaterialRenderContext } from '@/context/materialRender.ts'
 import { findCanvasDropTarget } from '@/editor/canvas/canvasTarget.ts'
+import { provideMaterialEditorContext } from '@/editor/canvas/materialEditorContext.ts'
+import { getDraggedMaterialTemplate } from '@/editor/canvas/materialDrag.ts'
 
 defineOptions({
   name: 'CanvasRoot',
@@ -111,6 +113,14 @@ function onNodeMouseDown(node: MaterialSchema, event: MouseEvent) {
   onSelect(node, event)
 }
 
+provideMaterialEditorContext({
+  selectedNodeIds,
+  isNodeLocked: (id) => Boolean(editorStore.getNodeLockKey(id)),
+  onNodeMouseDown,
+  insertNode: (node, parentId, index) => editorStore.addNode(node, parentId, index),
+  reorderChildren: editorStore.reorderChildren,
+})
+
 function onCanvasMouseDown(event: MouseEvent) {
   onStageMouseDown(event)
   closeContextMenu()
@@ -196,7 +206,9 @@ function onDrop(e: DragEvent) {
   if (!dropTarget) return
   const parentId = dropTarget.parentId
   const parent = parentId === root.value.id ? root.value : editorStore.findNode(parentId)
-  if (!parent || !canMaterialAcceptChild(parent, node)) return
+  if (!parent || !canMaterialAcceptChild(parent, node) || !isAbsolutePlacement(node.placement)) {
+    return
+  }
 
   const x = dropTarget.point.x - node.placement.width / 2
   const y = dropTarget.point.y - node.placement.height / 2
@@ -210,10 +222,16 @@ function onDrop(e: DragEvent) {
 
 function onDragOver(event: DragEvent) {
   const dropTarget = getDropTarget(event.clientX, event.clientY)
+  const template = getDraggedMaterialTemplate()
+  const parent =
+    dropTarget?.parentId === root.value.id ? root.value : editorStore.findNode(dropTarget?.parentId)
   if (
-    dropTarget?.parentId !== root.value.id &&
-    dropTarget?.parentId &&
-    editorStore.getNodeLockKey(dropTarget.parentId)
+    !dropTarget ||
+    !template ||
+    template.placement.type !== 'absolute' ||
+    !parent ||
+    !canMaterialTypeBeChild(parent, template.type) ||
+    (dropTarget.parentId !== root.value.id && editorStore.getNodeLockKey(dropTarget.parentId))
   ) {
     dropTargetId.value = undefined
     return
@@ -226,29 +244,34 @@ const stageStyle = computed(() => ({
   ...renderThemeStyle.value,
 }))
 
-const moveableBounds = computed(() => {
+const selectedParentId = computed(() => {
   const parentIds = new Set(
     selectedNodeIds.value.flatMap((id) => {
       const parentId = editorStore.findParentId(id)
       return parentId ? [parentId] : []
     }),
   )
-  const parentId = parentIds.size === 1 ? parentIds.values().next().value : root.value.id
-  const parentRect = editorStore.getContainerContentRect(parentId) ?? {
-    x: 0,
-    y: 0,
-    width: canvasWidth.value,
-    height: canvasHeight.value,
-  }
-
-  return {
-    position: 'css' as const,
-    left: parentRect.x,
-    top: parentRect.y,
-    right: canvasWidth.value - parentRect.x - parentRect.width,
-    bottom: canvasHeight.value - parentRect.y - parentRect.height,
-  }
+  return parentIds.size === 1 ? parentIds.values().next().value : root.value.id
 })
+
+const moveableSnapContainer = computed(() => {
+  const stage = stageRef.value
+  if (!stage || selectedParentId.value === root.value.id) return stage
+
+  return (
+    Array.from(stage.querySelectorAll<HTMLElement>('[data-container-id]')).find(
+      (element) => element.dataset.containerId === selectedParentId.value,
+    ) ?? stage
+  )
+})
+
+const moveableBounds = {
+  position: 'css' as const,
+  left: 0,
+  top: 0,
+  right: 0,
+  bottom: 0,
+}
 </script>
 
 <template>
@@ -280,7 +303,7 @@ const moveableBounds = computed(() => {
           class="canvas-stage"
           :data-render-theme="resolvedMode"
           :style="stageStyle"
-          @dragover.prevent="onDragOver"
+          @dragover.capture.prevent="onDragOver"
           @dragleave="onDragLeave"
           @drop="onDrop"
         >
@@ -341,7 +364,7 @@ const moveableBounds = computed(() => {
       :resizable="true"
       :origin="false"
       :snappable="true"
-      :snapContainer="stageRef"
+      :snapContainer="moveableSnapContainer"
       :bounds="moveableBounds"
       @drag="onDrag"
       @dragStart="onStart"

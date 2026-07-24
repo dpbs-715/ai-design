@@ -11,6 +11,8 @@ import { ElInputNumber, ElSwitch } from 'element-plus'
 import '@/mock/data.ts'
 import { initializeEditorTheme } from '@/editor/theme/editorTheme.ts'
 import ThemeColorPicker from '@/components/ThemeColorPicker/index.vue'
+import JsonValueSetter from '@/materials/business-form/setters/JsonValueSetter.vue'
+import FormRulesSetter from '@/materials/business-form/setters/FormRulesSetter.vue'
 
 initializeEditorTheme()
 
@@ -24,6 +26,8 @@ registerComponent({
   number: (props, { slots }) => h(ElInputNumber, { precision: 3, ...props }, slots),
   switch: ElSwitch,
   themeColor: ThemeColorPicker,
+  jsonValue: JsonValueSetter,
+  formRules: FormRulesSetter,
 })
 registerComponentDefaultPropsMap({
   CommonForm: {

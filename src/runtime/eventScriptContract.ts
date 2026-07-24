@@ -1,10 +1,15 @@
-export interface EventScriptPlacement {
-  type: 'absolute'
-  x: number
-  y: number
-  width: number
-  height: number
-}
+export type EventScriptPlacement =
+  | {
+      type: 'absolute'
+      x: number
+      y: number
+      width: number
+      height: number
+    }
+  | {
+      type: 'form-item'
+      span: number
+    }
 
 export interface EventScriptEvent {
   type: string
@@ -22,6 +27,18 @@ export interface EventScriptNode {
   style?: Record<string, unknown>
   props: Record<string, unknown>
   dataId?: string | number
+  dataQuery?: {
+    params: Array<{
+      id: string
+      name: string
+      source: {
+        type: 'form-item'
+        nodeId: string
+      }
+      required: boolean
+    }>
+    debounce?: number
+  }
   events?: EventScriptEvent[]
 }
 
@@ -46,8 +63,10 @@ export interface EventScriptContext {
   setPlacement(id: string, key: string, value: unknown): void
   /** 调用物料组件实例暴露的方法。 */
   trigger(id: string, event: string, ...args: unknown[]): unknown
+  /** 获取表单项等可提供值的节点当前值。 */
+  getNodeValue(id: string): unknown
   /** 刷新绑定到指定数据源的全部节点。 */
-  refreshNodesByDataId(dataId: string, ...args: unknown[]): void
+  refreshNodesByDataId(dataId: string | number, ...args: unknown[]): void
   /** 触发指定节点中配置的事件函数。 */
   dispatch(id: string, action: string, payload?: unknown): unknown
 }

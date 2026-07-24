@@ -23,7 +23,10 @@ const containerStyle = computed<CSSProperties>(() => {
     borderRadius: `${style.borderRadius ?? 0}px`,
     borderStyle: style.borderStyle ?? 'solid',
     borderWidth: `${borderWidth}px`,
-    overflow: props.schema.childrenLayout?.clip ? 'hidden' : 'visible',
+    overflow:
+      props.schema.childrenLayout?.type === 'absolute' && props.schema.childrenLayout.clip
+        ? 'hidden'
+        : 'visible',
   }
 })
 </script>

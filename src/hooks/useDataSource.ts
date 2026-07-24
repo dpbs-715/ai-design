@@ -2,44 +2,103 @@ import { injectDataSources } from '@/context'
 import axios from 'axios'
 import type { ApiDataSourceSchema } from '@/schema/page.ts'
 import { asyncCache, getByKeyOrPath } from '@vunio/utils'
+import { toValue, type MaybeRefOrGetter } from 'vue'
+import type { ResolvedDataQuery } from '@/runtime/dataQuery.ts'
 
-export function useDataSource(dataId: Ref<string | number>) {
+export function useDataSource(
+  dataId: Ref<string | number>,
+  dataQuery?: MaybeRefOrGetter<ResolvedDataQuery>,
+) {
   const dataSources = injectDataSources()
   const loading = ref(false)
   const error = ref()
-  let timer
+  let pollingTimer: ReturnType<typeof setTimeout> | undefined
+  let reloadTimer: ReturnType<typeof setTimeout> | undefined
+  let requestId = 0
 
   const source = computed(() => {
     return dataSources.value.find((item) => item.id === dataId.value)
   })
+  const resolvedQuery = computed<ResolvedDataQuery>(() => {
+    return dataQuery
+      ? toValue(dataQuery)
+      : {
+          params: {},
+          ready: true,
+          debounce: 0,
+        }
+  })
   const data = ref()
 
   async function loadData(params?: Record<string, any>) {
-    clearTimeout(timer)
-    if (!source.value) return
-    if (source.value.type === 'api') {
+    const currentRequestId = ++requestId
+    clearTimeout(pollingTimer)
+    clearTimeout(reloadTimer)
+    error.value = undefined
+    if (!source.value) {
+      data.value = undefined
+      loading.value = false
+      return
+    }
+    const currentSource = source.value
+    if (currentSource.type === 'api') {
+      const query = resolvedQuery.value
+      if (!query.ready) {
+        data.value = []
+        loading.value = false
+        return
+      }
       try {
         loading.value = true
-        data.value = await fetchData(source.value, params)
+        const response = await fetchData(currentSource, {
+          ...query.params,
+          ...params,
+        })
+        if (currentRequestId === requestId) data.value = response
       } catch (e) {
-        error.value = e
+        if (currentRequestId === requestId) error.value = e
       } finally {
-        loading.value = false
-        if (source.value.interval) {
-          timer = setTimeout(() => {
-            loadData()
-          }, source.value.interval)
+        if (currentRequestId === requestId) {
+          loading.value = false
+          if (currentSource.interval) {
+            pollingTimer = setTimeout(() => {
+              loadData()
+            }, currentSource.interval)
+          }
         }
       }
     } else {
-      data.value = source.value.data
+      data.value = currentSource.data
+      loading.value = false
     }
   }
 
-  watch(source, () => loadData(), { immediate: true })
+  function scheduleLoad() {
+    requestId += 1
+    clearTimeout(pollingTimer)
+    clearTimeout(reloadTimer)
+    if (source.value?.type === 'api' && !resolvedQuery.value.ready) {
+      data.value = []
+      loading.value = false
+      error.value = undefined
+      return
+    }
+    const debounce = resolvedQuery.value.debounce
+    if (!debounce) {
+      void loadData()
+      return
+    }
+    reloadTimer = setTimeout(() => {
+      void loadData()
+    }, debounce)
+  }
+
+  watch([source, resolvedQuery], scheduleLoad, { immediate: true })
 
   onBeforeUnmount(() => {
-    clearTimeout(timer)
+    requestId += 1
+    clearTimeout(pollingTimer)
+    clearTimeout(reloadTimer)
   })
   return {
     data,
@@ -65,7 +124,6 @@ export async function fetchDataBase(source: ApiDataSourceSchema, data?: Record<s
     method: source.method,
     [paramsKey]: queryParams,
   }
-  console.log('config==>', config)
   const res = await axios.request(config)
   if (source.responsePath) {
     return getByKeyOrPath(res.data, source.responsePath)

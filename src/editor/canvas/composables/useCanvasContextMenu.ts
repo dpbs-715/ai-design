@@ -65,7 +65,7 @@ export function useCanvasContextMenu({
 
     // Moveable controls can cover selected nodes, so inspect the complete hit stack.
     for (const element of document.elementsFromPoint(event.clientX, event.clientY)) {
-      const nodeElement = element.closest<HTMLElement>('.canvas-node')
+      const nodeElement = element.closest<HTMLElement>('[data-node-id]')
       if (!nodeElement || !canvasRoot.contains(nodeElement)) continue
       return editorStore.findNode(nodeElement.dataset.nodeId)
     }

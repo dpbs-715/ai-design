@@ -69,7 +69,7 @@ const { config } = useConfigs<CommonFormConfig>([
     field: 'type',
     component: 'radioGroup',
     props: {
-      radioType: 'button',
+      type: 'button',
       options: [
         { label: '静态数据', value: 'static' },
         { label: 'API', value: 'api' },
@@ -95,7 +95,7 @@ const { config } = useConfigs<CommonFormConfig>([
     hidden: isStaticSource,
     component: 'radioGroup',
     props: {
-      radioType: 'button',
+      type: 'button',
       options: [
         { label: 'GET', value: 'get' },
         { label: 'POST', value: 'post' },

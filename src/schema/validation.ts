@@ -1,9 +1,7 @@
-import {
-  canMaterialAcceptChild,
-  getMaterialDefinition,
-} from '@/materials'
+import { canMaterialAcceptChild, getMaterialDefinition } from '@/materials'
 import {
   materialSchema,
+  type MaterialChildrenLayout,
   type MaterialSchema,
 } from '@/schema/material.ts'
 import {
@@ -71,6 +69,34 @@ function validateMaterialTree(
       })
     }
 
+    const definition = getMaterialDefinition(child.type)
+    if (definition?.validationSchema) {
+      const result = definition.validationSchema.safeParse(child)
+      if (!result.success) {
+        issues.push(
+          ...result.error.issues.map((issue) => ({
+            path: [...nodePath, ...issue.path],
+            message: issue.message,
+          })),
+        )
+      }
+    }
+
+    if (definition) {
+      const materialPlacement = definition.capability?.roles.includes('form-item')
+        ? 'form-item'
+        : 'absolute'
+      if (child.placement.type !== materialPlacement) {
+        issues.push({
+          path: [...nodePath, 'placement', 'type'],
+          message:
+            materialPlacement === 'form-item'
+              ? '该物料必须使用表单项布局'
+              : '该物料必须使用绝对布局',
+        })
+      }
+    }
+
     if (parent && !canMaterialAcceptChild(parent, child)) {
       issues.push({
         path: nodePath,
@@ -78,17 +104,59 @@ function validateMaterialTree(
       })
     }
 
-    issues.push(
-      ...validateMaterialTree(
-        child.children,
-        child,
-        usedIds,
-        [...nodePath, 'children'],
-      ),
-    )
+    if (parent) {
+      const expectedPlacement = getExpectedChildPlacement(parent)
+      if (child.placement.type !== expectedPlacement) {
+        issues.push({
+          path: [...nodePath, 'placement', 'type'],
+          message:
+            expectedPlacement === 'absolute'
+              ? '当前父节点只接收绝对布局节点'
+              : '当前父节点只接收表单项布局节点',
+        })
+      }
+    }
+
+    if (definition?.capability?.kind !== 'container' && child.children.length) {
+      issues.push({
+        path: [...nodePath, 'children'],
+        message: '非容器节点的 children 必须为空数组',
+      })
+    }
+
+    if (definition?.capability?.kind === 'container') {
+      const expectedLayout = definition.capability.accepts?.includes('form-item')
+        ? 'form-grid'
+        : 'absolute'
+      if (child.childrenLayout?.type !== expectedLayout) {
+        issues.push({
+          path: [...nodePath, 'childrenLayout'],
+          message:
+            expectedLayout === 'form-grid'
+              ? '该容器必须使用表单栅格布局'
+              : '该容器必须使用绝对子节点布局',
+        })
+      }
+    } else if (child.childrenLayout !== undefined) {
+      issues.push({
+        path: [...nodePath, 'childrenLayout'],
+        message: '非容器节点不能声明 childrenLayout',
+      })
+    }
+
+    issues.push(...validateMaterialTree(child.children, child, usedIds, [...nodePath, 'children']))
   })
 
   return issues
+}
+
+function getExpectedChildPlacement(
+  parent: MaterialSchema | PageRootSchema,
+): MaterialSchema['placement']['type'] {
+  if (parent.type === 'page-root') return 'absolute'
+  const childrenLayout: MaterialChildrenLayout | undefined =
+    'childrenLayout' in parent ? parent.childrenLayout : undefined
+  return childrenLayout?.type === 'form-grid' ? 'form-item' : 'absolute'
 }
 
 export function parseMaterialSchema(input: unknown): SchemaParseResult<MaterialSchema> {
@@ -99,9 +167,7 @@ export function parseMaterialSchema(input: unknown): SchemaParseResult<MaterialS
 
   const data = asParsedSchema<MaterialSchema>(result.data)
   const issues = validateMaterialTree([data])
-  return issues.length
-    ? { success: false, issues }
-    : { success: true, data }
+  return issues.length ? { success: false, issues } : { success: true, data }
 }
 
 const materialNodesSchema = z.array(materialSchema)
@@ -114,9 +180,7 @@ export function parseMaterialNodesSchema(input: unknown): SchemaParseResult<Mate
 
   const data = asParsedSchema<MaterialSchema[]>(result.data)
   const issues = validateMaterialTree(data)
-  return issues.length
-    ? { success: false, issues }
-    : { success: true, data }
+  return issues.length ? { success: false, issues } : { success: true, data }
 }
 
 export function parseDataSourcesSchema(input: unknown): SchemaParseResult<DataSourceSchema[]> {
@@ -145,9 +209,7 @@ export function parsePageSchema(input: unknown): SchemaParseResult<PageSchema> {
     new Map([[data.root.id, rootIdPath]]),
     ['root', 'children'],
   )
-  return issues.length
-    ? { success: false, issues }
-    : { success: true, data }
+  return issues.length ? { success: false, issues } : { success: true, data }
 }
 
 export function formatSchemaValidationIssue(issue: SchemaValidationIssue | undefined) {

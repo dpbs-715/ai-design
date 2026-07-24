@@ -1,4 +1,4 @@
-import type { MaterialSchema } from '@/schema/material.ts'
+import { isAbsolutePlacement, type MaterialSchema } from '@/schema/material.ts'
 import { useEditorStore } from '@/stores/editor.ts'
 import { storeToRefs } from 'pinia'
 import type { Ref, ShallowRef } from 'vue'
@@ -40,7 +40,7 @@ export function useSelection({
 
     syncSelectedTargets()
     await nextTick()
-    moveableRef.value?.dragStart(event)
+    if (isAbsolutePlacement(node.placement)) moveableRef.value?.dragStart(event)
   }
 
   function onClearSelected() {

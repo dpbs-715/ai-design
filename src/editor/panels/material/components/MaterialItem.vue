@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { MaterialDefinition } from '@/schema/material.ts'
+import { finishMaterialDrag, startMaterialDrag } from '@/editor/canvas/materialDrag.ts'
 
 defineOptions({ name: 'MaterialItem' })
 
@@ -8,6 +9,7 @@ const { material } = defineProps<{
 }>()
 
 function onStart(e: DragEvent) {
+  startMaterialDrag(material.schema)
   e.dataTransfer?.setData('schema', JSON.stringify(material.schema))
   if (e.dataTransfer) e.dataTransfer.effectAllowed = 'copy'
 }
@@ -19,6 +21,7 @@ function onStart(e: DragEvent) {
     draggable="true"
     :aria-label="`拖拽添加${material.name}`"
     @dragstart="onStart"
+    @dragend="finishMaterialDrag"
   >
     <div class="preview">
       <component :is="material.preview.component" v-bind="material.preview.props" />
