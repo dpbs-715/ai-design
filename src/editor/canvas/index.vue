@@ -2,6 +2,7 @@
 import { canMaterialAcceptChild, createNode } from '@/materials'
 import Selecto from 'vue3-selecto'
 import Moveable from 'vue3-moveable'
+import { useEventListener } from '@vunio/hooks'
 import { useEditorStore } from '@/stores/editor.ts'
 import { storeToRefs } from 'pinia'
 import type { MaterialSchema } from '@/schema/material.ts'
@@ -168,8 +169,20 @@ function getDropTarget(clientX: number, clientY: number) {
   return findCanvasDropTarget(stage, root.value.id, clientX, clientY, scale.value)
 }
 
-function onDrop(e: DragEvent) {
+function clearDropTarget() {
   dropTargetId.value = undefined
+}
+
+function onDragLeave(event: DragEvent) {
+  const nextTarget = event.relatedTarget
+  if (nextTarget instanceof Node && stageRef.value?.contains(nextTarget)) return
+  clearDropTarget()
+}
+
+useEventListener('dragend', clearDropTarget)
+
+function onDrop(e: DragEvent) {
+  clearDropTarget()
   const data = e.dataTransfer.getData('schema')
   if (!data) return
   let node: MaterialSchema
@@ -268,7 +281,7 @@ const moveableBounds = computed(() => {
           :data-render-theme="resolvedMode"
           :style="stageStyle"
           @dragover.prevent="onDragOver"
-          @dragleave.self="dropTargetId = undefined"
+          @dragleave="onDragLeave"
           @drop="onDrop"
         >
           <CanvasBackground :background="root.style.background" />
