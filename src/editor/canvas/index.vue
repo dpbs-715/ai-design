@@ -45,8 +45,17 @@ useCanvasShortcutFocus(canvasRootRef)
 const { root, rootChildren, selectedNodeIds } = storeToRefs(editorStore)
 const { resolvedMode, rootStyle: renderThemeStyle } = useRenderTheme()
 
-const { isMoveableActive, onDrag, onStart, onEnd, onResize, onDragGroup, onResizeGroup } =
-  useMoveable()
+const {
+  isMoveableActive,
+  onDrag,
+  onStart,
+  onResizeStart,
+  onResizeGroupStart,
+  onEnd,
+  onResize,
+  onDragGroup,
+  onResizeGroup,
+} = useMoveable()
 const {
   canvasWidth,
   canvasHeight,
@@ -317,8 +326,6 @@ const moveableBounds = computed(() => {
       :target="selectedTarget"
       :draggable="!isCanvasPanMode"
       :resizable="true"
-      :min-width="1"
-      :min-height="1"
       :origin="false"
       :snappable="true"
       :snapContainer="stageRef"
@@ -330,10 +337,10 @@ const moveableBounds = computed(() => {
       @dragGroupStart="onStart"
       @dragGroupEnd="onEnd"
       @resize="onResize"
-      @resizeStart="onStart"
+      @resizeStart="onResizeStart"
       @resizeEnd="onEnd"
       @resizeGroup="onResizeGroup"
-      @resizeGroupStart="onStart"
+      @resizeGroupStart="onResizeGroupStart"
       @resizeGroupEnd="onEnd"
     ></Moveable>
   </div>

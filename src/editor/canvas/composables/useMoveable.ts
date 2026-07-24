@@ -1,8 +1,17 @@
-import { type OnDrag, type OnDragGroup, type OnResize, type OnResizeGroup } from 'vue3-moveable'
+import {
+  type OnDrag,
+  type OnDragGroup,
+  type OnResize,
+  type OnResizeGroup,
+  type OnResizeGroupStart,
+  type OnResizeStart,
+} from 'vue3-moveable'
 import { useEditorStore } from '@/stores/editor.ts'
 import { useUndoRedo } from '@/hooks/useUndoRedo.ts'
 import { SetFormFieldCommand } from '@vunio/ui'
 import type { AbsolutePlacement, MaterialSchema } from '@/schema/material.ts'
+
+const MIN_NODE_SIZE = 1
 
 interface PendingNodePlacement {
   nodeId: MaterialSchema['id']
@@ -37,6 +46,20 @@ export function useMoveable() {
     pendingPlacements.clear()
     isMoveableActive.value = true
     startBatch()
+  }
+
+  function setMinimumResizeSize(event: OnResizeStart) {
+    event.setMin([MIN_NODE_SIZE, MIN_NODE_SIZE])
+  }
+
+  function onResizeStart(event: OnResizeStart) {
+    setMinimumResizeSize(event)
+    onStart()
+  }
+
+  function onResizeGroupStart(event: OnResizeGroupStart) {
+    event.events.forEach(setMinimumResizeSize)
+    onStart()
   }
 
   function onEnd() {
@@ -109,6 +132,8 @@ export function useMoveable() {
   return {
     isMoveableActive: readonly(isMoveableActive),
     onStart,
+    onResizeStart,
+    onResizeGroupStart,
     onEnd,
     onDrag,
     onResize,
