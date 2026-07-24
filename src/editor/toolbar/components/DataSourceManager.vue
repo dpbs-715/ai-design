@@ -6,25 +6,44 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { storeToRefs } from 'pinia'
 import MonacoEditor from '@/components/MonacoEditor/index.vue'
 import { fetchData } from '@/hooks/useDataSource.ts'
-import type { DataSourceSchema } from '@/schema/page.ts'
+import { formatSchemaValidationIssue, parseDataSourcesSchema } from '@/schema/validation.ts'
 import { useEditorStore } from '@/stores/editor.ts'
 
 defineOptions({ name: 'DataSourceManager' })
 
-type EditableDataSource = Omit<DataSourceSchema, 'data' | 'params'> & {
+interface EditableDataSource {
+  type: 'static' | 'api'
+  id: string
+  name: string
   data?: string
+  interval?: number
   params?: string
+  url?: string
+  method?: 'get' | 'post'
+  responsePath?: string
 }
 
 const editorStore = useEditorStore()
 const { dataSources, nodes } = storeToRefs(editorStore)
 
 const sources = ref<EditableDataSource[]>(
-  deepClone(dataSources.value).map((source) => ({
-    ...source,
-    data: source.data === undefined ? undefined : JSON.stringify(source.data, null, 2),
-    params: source.params === undefined ? undefined : JSON.stringify(source.params, null, 2),
-  })),
+  deepClone(dataSources.value).map((source) => {
+    const data = source.data === undefined ? undefined : JSON.stringify(source.data, null, 2)
+    if (source.type === 'static') {
+      return {
+        id: source.id,
+        name: source.name,
+        type: source.type,
+        data,
+      }
+    }
+
+    return {
+      ...source,
+      data,
+      params: source.params === undefined ? undefined : JSON.stringify(source.params, null, 2),
+    }
+  }),
 )
 const activeSourceId = ref(sources.value[0]?.id ?? '')
 const responseText = ref('')
@@ -150,18 +169,46 @@ function parseJson(value: string | undefined, fallback: unknown) {
   return value?.trim() ? JSON.parse(value) : fallback
 }
 
+function normalizeSource(source: EditableDataSource) {
+  const baseSource = {
+    id: source.id,
+    name: source.name,
+    data: parseJson(source.data, []),
+  }
+
+  if (source.type === 'static') {
+    return {
+      ...baseSource,
+      type: source.type,
+    }
+  }
+
+  return {
+    ...baseSource,
+    type: source.type,
+    url: source.url ?? '',
+    method: source.method ?? 'get',
+    interval: source.interval,
+    params: parseJson(source.params, {}),
+    responsePath: source.responsePath,
+  }
+}
+
 async function testRequest() {
   const source = activeSource.value
   if (!source || source.type !== 'api') return
   requestLoading.value = true
   responseText.value = ''
   try {
-    const result = await fetchData({
-      ...source,
-      data: undefined,
-      params: parseJson(source.params, {}),
-    })
-    responseText.value = JSON.stringify(result, null, 2)
+    const parseResult = parseDataSourcesSchema([normalizeSource(source)])
+    if (parseResult.success === false) {
+      throw new Error(formatSchemaValidationIssue(parseResult.issues[0]))
+    }
+    const [apiSource] = parseResult.data
+    if (!apiSource || apiSource.type !== 'api') return
+
+    const response = await fetchData(apiSource)
+    responseText.value = JSON.stringify(response, null, 2)
   } catch (error) {
     responseText.value = JSON.stringify(
       { error: error instanceof Error ? error.message : '请求失败' },
@@ -175,11 +222,14 @@ async function testRequest() {
 
 function save() {
   try {
-    editorStore.page.dataSources = sources.value.map((source) => ({
-      ...source,
-      data: parseJson(source.data, []),
-      params: parseJson(source.params, {}),
-    }))
+    const nextSources = sources.value.map(normalizeSource)
+    const result = parseDataSourcesSchema(nextSources)
+    if (result.success === false) {
+      ElMessage.error(formatSchemaValidationIssue(result.issues[0]))
+      return false
+    }
+
+    editorStore.page.dataSources = result.data
     ElMessage.success('数据源已保存')
     return true
   } catch {

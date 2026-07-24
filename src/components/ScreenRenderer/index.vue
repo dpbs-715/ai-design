@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import { useEventListener } from '@vunio/hooks'
 import { provideDataSources } from '@/context'
-import type { MaterialSchema } from '@/schema/material.ts'
-import { getMaterialComponent } from '@/materials'
 import type { PageSchema } from '@/schema/page.ts'
 import { createRuntimeContext } from '@/runtime/context.ts'
-import { runSandbox } from '@/runtime/sandbox.ts'
 import { provideRenderTheme } from '@/theme/renderTheme.ts'
 import { provideMaterialRenderContext } from '@/context/materialRender.ts'
+import CanvasBackground from '@/components/CanvasBackground/index.vue'
+import ScreenNode from './ScreenNode.vue'
 
 defineOptions({ name: 'ScreenRenderer' })
 
@@ -20,8 +19,7 @@ const context = createRuntimeContext(runtimePage)
 
 window.$context = context
 
-const canvas = computed(() => runtimePage.value.canvas)
-const nodes = computed(() => runtimePage.value.nodes)
+const root = computed(() => runtimePage.value.root)
 const dataSources = computed(() => runtimePage.value.dataSources)
 
 const scale = ref(0)
@@ -32,65 +30,23 @@ provideDataSources(dataSources)
 
 const canvasStyle = computed(() => ({
   ...renderTheme.rootStyle.value,
-  width: `${canvas.value.width}px`,
-  height: `${canvas.value.height}px`,
-  backgroundColor: renderTheme.resolveColor(canvas.value.backgroundColor),
+  width: `${root.value.placement.width}px`,
+  height: `${root.value.placement.height}px`,
   transform: `translate(${left.value}px,${top.value}px) scale(${scale.value})`,
   transformOrigin: 'top left',
 }))
 
-function getNodeStyle(node: MaterialSchema, index: number) {
-  return {
-    width: node.layout.width + 'px',
-    height: node.layout.height + 'px',
-    left: node.layout.x + 'px',
-    top: node.layout.y + 'px',
-    zIndex: index + 1,
-  }
-}
-
 function init() {
   scale.value = Math.min(
-    window.innerWidth / canvas.value.width,
-    window.innerHeight / canvas.value.height,
+    window.innerWidth / root.value.placement.width,
+    window.innerHeight / root.value.placement.height,
   )
-  left.value = (window.innerWidth - canvas.value.width * scale.value) / 2
-  top.value = (window.innerHeight - canvas.value.height * scale.value) / 2
+  left.value = (window.innerWidth - root.value.placement.width * scale.value) / 2
+  top.value = (window.innerHeight - root.value.placement.height * scale.value) / 2
 }
 
-const vm = getCurrentInstance()
 useEventListener('resize', init)
-
-function registerNodeInstance() {
-  const refs = {}
-  for (const key in vm.refs) {
-    refs[key] = vm.refs[key][0]
-  }
-  context.registerNodeInstance(refs)
-}
-
-function createEvents(node: MaterialSchema) {
-  const listeners = {}
-  const events = node.events || []
-  events.forEach((event) => {
-    if (event.handler) {
-      listeners[event.type] = event.handler
-      return
-    }
-    event.handler = listeners[event.type] = (payload) =>
-      runSandbox(event.code, {
-        $context: context,
-        $node: node,
-        $payload: payload,
-      })
-  })
-  return listeners
-}
-
-onMounted(() => {
-  registerNodeInstance()
-  init()
-})
+onMounted(init)
 </script>
 
 <template>
@@ -100,32 +56,25 @@ onMounted(() => {
       :data-render-theme="renderTheme.resolvedMode.value"
       :style="canvasStyle"
     >
-      <div
-        class="canvas-node"
-        :style="getNodeStyle(node, index)"
-        v-for="(node, index) in nodes"
+      <CanvasBackground :background="root.style.background" />
+      <ScreenNode
+        v-for="node in root.children"
         :key="node.id"
-      >
-        <component
-          :ref="node.id"
-          :is="getMaterialComponent(node.type)"
-          :schema="node"
-          v-on="createEvents(node)"
-        />
-      </div>
+        :node="node"
+        :context="context"
+      />
     </div>
   </div>
 </template>
 
-<style scoped lang="scss">
+<style scoped>
 .preview-container {
   width: 100vw;
   height: 100vh;
-  .canvas-root {
-    position: relative;
-    .canvas-node {
-      position: absolute;
-    }
-  }
+}
+
+.canvas-root {
+  position: relative;
+  overflow: hidden;
 }
 </style>

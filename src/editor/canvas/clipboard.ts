@@ -1,9 +1,14 @@
 import type { MaterialSchema } from '@/schema/material.ts'
 import type { PageSchema } from '@/schema/page.ts'
+import {
+  parseMaterialNodesSchema,
+  parseMaterialSchema,
+  parsePageSchema,
+} from '@/schema/validation.ts'
 import { readClipboardText, writeClipboardText } from '@/utils/clipboard.ts'
 
 const EDITOR_CLIPBOARD_SOURCE = 'ai-design'
-const EDITOR_CLIPBOARD_VERSION = 1
+const EDITOR_CLIPBOARD_VERSION = 2
 
 export type EditorClipboardPayload =
   | {
@@ -11,6 +16,7 @@ export type EditorClipboardPayload =
       version: typeof EDITOR_CLIPBOARD_VERSION
       kind: 'nodes'
       nodes: MaterialSchema[]
+      parentId?: string
     }
   | {
       source: typeof EDITOR_CLIPBOARD_SOURCE
@@ -27,67 +33,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function isFiniteNumber(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value)
-}
-
-function isMaterialSchema(value: unknown): value is MaterialSchema {
-  if (!isRecord(value) || !isRecord(value.layout) || !isRecord(value.props)) return false
-
-  return (
-    typeof value.id === 'string' &&
-    typeof value.type === 'string' &&
-    typeof value.name === 'string' &&
-    isFiniteNumber(value.layout.x) &&
-    isFiniteNumber(value.layout.y) &&
-    isFiniteNumber(value.layout.width) &&
-    isFiniteNumber(value.layout.height)
-  )
-}
-
-function isThemeVariable(value: unknown) {
-  return (
-    isRecord(value) &&
-    typeof value.key === 'string' &&
-    typeof value.name === 'string' &&
-    value.type === 'color' &&
-    typeof value.light === 'string' &&
-    typeof value.dark === 'string'
-  )
-}
-
-function isDataSourceSchema(value: unknown) {
-  return (
-    isRecord(value) &&
-    (value.type === 'static' || value.type === 'api') &&
-    typeof value.id === 'string' &&
-    typeof value.name === 'string' &&
-    'data' in value
-  )
-}
-
-function isPageSchema(value: unknown): value is PageSchema {
-  if (!isRecord(value) || !isRecord(value.canvas) || !isRecord(value.theme)) return false
-
-  return (
-    isFiniteNumber(value.canvas.width) &&
-    isFiniteNumber(value.canvas.height) &&
-    ['system', 'light', 'dark'].includes(String(value.theme.mode)) &&
-    Array.isArray(value.theme.variables) &&
-    value.theme.variables.every(isThemeVariable) &&
-    Array.isArray(value.nodes) &&
-    value.nodes.every(isMaterialSchema) &&
-    Array.isArray(value.dataSources) &&
-    value.dataSources.every(isDataSourceSchema)
-  )
-}
-
-function createNodesPayload(nodes: MaterialSchema[]): EditorClipboardPayload {
+function createNodesPayload(nodes: MaterialSchema[], parentId?: string): EditorClipboardPayload {
   return {
     source: EDITOR_CLIPBOARD_SOURCE,
     version: EDITOR_CLIPBOARD_VERSION,
     kind: 'nodes',
     nodes,
+    parentId,
   }
 }
 
@@ -100,18 +52,21 @@ export function parseEditorClipboardText(text: string): ParsedEditorClipboardPay
   }
 
   // Keep manual JSON workflows convenient while all editor-generated copies use the envelope.
-  if (Array.isArray(value) && value.every(isMaterialSchema)) {
-    return { ...createNodesPayload(value), origin: 'external' }
+  const externalNodesResult = parseMaterialNodesSchema(value)
+  if (externalNodesResult.success) {
+    return { ...createNodesPayload(externalNodesResult.data), origin: 'external' }
   }
-  if (isMaterialSchema(value)) {
-    return { ...createNodesPayload([value]), origin: 'external' }
+  const externalNodeResult = parseMaterialSchema(value)
+  if (externalNodeResult.success) {
+    return { ...createNodesPayload([externalNodeResult.data]), origin: 'external' }
   }
-  if (isPageSchema(value)) {
+  const externalPageResult = parsePageSchema(value)
+  if (externalPageResult.success) {
     return {
       source: EDITOR_CLIPBOARD_SOURCE,
       version: EDITOR_CLIPBOARD_VERSION,
       kind: 'page',
-      page: value,
+      page: externalPageResult.data,
       origin: 'external',
     }
   }
@@ -124,23 +79,32 @@ export function parseEditorClipboardText(text: string): ParsedEditorClipboardPay
     return null
   }
 
-  if (value.kind === 'nodes' && Array.isArray(value.nodes) && value.nodes.every(isMaterialSchema)) {
-    return { ...createNodesPayload(value.nodes), origin: 'editor' }
+  const editorNodesResult =
+    value.kind === 'nodes' ? parseMaterialNodesSchema(value.nodes) : undefined
+  if (editorNodesResult?.success) {
+    return {
+      ...createNodesPayload(
+        editorNodesResult.data,
+        typeof value.parentId === 'string' ? value.parentId : undefined,
+      ),
+      origin: 'editor',
+    }
   }
-  if (value.kind === 'page' && isPageSchema(value.page)) {
+  const editorPageResult = value.kind === 'page' ? parsePageSchema(value.page) : undefined
+  if (editorPageResult?.success) {
     return {
       source: EDITOR_CLIPBOARD_SOURCE,
       version: EDITOR_CLIPBOARD_VERSION,
       kind: 'page',
-      page: value.page,
+      page: editorPageResult.data,
       origin: 'editor',
     }
   }
   return null
 }
 
-export async function writeEditorNodesToClipboard(nodes: MaterialSchema[]) {
-  await writeClipboardText(JSON.stringify(createNodesPayload(nodes), null, 2))
+export async function writeEditorNodesToClipboard(nodes: MaterialSchema[], parentId?: string) {
+  await writeClipboardText(JSON.stringify(createNodesPayload(nodes, parentId), null, 2))
 }
 
 export async function readEditorClipboardPayload() {

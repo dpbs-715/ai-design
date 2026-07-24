@@ -44,7 +44,8 @@ export const timeMaterial: MaterialDefinition = {
   schema: {
     type: 'time',
     name: '当前时间',
-    layout: {
+    placement: {
+      type: 'absolute',
       x: 0,
       y: 0,
       width: 360,

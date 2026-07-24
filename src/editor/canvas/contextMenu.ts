@@ -16,9 +16,14 @@ export interface CanvasPoint {
   y: number
 }
 
+export interface CanvasInsertionTarget {
+  parentId: string
+  point: CanvasPoint
+}
+
 export type CanvasContextMenuTarget =
-  | { kind: 'canvas'; point: CanvasPoint }
-  | { kind: 'selection'; nodeIds: string[]; point: CanvasPoint }
-  | { kind: 'locked-group'; lockKey: string; point: CanvasPoint }
+  | { kind: 'canvas'; pasteTarget: CanvasInsertionTarget }
+  | { kind: 'selection'; nodeIds: string[]; pasteTarget: CanvasInsertionTarget }
+  | { kind: 'locked-group'; lockKey: string; pasteTarget: CanvasInsertionTarget }
 
 export type NodeContextMenuTargetKind = Exclude<CanvasContextMenuTarget['kind'], 'canvas'>

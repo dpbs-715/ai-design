@@ -21,7 +21,10 @@ const editorStore = useEditorStore()
 const pageId = route.query.id
 if (pageId) {
   const page = getPublishPage(route.query.id as string)
-  editorStore.setPage(page)
+  const result = editorStore.setPage(page)
+  if (result.success === false) {
+    throw new Error(result.issues[0]?.message ?? 'Invalid page schema')
+  }
 }
 
 const { dataSources, theme } = storeToRefs(editorStore)
@@ -92,8 +95,7 @@ const { isNarrowWorkspace, materialWidth, layerWidth, propertyWidth } = useRespo
     height: calc(100% - var(--editor-header-height));
   }
 
-  .material,
-  .layer {
+  .material {
     border-right: 1px solid var(--border-color);
   }
 

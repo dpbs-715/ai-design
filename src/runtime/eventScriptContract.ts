@@ -1,4 +1,5 @@
-export interface EventScriptLayout {
+export interface EventScriptPlacement {
+  type: 'absolute'
   x: number
   y: number
   width: number
@@ -16,7 +17,8 @@ export interface EventScriptNode {
   type: string
   name: string
   lockKey?: string
-  layout: EventScriptLayout
+  placement: EventScriptPlacement
+  children: EventScriptNode[]
   style?: Record<string, unknown>
   props: Record<string, unknown>
   dataId?: string | number
@@ -40,8 +42,8 @@ export interface EventScriptContext {
   setProps(id: string, key: string, value: unknown): void
   /** 修改节点 style 中的字段。 */
   setStyle(id: string, key: string, value: unknown): void
-  /** 修改节点 layout 中的字段。 */
-  setLayout(id: string, key: string, value: unknown): void
+  /** 修改节点 placement 中的字段。 */
+  setPlacement(id: string, key: string, value: unknown): void
   /** 调用物料组件实例暴露的方法。 */
   trigger(id: string, event: string, ...args: unknown[]): unknown
   /** 刷新绑定到指定数据源的全部节点。 */

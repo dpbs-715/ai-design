@@ -78,7 +78,8 @@ export const lineMaterial: MaterialDefinition = {
   schema: {
     type: 'line-chart',
     name: '折线图',
-    layout: {
+    placement: {
+      type: 'absolute',
       x: 0,
       y: 0,
       width: 420,

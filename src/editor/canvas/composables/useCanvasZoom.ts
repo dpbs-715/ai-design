@@ -41,10 +41,11 @@ export function useCanvasZoom({
   scale,
 }: UseCanvasZoomOptions) {
   const sketchRulerRef = useTemplateRef<SketchRulerExpose>('sketchRuler')
-  const isCanvasPanning = computed(() => {
-    const cursorClass = sketchRulerRef.value?.cursorClass
-    return cursorClass === 'grab' || cursorClass === 'grabbing'
+  const canvasCursorClass = computed(() => sketchRulerRef.value?.cursorClass)
+  const isCanvasPanMode = computed(() => {
+    return canvasCursorClass.value === 'grab' || canvasCursorClass.value === 'grabbing'
   })
+  const isCanvasPanning = computed(() => canvasCursorClass.value === 'grabbing')
 
   function getFitTransform(): CanvasTransform {
     const availableWidth = viewportWidth.value * (1 - CANVAS_PADDING_RATIO)
@@ -96,6 +97,7 @@ export function useCanvasZoom({
   }
 
   return {
+    isCanvasPanMode,
     isCanvasPanning,
     fitCanvas,
     centerCanvas,

@@ -105,7 +105,8 @@ export const pieMaterial: MaterialDefinition = {
   schema: {
     type: 'pie-chart',
     name: '饼图',
-    layout: {
+    placement: {
+      type: 'absolute',
       x: 0,
       y: 0,
       width: 420,

@@ -1,75 +1,50 @@
 <script setup lang="ts">
 import { useEditorStore } from '@/stores/editor.ts'
 import { storeToRefs } from 'pinia'
-import { useDraggable } from 'vue-draggable-plus'
+import LayerTreeNode from './LayerTreeNode.vue'
 
 defineOptions({ name: 'LayerPanel' })
 
 const editorStore = useEditorStore()
+const { rootChildren, selectedNodeIds } = storeToRefs(editorStore)
+const draggingNodeId = ref<string>()
+const orderedRootChildren = computed(() => [...rootChildren.value].reverse())
 
-const { nodes, selectedNodeIds } = storeToRefs(editorStore)
-
-useDraggable('.layer-panel', nodes, {
-  animation: 150,
-  direction: 'horizontal',
-  filter: '.is-locked',
-})
+function onDrop(targetId: string) {
+  const sourceId = draggingNodeId.value
+  draggingNodeId.value = undefined
+  if (sourceId) editorStore.moveNodeToSiblingPosition(sourceId, targetId)
+}
 </script>
 
 <template>
-  <div class="h-full">
-    <div class="h-full layer-panel overflow-auto whitespace-nowrap">
-      <div
-        v-for="node in nodes"
+  <div class="layer-panel">
+    <div class="layer-panel__content overflow-auto whitespace-nowrap">
+      <LayerTreeNode
+        v-for="node in orderedRootChildren"
         :key="node.id"
-        :class="{ active: selectedNodeIds.includes(node.id), 'is-locked': node.lockKey }"
-        @click="editorStore.selectNode(node.id)"
-      >
-        <span>{{ node.name }}</span>
-        <span>
-          <Icon icon="fluent:list-bar-24-filled" />
-        </span>
-      </div>
+        :node="node"
+        :depth="0"
+        :selected-node-ids="selectedNodeIds"
+        @select="editorStore.selectNode"
+        @drag-start="draggingNodeId = $event"
+        @drop="onDrop"
+      />
     </div>
   </div>
 </template>
 
-<style scoped lang="scss">
+<style scoped>
 .layer-panel {
-  padding: 10px;
+  height: 100%;
   background: var(--surface-panel);
-  display: flex;
-  flex-direction: column-reverse;
-  justify-content: start;
+}
 
-  & > div {
-    margin-bottom: 4px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 10px;
-    height: 28px;
-    border: 1px solid transparent;
-    border-radius: 4px;
-    background: var(--surface-raised);
-    color: var(--text-secondary);
-    font-size: 12px;
-    transition:
-      background-color 140ms ease,
-      border-color 140ms ease,
-      color 140ms ease;
-
-    &:hover {
-      background: var(--surface-hover);
-      color: var(--text-primary);
-    }
-
-    &.active {
-      border-color: color-mix(in srgb, var(--accent-color) 34%, transparent);
-      background: var(--accent-soft);
-      color: var(--accent-color);
-    }
-  }
+.layer-panel__content {
+  width: 160px;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  border-right: 1px solid var(--border-color);
 }
 </style>

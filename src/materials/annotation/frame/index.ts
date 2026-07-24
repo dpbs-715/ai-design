@@ -93,7 +93,8 @@ function createAnnotationMaterial(preset: AnnotationPreset): MaterialDefinition 
     schema: {
       type: 'annotation-frame',
       name: `${preset.name}标注`,
-      layout: {
+      placement: {
+        type: 'absolute',
         x: 0,
         y: 0,
         width: 320,

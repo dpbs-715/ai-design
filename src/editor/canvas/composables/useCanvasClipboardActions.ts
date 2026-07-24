@@ -1,5 +1,5 @@
 import type { MaterialSchema } from '@/schema/material.ts'
-import type { CanvasPoint } from '@/editor/canvas/contextMenu.ts'
+import type { CanvasInsertionTarget } from '@/editor/canvas/contextMenu.ts'
 import {
   readEditorClipboardPayload,
   writeEditorNodesToClipboard,
@@ -37,7 +37,9 @@ export function useCanvasClipboardActions() {
     if (!nodes.length) return false
 
     try {
-      await writeEditorNodesToClipboard(nodes)
+      const parentIds = new Set(nodes.map((node) => editorStore.findParentId(node.id)))
+      const parentId = parentIds.size === 1 ? parentIds.values().next().value : undefined
+      await writeEditorNodesToClipboard(nodes, parentId)
       resetInternalPasteSequence(nodes)
       ElMessage.success(successMessage)
       return true
@@ -76,14 +78,18 @@ export function useCanvasClipboardActions() {
     if (copied) editorStore.removeNodes(nodes.map((node) => node.id))
   }
 
-  async function pasteAt(point: CanvasPoint) {
+  async function pasteAt(target: CanvasInsertionTarget) {
     const payload = await readPayload()
     if (!payload) return
 
     if (payload.kind === 'nodes') {
-      const count = editorStore.pasteNodes(payload.nodes, { kind: 'point', point })
+      const count = editorStore.pasteNodes(
+        payload.nodes,
+        { kind: 'point', point: target.point },
+        target.parentId,
+      )
       if (count) ElMessage.success(`已粘贴 ${count} 个物料`)
-      else ElMessage.warning('剪贴板中的节点列表为空')
+      else ElMessage.warning('当前容器无法接收剪贴板中的物料')
       return
     }
 
@@ -106,7 +112,15 @@ export function useCanvasClipboardActions() {
             return { kind: 'cascade' as const, x: offset, y: offset }
           })()
         : ({ kind: 'preserve' } as const)
-    const count = editorStore.pasteNodes(payload.nodes, placement)
+    const preferredParentId = payload.origin === 'editor' ? payload.parentId : undefined
+    let count = editorStore.pasteNodes(
+      payload.nodes,
+      placement,
+      preferredParentId ?? editorStore.root.id,
+    )
+    if (!count && preferredParentId && preferredParentId !== editorStore.root.id) {
+      count = editorStore.pasteNodes(payload.nodes, placement, editorStore.root.id)
+    }
     if (count) ElMessage.success(`已粘贴 ${count} 个物料`)
     else ElMessage.warning('剪贴板中的节点列表为空')
   }

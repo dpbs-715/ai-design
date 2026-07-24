@@ -77,7 +77,8 @@ export const annotationNoteMaterial: MaterialDefinition = {
   schema: {
     type: 'annotation-note',
     name: '自由备注',
-    layout: {
+    placement: {
+      type: 'absolute',
       x: 0,
       y: 0,
       width: 280,

@@ -85,7 +85,8 @@ export const imageMaterial: MaterialDefinition = {
   schema: {
     type: 'image',
     name: '图片',
-    layout: {
+    placement: {
+      type: 'absolute',
       x: 0,
       y: 0,
       width: 320,

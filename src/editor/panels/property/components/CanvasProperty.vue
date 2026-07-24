@@ -11,35 +11,96 @@ defineOptions({
 })
 
 const editorStore = useEditorStore()
-const { canvas } = storeToRefs(editorStore)
+const { root } = storeToRefs(editorStore)
 const { dispatchCommand, startBatch, commitBatch } = useUndoRedo()
 
 const { config } = useConfigs<CommonFormConfig>(
   [
     {
       label: '宽度',
-      field: 'width',
+      field: 'placement.width',
       component: 'number',
       span: 12,
+      props: { min: 1 },
     },
     {
       label: '高度',
-      field: 'height',
+      field: 'placement.height',
       component: 'number',
       span: 12,
+      props: { min: 1 },
     },
     {
       label: '背景色',
-      field: 'backgroundColor',
+      field: 'style.background.color',
       component: 'themeColor',
       span: 24,
+    },
+    {
+      label: '背景图片',
+      field: 'style.background.image.src',
+      component: 'input',
+      span: 24,
+      props: {
+        placeholder: '输入图片 URL',
+      },
+    },
+    {
+      label: '填充方式',
+      field: 'style.background.image.fit',
+      component: 'commonSelect',
+      span: 12,
+      props: {
+        options: [
+          { label: '覆盖', value: 'cover' },
+          { label: '包含', value: 'contain' },
+          { label: '拉伸', value: 'fill' },
+          { label: '原始尺寸', value: 'auto' },
+        ],
+      },
+    },
+    {
+      label: '重复方式',
+      field: 'style.background.image.repeat',
+      component: 'commonSelect',
+      span: 12,
+      props: {
+        options: [
+          { label: '不重复', value: 'no-repeat' },
+          { label: '重复', value: 'repeat' },
+          { label: '水平重复', value: 'repeat-x' },
+          { label: '垂直重复', value: 'repeat-y' },
+        ],
+      },
+    },
+    {
+      label: '图片位置',
+      field: 'style.background.image.position',
+      component: 'input',
+      span: 12,
+      props: {
+        placeholder: 'center center',
+      },
+    },
+    {
+      label: '透明度',
+      field: 'style.background.image.opacity',
+      component: 'number',
+      span: 12,
+      props: {
+        min: 0,
+        max: 1,
+        step: 0.05,
+        precision: 2,
+      },
     },
   ],
   false,
 )
 
-config.forEach((config) => {
-  config.props = {
+config.forEach((formItem) => {
+  formItem.props = {
+    ...formItem.props,
     onFocus: () => {
       startBatch()
     },
@@ -53,7 +114,9 @@ config.forEach((config) => {
 <template>
   <div class="canvas-property">
     <header class="canvas-header">
-      <span class="canvas-icon icon-tile"><Icon icon="fluent:slide-size-20-filled" width="18" /></span>
+      <span class="canvas-icon icon-tile"
+        ><Icon icon="fluent:slide-size-20-filled" width="18"
+      /></span>
       <span class="canvas-copy">
         <strong>画布</strong>
         <small>页面基础设置</small>
@@ -67,7 +130,7 @@ config.forEach((config) => {
       <CommonForm
         label-position="top"
         :command-dispatcher="dispatchCommand"
-        v-model="canvas"
+        :model-value="root"
         :config="config"
       />
     </div>

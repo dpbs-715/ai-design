@@ -5,8 +5,7 @@ import { ElMessage } from 'element-plus'
 import DataSourceManager from './components/DataSourceManager.vue'
 import { useRouter } from 'vue-router'
 import { publishPage } from '@/utils/publish.ts'
-import EditorThemeControl from '@/editor/theme/EditorThemeControl.vue'
-import EditorAccentControl from '@/editor/theme/EditorAccentControl.vue'
+import { formatSchemaValidationIssue, parsePageSchema } from '@/schema/validation.ts'
 
 defineOptions({ name: 'ToolbarRight' })
 
@@ -37,30 +36,52 @@ function closeJsonEditor() {
 }
 
 function onConfirm() {
-  const newPage = JSON.parse(jsonText.value)
-  editorStore.setPage(newPage)
-  visible.value = false
+  try {
+    const newPage = JSON.parse(jsonText.value)
+    const result = editorStore.setPage(newPage)
+    if (result.success === false) {
+      ElMessage.error(formatSchemaValidationIssue(result.issues[0]))
+      return
+    }
+    visible.value = false
+  } catch {
+    ElMessage.error('JSON 格式不合法')
+  }
 }
 
 function onImport() {
   uploadRef.value.click()
 }
 
-async function onFileChange(e) {
-  const file: File = e.target.files[0]
+async function onFileChange(event: Event) {
+  const input = event.currentTarget as HTMLInputElement
+  const file = input.files?.[0]
   if (!file) return
-  const text = await file.text()
+
   try {
+    const text = await file.text()
     const newPage = JSON.parse(text)
-    editorStore.setPage(newPage)
+    const result = editorStore.setPage(newPage)
+    if (result.success === false) {
+      ElMessage.error(formatSchemaValidationIssue(result.issues[0]))
+      return
+    }
     ElMessage.success('导入成功')
   } catch {
-    ElMessage.error('请检查 JSON 是否合法')
+    ElMessage.error('JSON 格式不合法')
+  } finally {
+    input.value = ''
   }
 }
 
 function onExport() {
-  const json = JSON.stringify(page.value, null, 2)
+  const result = parsePageSchema(page.value)
+  if (result.success === false) {
+    ElMessage.error(formatSchemaValidationIssue(result.issues[0]))
+    return
+  }
+
+  const json = JSON.stringify(result.data, null, 2)
   const blob = new Blob([json], { type: 'application/json;charset-utf-8' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -86,13 +107,27 @@ function onSave() {
 }
 
 function onPreview() {
+  const result = parsePageSchema(page.value)
+  if (result.success === false) {
+    ElMessage.error(formatSchemaValidationIssue(result.issues[0]))
+    return
+  }
+
   router.push({
     name: 'ScreenPreview',
   })
 }
 
 function onPublish() {
-  const id = publishPage(page.value)
+  const pageId = page.value.id ?? crypto.randomUUID()
+  const result = parsePageSchema({ ...page.value, id: pageId })
+  if (result.success === false) {
+    ElMessage.error(formatSchemaValidationIssue(result.issues[0]))
+    return
+  }
+
+  const id = publishPage(result.data)
+  editorStore.setPageId(id)
 
   router.push({ name: 'Screen', query: { id } })
 }

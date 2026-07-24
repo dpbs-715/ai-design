@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { CommonFormConfig } from '@vunio/ui'
-import { ElMessageBox } from 'element-plus'
+import type { CommonFormCommand, CommonFormConfig } from '@vunio/ui'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { storeToRefs } from 'pinia'
 import { useUndoRedo } from '@/hooks/useUndoRedo.ts'
 import {
@@ -9,6 +9,7 @@ import {
   getMaterialEventOptions,
 } from '@/materials'
 import type { MaterialEvent } from '@/schema/material.ts'
+import { formatSchemaValidationIssue, parseMaterialSchema } from '@/schema/validation.ts'
 import { useEditorStore } from '@/stores/editor.ts'
 
 defineOptions({ name: 'PropertyEventSection' })
@@ -158,6 +159,19 @@ function openCodeEditor() {
 function resetEventSearch(visible: boolean) {
   if (!visible) eventSearchKeyword.value = ''
 }
+
+function dispatchValidatedEventCommand(command: CommonFormCommand) {
+  command.execute()
+  const result = parseMaterialSchema(selectedNode.value)
+  command.undo()
+
+  if (result.success === false) {
+    ElMessage.error(formatSchemaValidationIssue(result.issues[0]))
+    return
+  }
+
+  dispatchCommand(command)
+}
 </script>
 
 <template>
@@ -257,7 +271,7 @@ function resetEventSearch(visible: boolean) {
         label-position="top"
         :model-value="activeEvent"
         :config="eventFormConfig"
-        :command-dispatcher="dispatchCommand"
+        :command-dispatcher="dispatchValidatedEventCommand"
       />
 
       <div class="code-summary">

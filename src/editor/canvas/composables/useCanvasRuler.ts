@@ -2,6 +2,7 @@ import { storeToRefs } from 'pinia'
 import { useEditorStore } from '@/stores/editor.ts'
 import type { Ref, ShallowRef } from 'vue'
 import { useEditorTheme } from '@/editor/theme/editorTheme.ts'
+import type { RulerPalette } from 'vue3-sketch-ruler'
 
 interface UseCanvasRulerOptions {
   moveableRef: Readonly<ShallowRef<{ updateRect: () => void } | null>>
@@ -21,18 +22,17 @@ export function useCanvasRuler({ moveableRef, isMoveableActive }: UseCanvasRuler
 
   const scale = ref(1)
   const lines = ref({ h: [], v: [] })
-  const palette = computed(() => {
+  const palette = computed<Partial<RulerPalette>>(() => {
     void resolvedTheme.value
 
     return {
       bgColor: readThemeColor('--surface-panel'),
-      longfgColor: readThemeColor('--border-color-strong'),
-      fontColor: readThemeColor('--text-muted'),
-      fontShadowColor: readThemeColor('--accent-color'),
+      tickColor: readThemeColor('--border-color-strong'),
+      labelColor: readThemeColor('--text-muted'),
       shadowColor: readThemeColor('--accent-soft'),
-      lineColor: readThemeColor('--accent-color'),
-      lineTYpe: 'solid',
-      lockLineColor: readThemeColor('--border-color-strong'),
+      guideLineColor: readThemeColor('--accent-color'),
+      guideLineLockedColor: readThemeColor('--border-color-strong'),
+      guideLineStyle: 'solid',
       borderColor: readThemeColor('--border-color'),
       hoverBg: readThemeColor('--surface-raised'),
       hoverColor: readThemeColor('--text-primary'),
@@ -48,13 +48,17 @@ export function useCanvasRuler({ moveableRef, isMoveableActive }: UseCanvasRuler
 
   let moveableUpdateFrame: number | undefined
 
-  const onZoomChange = () => {
+  function updateMoveableRect() {
+    if (!isMoveableActive.value) moveableRef.value?.updateRect()
+  }
+
+  function onCanvasTransformChange() {
     if (isMoveableActive.value) return
     if (moveableUpdateFrame !== undefined) return
 
     moveableUpdateFrame = requestAnimationFrame(() => {
       moveableUpdateFrame = undefined
-      if (!isMoveableActive.value) moveableRef.value?.updateRect()
+      updateMoveableRect()
     })
   }
 
@@ -69,6 +73,7 @@ export function useCanvasRuler({ moveableRef, isMoveableActive }: UseCanvasRuler
     scale,
     lines,
     palette,
-    onZoomChange,
+    updateMoveableRect,
+    onCanvasTransformChange,
   }
 }

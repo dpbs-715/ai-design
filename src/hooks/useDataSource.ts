@@ -1,6 +1,6 @@
 import { injectDataSources } from '@/context'
 import axios from 'axios'
-import type { DataSourceSchema } from '@/schema/page.ts'
+import type { ApiDataSourceSchema } from '@/schema/page.ts'
 import { asyncCache, getByKeyOrPath } from '@vunio/utils'
 
 export function useDataSource(dataId: Ref<string | number>) {
@@ -49,7 +49,7 @@ export function useDataSource(dataId: Ref<string | number>) {
   }
 }
 
-export async function fetchDataBase(source: DataSourceSchema, data?: Record<string, any>) {
+export async function fetchDataBase(source: ApiDataSourceSchema, data?: Record<string, any>) {
   const search = new URLSearchParams(location.search)
   const params = Object.fromEntries(search.entries())
 

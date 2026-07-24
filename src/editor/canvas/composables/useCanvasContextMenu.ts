@@ -5,16 +5,17 @@ import {
   canvasContextMenuCommands,
   type CanvasContextMenuCommand,
   type CanvasContextMenuTarget,
-  type CanvasPoint,
+  type CanvasInsertionTarget,
 } from '@/editor/canvas/contextMenu.ts'
 import { useEditorStore } from '@/stores/editor.ts'
+import { findCanvasDropTarget } from '@/editor/canvas/canvasTarget.ts'
 
 interface UseCanvasContextMenuOptions {
   canvasRootRef: Readonly<ShallowRef<HTMLElement | null>>
   stageRef: Readonly<ShallowRef<HTMLElement | null>>
   scale: Readonly<Ref<number>>
   copyNodes: (nodes: MaterialSchema[]) => Promise<boolean>
-  pasteAt: (point: CanvasPoint) => Promise<void>
+  pasteAt: (target: CanvasInsertionTarget) => Promise<void>
 }
 
 export function useCanvasContextMenu({
@@ -28,6 +29,7 @@ export function useCanvasContextMenu({
   const contextMenuRef = useTemplateRef<DropdownInstance>('contextMenu')
   const contextMenuTarget = shallowRef<CanvasContextMenuTarget | null>(null)
   const contextMenuAnchor = shallowRef<Measurable>()
+  let openRequestId = 0
   const contextMenuNodes = computed(() => {
     const target = contextMenuTarget.value
     if (!target || target.kind === 'canvas') return []
@@ -40,28 +42,21 @@ export function useCanvasContextMenu({
   })
 
   function closeContextMenu() {
-    contextMenuRef.value?.handleClose()
+    openRequestId += 1
     contextMenuTarget.value = null
+    contextMenuAnchor.value = undefined
   }
 
-  function getCanvasPoint(event: MouseEvent): CanvasPoint | null {
+  function getPasteTarget(event: MouseEvent): CanvasInsertionTarget | null {
     const stage = stageRef.value
-    if (!stage || scale.value <= 0) return null
-
-    const rect = stage.getBoundingClientRect()
-    if (
-      event.clientX < rect.left ||
-      event.clientX > rect.right ||
-      event.clientY < rect.top ||
-      event.clientY > rect.bottom
-    ) {
-      return null
-    }
-
-    return {
-      x: (event.clientX - rect.left) / scale.value,
-      y: (event.clientY - rect.top) / scale.value,
-    }
+    if (!stage) return null
+    return findCanvasDropTarget(
+      stage,
+      editorStore.root.id,
+      event.clientX,
+      event.clientY,
+      scale.value,
+    )
   }
 
   function findContextMenuNode(event: MouseEvent) {
@@ -78,37 +73,48 @@ export function useCanvasContextMenu({
 
   async function openContextMenu(
     node: MaterialSchema | undefined,
-    point: CanvasPoint,
+    pasteTarget: CanvasInsertionTarget,
     event: MouseEvent,
   ) {
-    closeContextMenu()
+    const requestId = ++openRequestId
+    contextMenuTarget.value = null
+    contextMenuAnchor.value = undefined
+    await nextTick()
+    if (requestId !== openRequestId) return
+
     if (!node) {
-      contextMenuTarget.value = { kind: 'canvas', point }
-    } else if (node.lockKey) {
-      contextMenuTarget.value = { kind: 'locked-group', lockKey: node.lockKey, point }
+      contextMenuTarget.value = { kind: 'canvas', pasteTarget }
     } else {
-      if (!editorStore.isNodeSelected(node.id)) editorStore.selectNode(node.id)
-      contextMenuTarget.value = {
-        kind: 'selection',
-        nodeIds: [...editorStore.selectedNodeIds],
-        point,
+      const lockKey = editorStore.getNodeLockKey(node.id)
+      if (lockKey) {
+        contextMenuTarget.value = { kind: 'locked-group', lockKey, pasteTarget }
+      } else {
+        if (!editorStore.isNodeSelected(node.id)) editorStore.selectNode(node.id)
+        contextMenuTarget.value = {
+          kind: 'selection',
+          nodeIds: [...editorStore.selectedNodeIds],
+          pasteTarget,
+        }
       }
     }
+    const anchorX = event.clientX
+    const anchorY = event.clientY
     contextMenuAnchor.value = {
-      getBoundingClientRect: () => DOMRect.fromRect({ x: event.clientX, y: event.clientY }),
+      getBoundingClientRect: () => DOMRect.fromRect({ x: anchorX, y: anchorY }),
     }
 
     await nextTick()
+    if (requestId !== openRequestId) return
     contextMenuRef.value?.handleOpen()
   }
 
   function onContextMenu(event: MouseEvent) {
-    const point = getCanvasPoint(event)
-    if (!point) return
+    const pasteTarget = getPasteTarget(event)
+    if (!pasteTarget) return
 
     event.preventDefault()
     event.stopPropagation()
-    void openContextMenu(findContextMenuNode(event), point, event)
+    void openContextMenu(findContextMenuNode(event), pasteTarget, event)
   }
 
   function onContextMenuCommand(command: CanvasContextMenuCommand) {
@@ -116,11 +122,10 @@ export function useCanvasContextMenu({
     if (!target) return
 
     const nodes = contextMenuNodes.value
-    contextMenuRef.value?.handleClose()
-    contextMenuTarget.value = null
+    closeContextMenu()
 
     if (command === canvasContextMenuCommands.paste) {
-      void pasteAt(target.point)
+      void pasteAt(target.pasteTarget)
       return
     }
     if (!nodes.length) return

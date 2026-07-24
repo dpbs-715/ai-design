@@ -74,7 +74,8 @@ export const barMaterial: MaterialDefinition = {
   schema: {
     type: 'bar-chart',
     name: '柱状图',
-    layout: {
+    placement: {
+      type: 'absolute',
       x: 0,
       y: 0,
       width: 420,

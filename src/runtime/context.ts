@@ -1,18 +1,25 @@
-import type { MaterialSchema } from '@/schema/material.ts'
+import type { MaterialEvent, MaterialSchema } from '@/schema/material.ts'
 import type { PageSchema } from '@/schema/page.ts'
+import { createMaterialTreeIndex } from '@/schema/nodeTree.ts'
 import { setByKeyOrPath } from '@vunio/utils'
 import type { EventScriptContext } from './eventScriptContract.ts'
+import { runSandbox } from '@/runtime/sandbox.ts'
 
 export interface RuntimeContext extends EventScriptContext {
   getNode(id: string): MaterialSchema | undefined
-  registerNodeInstance(instances: Record<string, any>): void
+  executeEvent(node: MaterialSchema, event: MaterialEvent, payload: unknown): unknown
+  registerNodeInstance(id: string, instance: unknown): void
+  unregisterNodeInstance(id: string): void
 }
 
 export function createRuntimeContext(page: Ref<PageSchema>): RuntimeContext {
-  let instanceMap = {}
+  const instanceMap = new Map<string, any>()
+  const treeIndex = computed(() =>
+    createMaterialTreeIndex(page.value.root.children, page.value.root.id),
+  )
 
   const getNode: RuntimeContext['getNode'] = (id) => {
-    return page.value.nodes.find((node) => node.id === id)
+    return treeIndex.value.nodeMap.get(id)
   }
 
   const setAttribute: RuntimeContext['setAttribute'] = (id, key, value) => {
@@ -32,16 +39,20 @@ export function createRuntimeContext(page: Ref<PageSchema>): RuntimeContext {
     setAttribute(id, `style.${key}`, value)
   }
 
-  const setLayout: RuntimeContext['setLayout'] = (id, key, value) => {
-    setAttribute(id, `layout.${key}`, value)
+  const setPlacement: RuntimeContext['setPlacement'] = (id, key, value) => {
+    setAttribute(id, `placement.${key}`, value)
   }
 
-  const registerNodeInstance: RuntimeContext['registerNodeInstance'] = (instances) => {
-    instanceMap = instances
+  const registerNodeInstance: RuntimeContext['registerNodeInstance'] = (id, instance) => {
+    instanceMap.set(id, instance)
+  }
+
+  const unregisterNodeInstance: RuntimeContext['unregisterNodeInstance'] = (id) => {
+    instanceMap.delete(id)
   }
 
   const trigger: RuntimeContext['trigger'] = (id, event, ...args) => {
-    const instance = instanceMap[id]
+    const instance = instanceMap.get(id)
 
     if (!instance) {
       console.warn(`Instance ${id} not found`)
@@ -51,9 +62,17 @@ export function createRuntimeContext(page: Ref<PageSchema>): RuntimeContext {
   }
 
   const refreshNodesByDataId: RuntimeContext['refreshNodesByDataId'] = (dataId, ...args) => {
-    const nodes = page.value.nodes.filter((node) => node.dataId === dataId)
+    const nodes = treeIndex.value.nodes.filter((node) => node.dataId === dataId)
     nodes.forEach((node) => {
       trigger(node.id, 'refresh', ...args)
+    })
+  }
+
+  const executeEvent: RuntimeContext['executeEvent'] = (node, event, payload) => {
+    return runSandbox(event.code, {
+      $context: context,
+      $node: node,
+      $payload: payload,
     })
   }
 
@@ -64,20 +83,23 @@ export function createRuntimeContext(page: Ref<PageSchema>): RuntimeContext {
       return
     }
     const event = node.events?.find((event) => event.name === action)
-    if (event) {
-      return event.handler(payload)
-    }
+    if (!event) return
+
+    return executeEvent(node, event, payload)
   }
 
-  return {
+  const context: RuntimeContext = {
     getNode,
+    executeEvent,
     setAttribute,
     setProps,
     setStyle,
-    setLayout,
+    setPlacement,
     registerNodeInstance,
+    unregisterNodeInstance,
     trigger,
     refreshNodesByDataId,
     dispatch,
   }
+  return context
 }

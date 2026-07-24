@@ -74,7 +74,8 @@ export const textMaterial: MaterialDefinition = {
   schema: {
     type: 'text',
     name: '标题文本',
-    layout: {
+    placement: {
+      type: 'absolute',
       x: 0,
       y: 0,
       width: 460,

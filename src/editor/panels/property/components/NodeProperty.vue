@@ -12,6 +12,7 @@ import { useUndoRedo } from '@/hooks/useUndoRedo.ts'
 import { getMaterialIcon, getMaterialSetters } from '@/materials'
 import type { MaterialEvent } from '@/schema/material.ts'
 import { useEditorStore } from '@/stores/editor.ts'
+import { formatSchemaValidationIssue, parseMaterialSchema } from '@/schema/validation.ts'
 
 defineOptions({ name: 'NodeProperty' })
 
@@ -61,8 +62,20 @@ const [layoutConfig] = useConfigs<CommonFormConfig>(
   withBatchEvents([
     { label: 'X', field: 'x', component: 'number', span: 12 },
     { label: 'Y', field: 'y', component: 'number', span: 12 },
-    { label: '宽度', field: 'width', component: 'number', span: 12 },
-    { label: '高度', field: 'height', component: 'number', span: 12 },
+    {
+      label: '宽度',
+      field: 'width',
+      component: 'number',
+      span: 12,
+      props: { min: 1 },
+    },
+    {
+      label: '高度',
+      field: 'height',
+      component: 'number',
+      span: 12,
+      props: { min: 1 },
+    },
   ]),
   false,
 )
@@ -98,15 +111,23 @@ function closeJsonEditor() {
 
 function confirmJson() {
   try {
-    const newNode = JSON.parse(jsonText.value)
-    editorStore.updateNode(selectedNode.value.id, {
-      ...newNode,
+    const parsedNode = JSON.parse(jsonText.value)
+    const newNode = {
+      ...parsedNode,
       id: selectedNode.value.id,
       type: selectedNode.value.type,
-    })
+    }
+    const result = parseMaterialSchema(newNode)
+    if (result.success === false) {
+      throw new Error(formatSchemaValidationIssue(result.issues[0]))
+    }
+    const updateResult = editorStore.updateNode(selectedNode.value.id, result.data)
+    if (updateResult.success === false) {
+      throw new Error(formatSchemaValidationIssue(updateResult.issues[0]))
+    }
     jsonVisible.value = false
-  } catch {
-    ElMessage.error('请检查 JSON 是否合法')
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : 'JSON 格式不合法')
   }
 }
 
@@ -137,7 +158,14 @@ function saveEventCode() {
   if (!draft) return
   const events = [...(selectedNode.value.events ?? [])]
   events[editedEventIndex.value] = draft
-  editorStore.updateNode(selectedNode.value.id, { ...selectedNode.value, events })
+  const result = editorStore.updateNode(selectedNode.value.id, {
+    ...selectedNode.value,
+    events,
+  })
+  if (result.success === false) {
+    ElMessage.error(formatSchemaValidationIssue(result.issues[0]))
+    return
+  }
   eventEditorVisible.value = false
 }
 
@@ -198,7 +226,7 @@ watch(
           <div class="form-area layout-form">
             <CommonForm
               label-position="top"
-              :model-value="selectedNode.layout"
+              :model-value="selectedNode.placement"
               :config="layoutConfig"
               :command-dispatcher="dispatchCommand"
             />

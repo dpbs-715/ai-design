@@ -2,71 +2,63 @@ import { type OnDrag, type OnDragGroup, type OnResize, type OnResizeGroup } from
 import { useEditorStore } from '@/stores/editor.ts'
 import { useUndoRedo } from '@/hooks/useUndoRedo.ts'
 import { SetFormFieldCommand } from '@vunio/ui'
-import type { Layout, MaterialSchema } from '@/schema/material.ts'
+import type { AbsolutePlacement, MaterialSchema } from '@/schema/material.ts'
 
-interface PendingNodeLayout {
+interface PendingNodePlacement {
   nodeId: MaterialSchema['id']
-  initialLayout: Layout
-  layout: Layout
+  initialPlacement: AbsolutePlacement
+  placement: AbsolutePlacement
 }
 
 export function useMoveable() {
   const editorStore = useEditorStore()
   const { dispatchCommand, startBatch, commitBatch } = useUndoRedo()
-  const pendingLayouts = new Map<HTMLElement, PendingNodeLayout>()
+  const pendingPlacements = new Map<HTMLElement, PendingNodePlacement>()
   const isMoveableActive = ref(false)
 
-  const moveableBounds = {
-    position: 'css' as const,
-    left: 0,
-    top: 0,
-    right: 0,
-    bottom: 0,
-  }
-
-  function getPendingLayout(target: HTMLElement) {
-    const pendingLayout = pendingLayouts.get(target)
-    if (pendingLayout) return pendingLayout
+  function getPendingPlacement(target: HTMLElement) {
+    const pendingPlacement = pendingPlacements.get(target)
+    if (pendingPlacement) return pendingPlacement
 
     const node = editorStore.findNode(target.dataset.nodeId)
     if (!node) return
 
-    const initialLayout = { ...node.layout }
+    const initialPlacement = { ...node.placement }
     const created = {
       nodeId: node.id,
-      initialLayout,
-      layout: { ...initialLayout },
+      initialPlacement,
+      placement: { ...initialPlacement },
     }
-    pendingLayouts.set(target, created)
+    pendingPlacements.set(target, created)
     return created
   }
 
   function onStart() {
-    pendingLayouts.clear()
+    pendingPlacements.clear()
     isMoveableActive.value = true
     startBatch()
   }
 
   function onEnd() {
-    pendingLayouts.forEach(({ nodeId, initialLayout, layout }) => {
+    pendingPlacements.forEach(({ nodeId, initialPlacement, placement }) => {
       const currentNode = editorStore.findNode(nodeId)
       if (!currentNode) return
 
       const unchanged =
-        initialLayout.x === layout.x &&
-        initialLayout.y === layout.y &&
-        initialLayout.width === layout.width &&
-        initialLayout.height === layout.height
+        initialPlacement.x === placement.x &&
+        initialPlacement.y === placement.y &&
+        initialPlacement.width === placement.width &&
+        initialPlacement.height === placement.height
 
       if (!unchanged) {
-        Object.assign(currentNode.layout, initialLayout)
+        Object.assign(currentNode.placement, initialPlacement)
         dispatchCommand(
-          new SetFormFieldCommand(() => editorStore.requireNode(nodeId), 'layout', layout),
+          new SetFormFieldCommand(() => editorStore.requireNode(nodeId), 'placement', placement),
         )
       }
     })
 
-    pendingLayouts.clear()
+    pendingPlacements.clear()
     commitBatch()
     isMoveableActive.value = false
   }
@@ -75,15 +67,15 @@ export function useMoveable() {
     const target = e.target as HTMLElement
     target.style.left = e.left + 'px'
     target.style.top = e.top + 'px'
-    const pending = getPendingLayout(target)
+    const pending = getPendingPlacement(target)
     if (!pending) return
 
-    pending.layout.x = e.left
-    pending.layout.y = e.top
+    pending.placement.x = e.left
+    pending.placement.y = e.top
     const node = editorStore.findNode(pending.nodeId)
     if (node) {
-      node.layout.x = e.left
-      node.layout.y = e.top
+      node.placement.x = e.left
+      node.placement.y = e.top
     }
   }
 
@@ -91,15 +83,15 @@ export function useMoveable() {
     const target = e.target as HTMLElement
     target.style.width = e.width + 'px'
     target.style.height = e.height + 'px'
-    const pending = getPendingLayout(target)
+    const pending = getPendingPlacement(target)
     if (!pending) return
 
-    pending.layout.width = e.width
-    pending.layout.height = e.height
+    pending.placement.width = e.width
+    pending.placement.height = e.height
     const node = editorStore.findNode(pending.nodeId)
     if (node) {
-      node.layout.width = e.width
-      node.layout.height = e.height
+      node.placement.width = e.width
+      node.placement.height = e.height
     }
     onDrag(e.drag)
   }
@@ -116,7 +108,6 @@ export function useMoveable() {
 
   return {
     isMoveableActive: readonly(isMoveableActive),
-    moveableBounds,
     onStart,
     onEnd,
     onDrag,
