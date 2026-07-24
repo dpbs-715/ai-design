@@ -341,7 +341,11 @@ onScopeDispose(clearInsertion)
         :key="item.id"
         #[item.props.field]="{ config, modelValue }"
       >
-        <div class="business-form-editor__field" :data-node-id="item.id">
+        <div
+          class="business-form-editor__field"
+          :class="{ 'is-date-picker': item.type === 'form-date-picker' }"
+          :data-node-id="item.id"
+        >
           <button
             v-if="!editorContext.isNodeLocked(item.id)"
             type="button"
@@ -407,6 +411,14 @@ onScopeDispose(clearInsertion)
   width: 100%;
 }
 
+.business-form-editor__field.is-date-picker::after {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  cursor: default;
+  content: '';
+}
+
 .business-form-editor__drag-handle {
   position: absolute;
   z-index: 2;
@@ -432,6 +444,11 @@ onScopeDispose(clearInsertion)
 .business-form-editor__control {
   width: 100%;
   pointer-events: none;
+}
+
+.business-form-editor :deep(.el-date-editor.is-disabled),
+.business-form-editor :deep(.el-date-editor.is-disabled input) {
+  cursor: default;
 }
 
 .business-form-editor__insertion-line {
