@@ -154,8 +154,8 @@ function getExpectedChildPlacement(
   parent: MaterialSchema | PageRootSchema,
 ): MaterialSchema['placement']['type'] {
   if (parent.type === 'page-root') return 'absolute'
-  const childrenLayout: MaterialChildrenLayout | undefined =
-    'childrenLayout' in parent ? parent.childrenLayout : undefined
+  const childrenLayout: MaterialChildrenLayout | undefined = (parent as MaterialSchema)
+    .childrenLayout
   return childrenLayout?.type === 'form-grid' ? 'form-item' : 'absolute'
 }
 

@@ -12,16 +12,19 @@ export interface ThemeVariable {
   light: string
   dark: string
   builtin?: boolean
+  extensions?: Record<string, any>
 }
 
 export interface RenderThemeConfig {
   mode: RenderThemeMode
   variables: ThemeVariable[]
+  extensions?: Record<string, any>
 }
 
 export interface ThemeColorReference {
   type: 'theme'
   key: string
+  extensions?: Record<string, any>
 }
 
 export type ThemeColorValue = string | ThemeColorReference

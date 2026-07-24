@@ -1,20 +1,26 @@
-import { jsonDataSchema, jsonObjectSchema, materialSchema } from '@/schema/material.ts'
+import {
+  extensibleObject,
+  jsonDataSchema,
+  jsonObjectSchema,
+  materialSchema,
+} from '@/schema/material.ts'
 import type { MaterialSchema } from '@/schema/material.ts'
 import type { RenderThemeConfig, ThemeColorValue } from '@/theme/renderTheme.ts'
 import { z } from 'zod'
 
+// Page-owned objects keep unknown fields so imported and agent-authored extensions round-trip.
 const dataSourceBaseShape = {
   id: z.string().min(1),
   name: z.string().min(1),
   data: jsonDataSchema,
 }
 
-export const staticDataSourceSchema = z.strictObject({
+export const staticDataSourceSchema = extensibleObject({
   ...dataSourceBaseShape,
   type: z.literal('static'),
 })
 
-export const apiDataSourceSchema = z.strictObject({
+export const apiDataSourceSchema = extensibleObject({
   ...dataSourceBaseShape,
   type: z.literal('api'),
   url: z.string().trim().min(1, '请输入请求地址'),
@@ -31,13 +37,13 @@ export const dataSourceSchema = z.discriminatedUnion('type', [
 
 const positiveDimensionSchema = z.number().finite().positive('尺寸必须大于 0')
 
-export const canvasPlacementSchema = z.strictObject({
+export const canvasPlacementSchema = extensibleObject({
   type: z.literal('canvas'),
   width: positiveDimensionSchema,
   height: positiveDimensionSchema,
 })
 
-export const canvasBackgroundImageSchema = z.strictObject({
+export const canvasBackgroundImageSchema = extensibleObject({
   src: z.string(),
   fit: z.enum(['cover', 'contain', 'fill', 'auto']),
   position: z.string(),
@@ -47,18 +53,18 @@ export const canvasBackgroundImageSchema = z.strictObject({
 
 export const themeColorSchema = z.union([
   z.string(),
-  z.strictObject({
+  extensibleObject({
     type: z.literal('theme'),
     key: z.string(),
   }),
 ])
 
-export const canvasBackgroundSchema = z.strictObject({
+export const canvasBackgroundSchema = extensibleObject({
   color: themeColorSchema,
   image: canvasBackgroundImageSchema,
 })
 
-export const themeVariableSchema = z.strictObject({
+export const themeVariableSchema = extensibleObject({
   key: z.string().min(1),
   name: z.string().min(1),
   type: z.literal('color'),
@@ -67,7 +73,7 @@ export const themeVariableSchema = z.strictObject({
   builtin: z.boolean().optional(),
 })
 
-export const renderThemeSchema = z.strictObject({
+export const renderThemeSchema = extensibleObject({
   mode: z.enum(['system', 'light', 'dark']),
   variables: z.array(themeVariableSchema).superRefine((variables, context) => {
     const usedKeys = new Set<string>()
@@ -84,15 +90,15 @@ export const renderThemeSchema = z.strictObject({
   }),
 })
 
-export const pageRootSchema = z.strictObject({
+export const pageRootSchema = extensibleObject({
   id: z.string().min(1),
   type: z.literal('page-root'),
   name: z.string().min(1),
   placement: canvasPlacementSchema,
-  style: z.strictObject({
+  style: extensibleObject({
     background: canvasBackgroundSchema,
   }),
-  props: z.strictObject({}),
+  props: extensibleObject({}),
   events: z.tuple([]),
   children: z.array(materialSchema),
 })
@@ -111,7 +117,7 @@ export const dataSourcesSchema = z.array(dataSourceSchema).superRefine((sources,
   })
 })
 
-export const pageSchema = z.strictObject({
+export const pageSchema = extensibleObject({
   schemaVersion: z.literal(2),
   id: z.string().optional(),
   theme: renderThemeSchema,
@@ -123,6 +129,7 @@ interface DataSourceBaseSchema {
   id: string
   name: string
   data: any
+  extensions?: Record<string, any>
 }
 
 export interface StaticDataSourceSchema extends DataSourceBaseSchema {
@@ -144,6 +151,7 @@ export interface CanvasPlacement {
   type: 'canvas'
   width: number
   height: number
+  extensions?: Record<string, any>
 }
 
 export interface CanvasBackgroundImage {
@@ -152,11 +160,13 @@ export interface CanvasBackgroundImage {
   position: string
   repeat: 'no-repeat' | 'repeat' | 'repeat-x' | 'repeat-y'
   opacity: number
+  extensions?: Record<string, any>
 }
 
 export interface CanvasBackground {
   color: ThemeColorValue
   image: CanvasBackgroundImage
+  extensions?: Record<string, any>
 }
 
 export interface PageRootSchema {
@@ -166,10 +176,12 @@ export interface PageRootSchema {
   placement: CanvasPlacement
   style: {
     background: CanvasBackground
+    extensions?: Record<string, any>
   }
-  props: Record<string, never>
+  props: Record<string, any>
   events: []
   children: MaterialSchema[]
+  extensions?: Record<string, any>
 }
 
 export interface PageSchema {
@@ -178,4 +190,5 @@ export interface PageSchema {
   theme: RenderThemeConfig
   root: PageRootSchema
   dataSources: DataSourceSchema[]
+  extensions?: Record<string, any>
 }

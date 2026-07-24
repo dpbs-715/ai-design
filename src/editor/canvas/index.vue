@@ -104,13 +104,32 @@ function onStageMouseDown(event: MouseEvent) {
   }
 }
 
+function findUnlockedNodeAtPoint(event: MouseEvent) {
+  const stage = stageRef.value
+  if (!stage) return
+
+  const visitedNodeIds = new Set<string>()
+  for (const element of document.elementsFromPoint(event.clientX, event.clientY)) {
+    const nodeElement = element.closest<HTMLElement>('[data-node-id]')
+    const nodeId = nodeElement?.dataset.nodeId
+    if (!nodeElement || !nodeId || !stage.contains(nodeElement) || visitedNodeIds.has(nodeId)) {
+      continue
+    }
+
+    visitedNodeIds.add(nodeId)
+    const node = editorStore.findNode(nodeId)
+    if (node && !editorStore.getNodeLockKey(node.id)) return node
+  }
+}
+
 function onNodeMouseDown(node: MaterialSchema, event: MouseEvent) {
   if (event.button !== 0 || isCanvasPanMode.value) return
-  if (editorStore.getNodeLockKey(node.id)) {
+  const targetNode = editorStore.getNodeLockKey(node.id) ? findUnlockedNodeAtPoint(event) : node
+  if (!targetNode) {
     onClearSelected()
     return
   }
-  onSelect(node, event)
+  onSelect(targetNode, event)
 }
 
 provideMaterialEditorContext({
@@ -173,10 +192,26 @@ watch(
   { flush: 'post' },
 )
 
-function getDropTarget(clientX: number, clientY: number) {
+function getDropTarget(clientX: number, clientY: number, childType?: string) {
   const stage = stageRef.value
   if (!stage) return null
-  return findCanvasDropTarget(stage, root.value.id, clientX, clientY, scale.value)
+  return findCanvasDropTarget(
+    stage,
+    root.value.id,
+    clientX,
+    clientY,
+    scale.value,
+    childType
+      ? (parentId) => {
+          const parent = parentId === root.value.id ? root.value : editorStore.findNode(parentId)
+          return Boolean(
+            parent &&
+            canMaterialTypeBeChild(parent, childType) &&
+            (parentId === root.value.id || !editorStore.getNodeLockKey(parentId)),
+          )
+        }
+      : undefined,
+  )
 }
 
 function clearDropTarget() {
@@ -202,7 +237,7 @@ function onDrop(e: DragEvent) {
     return
   }
 
-  const dropTarget = getDropTarget(e.clientX, e.clientY)
+  const dropTarget = getDropTarget(e.clientX, e.clientY, node.type)
   if (!dropTarget) return
   const parentId = dropTarget.parentId
   const parent = parentId === root.value.id ? root.value : editorStore.findNode(parentId)
@@ -221,14 +256,17 @@ function onDrop(e: DragEvent) {
 }
 
 function onDragOver(event: DragEvent) {
-  const dropTarget = getDropTarget(event.clientX, event.clientY)
   const template = getDraggedMaterialTemplate()
+  if (!template || template.placement.type !== 'absolute') {
+    clearDropTarget()
+    return
+  }
+
+  const dropTarget = getDropTarget(event.clientX, event.clientY, template.type)
   const parent =
     dropTarget?.parentId === root.value.id ? root.value : editorStore.findNode(dropTarget?.parentId)
   if (
     !dropTarget ||
-    !template ||
-    template.placement.type !== 'absolute' ||
     !parent ||
     !canMaterialTypeBeChild(parent, template.type) ||
     (dropTarget.parentId !== root.value.id && editorStore.getNodeLockKey(dropTarget.parentId))

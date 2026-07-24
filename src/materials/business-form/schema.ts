@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import {
   absolutePlacementSchema,
+  extensibleObject,
   formGridChildrenLayoutSchema,
   formItemPlacementSchema,
   jsonDataSchema,
@@ -11,23 +12,24 @@ import {
   type MaterialSchema,
 } from '@/schema/material.ts'
 
+// Form schemas validate known controls without treating the current setters as a property whitelist.
 export const formRuleTriggerSchema = z.enum(['blur', 'change'])
 const formRuleTriggersSchema = z.array(formRuleTriggerSchema).min(1)
 
-export const requiredFormRuleSchema = z.strictObject({
+export const requiredFormRuleSchema = extensibleObject({
   type: z.literal('required'),
   message: z.string().min(1),
   trigger: formRuleTriggersSchema,
 })
 
-export const minLengthFormRuleSchema = z.strictObject({
+export const minLengthFormRuleSchema = extensibleObject({
   type: z.literal('minLength'),
   value: z.number().int().nonnegative(),
   message: z.string().min(1),
   trigger: formRuleTriggersSchema,
 })
 
-export const maxLengthFormRuleSchema = z.strictObject({
+export const maxLengthFormRuleSchema = extensibleObject({
   type: z.literal('maxLength'),
   value: z.number().int().nonnegative(),
   message: z.string().min(1),
@@ -42,39 +44,38 @@ export const formRuleSchema = z.discriminatedUnion('type', [
 
 export const formRulesSchema = z.array(formRuleSchema)
 
-export const businessFormPropsSchema = z.strictObject({
+export const businessFormPropsSchema = extensibleObject({
   labelPosition: z.enum(['left', 'right', 'top']),
   labelWidth: z.number().finite().nonnegative(),
   size: z.enum(['small', 'default', 'large']),
   disabled: z.boolean(),
 })
 
-export const formInputControlSchema = z
-  .strictObject({
-    type: z.enum(['text', 'number']),
-    placeholder: z.string(),
-    clearable: z.boolean(),
-    disabled: z.boolean(),
-    readonly: z.boolean(),
-    maxlength: z.number().int().positive(),
-    showWordLimit: z.boolean(),
-    min: z.number().finite(),
-    max: z.number().finite(),
-    step: z.number().finite().positive(),
-  })
-  .superRefine((control, context) => {
-    if (control.min > control.max) {
-      context.addIssue({
-        code: 'custom',
-        path: ['max'],
-        message: '最大值不能小于最小值',
-      })
-    }
-  })
+export const formInputControlSchema = extensibleObject({
+  type: z.enum(['text', 'number']),
+  placeholder: z.string(),
+  clearable: z.boolean(),
+  disabled: z.boolean(),
+  readonly: z.boolean(),
+  maxlength: z.number().int().positive(),
+  showWordLimit: z.boolean(),
+  min: z.number().finite(),
+  max: z.number().finite(),
+  step: z.number().finite().positive(),
+}).superRefine((control, context) => {
+  if (control.min > control.max) {
+    context.addIssue({
+      code: 'custom',
+      path: ['max'],
+      message: '最大值不能小于最小值',
+    })
+  }
+})
 
 export const selectOptionValueSchema = z.union([z.string(), z.number(), z.boolean()])
 
 export interface SelectOptionSchema {
+  [key: string]: any
   id: string
   label: string
   value: string | number | boolean
@@ -83,7 +84,7 @@ export interface SelectOptionSchema {
 }
 
 const selectOptionSchema: z.ZodTypeAny = z.lazy(() =>
-  z.strictObject({
+  extensibleObject({
     id: z.string().min(1),
     label: z.string(),
     value: selectOptionValueSchema,
@@ -133,7 +134,7 @@ export const selectOptionsSchema = z
     validateUniqueOptions(options as SelectOptionSchema[], context),
   )
 
-export const formCommonSelectControlSchema = z.strictObject({
+export const formCommonSelectControlSchema = extensibleObject({
   componentType: z.enum(['ElSelect', 'ElTreeSelect']),
   placeholder: z.string(),
   clearable: z.boolean(),
@@ -149,7 +150,7 @@ export const formCommonSelectControlSchema = z.strictObject({
   childrenField: z.string().trim().min(1),
 })
 
-export const formRadioGroupControlSchema = z.strictObject({
+export const formRadioGroupControlSchema = extensibleObject({
   disabled: z.boolean(),
   type: z.enum(['radio', 'button']),
   options: selectOptionsSchema,
@@ -158,27 +159,25 @@ export const formRadioGroupControlSchema = z.strictObject({
   disabledField: z.string(),
 })
 
-export const formCheckboxGroupControlSchema = z
-  .strictObject({
-    disabled: z.boolean(),
-    min: z.number().int().nonnegative().optional(),
-    max: z.number().int().positive().optional(),
-    options: selectOptionsSchema,
-    labelField: z.string().trim().min(1),
-    valueField: z.string().trim().min(1),
-    disabledField: z.string(),
-  })
-  .superRefine((control, context) => {
-    if (control.min !== undefined && control.max !== undefined && control.min > control.max) {
-      context.addIssue({
-        code: 'custom',
-        path: ['max'],
-        message: '最多选择数量不能小于最少选择数量',
-      })
-    }
-  })
+export const formCheckboxGroupControlSchema = extensibleObject({
+  disabled: z.boolean(),
+  min: z.number().int().nonnegative().optional(),
+  max: z.number().int().positive().optional(),
+  options: selectOptionsSchema,
+  labelField: z.string().trim().min(1),
+  valueField: z.string().trim().min(1),
+  disabledField: z.string(),
+}).superRefine((control, context) => {
+  if (control.min !== undefined && control.max !== undefined && control.min > control.max) {
+    context.addIssue({
+      code: 'custom',
+      path: ['max'],
+      message: '最多选择数量不能小于最少选择数量',
+    })
+  }
+})
 
-export const formDatePickerControlSchema = z.strictObject({
+export const formDatePickerControlSchema = extensibleObject({
   placeholder: z.string(),
   disabled: z.boolean(),
   clearable: z.boolean(),
@@ -187,7 +186,7 @@ export const formDatePickerControlSchema = z.strictObject({
   valueFormat: z.string().min(1),
 })
 
-export const formColorControlSchema = z.strictObject({
+export const formColorControlSchema = extensibleObject({
   disabled: z.boolean(),
   clearable: z.boolean(),
   showAlpha: z.boolean(),
@@ -205,10 +204,10 @@ const formItemBaseShape = {
   events: materialEventsSchema,
 }
 
-export const formInputNodeSchema = z.strictObject({
+export const formInputNodeSchema = extensibleObject({
   ...formItemBaseShape,
   type: z.literal('form-input'),
-  props: z.strictObject({
+  props: extensibleObject({
     field: z.string().trim().min(1, '字段名不能为空'),
     label: z.string(),
     initialValue: jsonDataSchema,
@@ -217,10 +216,10 @@ export const formInputNodeSchema = z.strictObject({
   }),
 })
 
-export const formCommonSelectNodeSchema = z.strictObject({
+export const formCommonSelectNodeSchema = extensibleObject({
   ...formItemBaseShape,
   type: z.literal('form-common-select'),
-  props: z.strictObject({
+  props: extensibleObject({
     field: z.string().trim().min(1, '字段名不能为空'),
     label: z.string(),
     initialValue: jsonDataSchema,
@@ -229,10 +228,10 @@ export const formCommonSelectNodeSchema = z.strictObject({
   }),
 })
 
-export const formRadioGroupNodeSchema = z.strictObject({
+export const formRadioGroupNodeSchema = extensibleObject({
   ...formItemBaseShape,
   type: z.literal('form-radio-group'),
-  props: z.strictObject({
+  props: extensibleObject({
     field: z.string().trim().min(1, '字段名不能为空'),
     label: z.string(),
     initialValue: jsonDataSchema,
@@ -241,32 +240,30 @@ export const formRadioGroupNodeSchema = z.strictObject({
   }),
 })
 
-export const formCheckboxGroupNodeSchema = z
-  .strictObject({
-    ...formItemBaseShape,
-    type: z.literal('form-checkbox-group'),
-    props: z.strictObject({
-      field: z.string().trim().min(1, '字段名不能为空'),
-      label: z.string(),
-      initialValue: jsonDataSchema,
-      control: formCheckboxGroupControlSchema,
-      rules: formRulesSchema,
-    }),
-  })
-  .superRefine((node, context) => {
-    if (!Array.isArray(node.props.initialValue)) {
-      context.addIssue({
-        code: 'custom',
-        path: ['props', 'initialValue'],
-        message: '复选框组的初始值必须是数组',
-      })
-    }
-  })
+export const formCheckboxGroupNodeSchema = extensibleObject({
+  ...formItemBaseShape,
+  type: z.literal('form-checkbox-group'),
+  props: extensibleObject({
+    field: z.string().trim().min(1, '字段名不能为空'),
+    label: z.string(),
+    initialValue: jsonDataSchema,
+    control: formCheckboxGroupControlSchema,
+    rules: formRulesSchema,
+  }),
+}).superRefine((node, context) => {
+  if (!Array.isArray(node.props.initialValue)) {
+    context.addIssue({
+      code: 'custom',
+      path: ['props', 'initialValue'],
+      message: '复选框组的初始值必须是数组',
+    })
+  }
+})
 
-export const formDatePickerNodeSchema = z.strictObject({
+export const formDatePickerNodeSchema = extensibleObject({
   ...formItemBaseShape,
   type: z.literal('form-date-picker'),
-  props: z.strictObject({
+  props: extensibleObject({
     field: z.string().trim().min(1, '字段名不能为空'),
     label: z.string(),
     initialValue: z.string().nullable(),
@@ -275,10 +272,10 @@ export const formDatePickerNodeSchema = z.strictObject({
   }),
 })
 
-export const formColorNodeSchema = z.strictObject({
+export const formColorNodeSchema = extensibleObject({
   ...formItemBaseShape,
   type: z.literal('form-color'),
-  props: z.strictObject({
+  props: extensibleObject({
     field: z.string().trim().min(1, '字段名不能为空'),
     label: z.string(),
     initialValue: z.string(),
@@ -287,34 +284,32 @@ export const formColorNodeSchema = z.strictObject({
   }),
 })
 
-export const businessFormNodeSchema = z
-  .strictObject({
-    id: z.string().min(1),
-    type: z.literal('business-form'),
-    name: z.string().min(1),
-    lockKey: z.string().optional(),
-    placement: absolutePlacementSchema,
-    childrenLayout: formGridChildrenLayoutSchema,
-    props: businessFormPropsSchema,
-    children: z.array(materialSchema),
-    events: materialEventsSchema,
+export const businessFormNodeSchema = extensibleObject({
+  id: z.string().min(1),
+  type: z.literal('business-form'),
+  name: z.string().min(1),
+  lockKey: z.string().optional(),
+  placement: absolutePlacementSchema,
+  childrenLayout: formGridChildrenLayoutSchema,
+  props: businessFormPropsSchema,
+  children: z.array(materialSchema),
+  events: materialEventsSchema,
+}).superRefine((form, context) => {
+  const usedFields = new Set<string>()
+  form.children.forEach((child, index) => {
+    const field = child.props.field
+    if (typeof field !== 'string') return
+    const normalizedField = field.trim()
+    if (usedFields.has(normalizedField)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['children', index, 'props', 'field'],
+        message: `同一表单中的字段名 “${normalizedField}” 不能重复`,
+      })
+    }
+    usedFields.add(normalizedField)
   })
-  .superRefine((form, context) => {
-    const usedFields = new Set<string>()
-    form.children.forEach((child, index) => {
-      const field = child.props.field
-      if (typeof field !== 'string') return
-      const normalizedField = field.trim()
-      if (usedFields.has(normalizedField)) {
-        context.addIssue({
-          code: 'custom',
-          path: ['children', index, 'props', 'field'],
-          message: `同一表单中的字段名 “${normalizedField}” 不能重复`,
-        })
-      }
-      usedFields.add(normalizedField)
-    })
-  })
+})
 
 export type FormRuleTrigger = 'blur' | 'change'
 
@@ -338,6 +333,7 @@ export type FormRuleSchema =
     }
 
 export interface FormItemProps {
+  [key: string]: any
   field: string
   label: string
   initialValue: unknown
@@ -356,6 +352,7 @@ export interface FormItemSchema extends MaterialSchema {
 }
 
 export interface BusinessFormProps {
+  [key: string]: any
   labelPosition: 'left' | 'right' | 'top'
   labelWidth: number
   size: 'small' | 'default' | 'large'

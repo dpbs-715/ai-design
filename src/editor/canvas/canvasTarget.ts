@@ -11,6 +11,7 @@ export function findCanvasDropTarget(
   clientX: number,
   clientY: number,
   scale: number,
+  acceptsTarget: (parentId: string) => boolean = () => true,
 ): CanvasDropTarget | null {
   if (scale <= 0) return null
 
@@ -24,14 +25,26 @@ export function findCanvasDropTarget(
     return null
   }
 
-  let targetElement: HTMLElement = stage
-  for (const element of document.elementsFromPoint(clientX, clientY)) {
-    const container = element.closest<HTMLElement>('[data-container-id]')
-    if (container && stage.contains(container)) {
-      targetElement = container
-      break
-    }
+  const hitElement = document
+    .elementsFromPoint(clientX, clientY)
+    .find((element) => stage.contains(element))
+  const targetElements: HTMLElement[] = []
+  const visitedContainerIds = new Set<string>()
+  let container = hitElement?.closest<HTMLElement>('[data-container-id]')
+
+  while (container && stage.contains(container)) {
+    const containerId = container.dataset.containerId
+    if (!containerId || visitedContainerIds.has(containerId)) break
+    visitedContainerIds.add(containerId)
+    targetElements.push(container)
+    container = container.parentElement?.closest<HTMLElement>('[data-container-id]') ?? null
   }
+
+  targetElements.push(stage)
+  const targetElement = targetElements.find((element) =>
+    acceptsTarget(element.dataset.containerId ?? rootId),
+  )
+  if (!targetElement) return null
 
   const rect = targetElement === stage ? stageRect : targetElement.getBoundingClientRect()
   return {

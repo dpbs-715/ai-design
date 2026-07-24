@@ -8,6 +8,7 @@ import { createInitialFormValues, replaceFormValues } from './formValues.ts'
 import FormItemControl, { type FormItemControlExpose } from './FormItemControl.vue'
 import { injectRuntimeContext } from '@/runtime/runtimeContextProvider.ts'
 import { createMaterialEventProps } from '@/runtime/materialEvents.ts'
+import { createThemeColorReference, useRenderTheme } from '@/theme/renderTheme.ts'
 
 defineOptions({ name: 'BusinessFormMaterial' })
 
@@ -40,11 +41,16 @@ const emit = defineEmits<{
 
 const formRef = useTemplateRef<CommonFormExpose>('form')
 const runtimeContext = injectRuntimeContext()
+const { resolveColor } = useRenderTheme()
+const defaultBackgroundColor = createThemeColorReference('container-background')
 const initialValues = computed(() => createInitialFormValues(schema.children))
 const formValues = reactive<Record<string, unknown>>(initialValues.value)
 const formItems = computed(() => schema.children as FormItemSchema[])
 const schemaConfigs = computed(() => formItems.value.map(toCommonFormConfig))
 const configManager = useConfigs<CommonFormConfig>(schemaConfigs, false)
+const formStyle = computed(() => ({
+  backgroundColor: resolveColor(schema.style?.backgroundColor ?? defaultBackgroundColor),
+}))
 
 watchEffect((onCleanup) => {
   const unregisterValues = formItems.value.map((item) => {
@@ -147,7 +153,7 @@ defineExpose<BusinessFormExpose>({
 </script>
 
 <template>
-  <div class="business-form">
+  <div class="business-form" :style="formStyle">
     <div v-if="!formItems.length" class="business-form__empty">暂无表单字段</div>
     <CommonForm
       v-else
@@ -186,7 +192,6 @@ defineExpose<BusinessFormExpose>({
   box-sizing: border-box;
   padding: 16px;
   overflow: auto;
-  background: var(--surface-panel);
 }
 
 .business-form__empty {

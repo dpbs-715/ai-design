@@ -5,6 +5,7 @@ import { useDraggable, type DraggableEvent } from 'vue-draggable-plus'
 import { canMaterialTypeBeChild, createNode } from '@/materials'
 import { injectMaterialEditorContext } from '@/editor/canvas/materialEditorContext.ts'
 import { getDraggedMaterialTemplate } from '@/editor/canvas/materialDrag.ts'
+import { createThemeColorReference, useRenderTheme } from '@/theme/renderTheme.ts'
 import type { BusinessFormSchema, FormItemSchema } from './schema.ts'
 import { toCommonFormConfig } from './formConfig.ts'
 import { createInitialFormValues } from './formValues.ts'
@@ -17,14 +18,20 @@ const { schema } = defineProps<{
 }>()
 
 const editorContext = injectMaterialEditorContext()
+const { resolveColor } = useRenderTheme()
+const defaultBackgroundColor = createThemeColorReference('container-background')
 const rootRef = useTemplateRef<HTMLDivElement>('root')
 const gridRef = shallowRef<HTMLElement | null>(null)
+const emptyDragImageRef = useTemplateRef<HTMLCanvasElement>('emptyDragImage')
 const insertionIndex = ref<number>()
 const insertionLineStyle = ref<Record<string, string>>({})
 const formItems = computed(() => schema.children as FormItemSchema[])
 const formValues = computed(() => createInitialFormValues(formItems.value))
 const schemaConfigs = computed(() => formItems.value.map(toCommonFormConfig))
 const configManager = useConfigs<CommonFormConfig>(schemaConfigs, false)
+const formStyle = computed(() => ({
+  backgroundColor: resolveColor(schema.style?.backgroundColor ?? defaultBackgroundColor),
+}))
 const editorConfigs = computed<CommonFormConfig[]>(() =>
   configManager.config.map((config) => ({
     ...config,
@@ -45,10 +52,56 @@ function getGridItems() {
   )
 }
 
+interface InsertionLayout {
+  items: HTMLElement[]
+  itemRects: DOMRect[]
+  rootRect: DOMRect
+  scale: number
+  scrollLeft: number
+  scrollTop: number
+}
+
+let insertionLayout: InsertionLayout | undefined
+let renderedInsertionLayout: InsertionLayout | undefined
+let pendingInsertionPoint: { clientX: number; clientY: number } | undefined
+let insertionFrame: number | undefined
+
+function resetInsertionLayout() {
+  insertionLayout = undefined
+  renderedInsertionLayout = undefined
+}
+
+function getInsertionLayout() {
+  const root = rootRef.value
+  if (!root) return
+
+  if (
+    insertionLayout &&
+    insertionLayout.scrollLeft === root.scrollLeft &&
+    insertionLayout.scrollTop === root.scrollTop &&
+    insertionLayout.items.length === formItems.value.length
+  ) {
+    return insertionLayout
+  }
+
+  const items = getGridItems()
+  const rootRect = root.getBoundingClientRect()
+  insertionLayout = {
+    items,
+    itemRects: items.map((element) => element.getBoundingClientRect()),
+    rootRect,
+    scale: root.clientWidth ? rootRect.width / root.clientWidth : 1,
+    scrollLeft: root.scrollLeft,
+    scrollTop: root.scrollTop,
+  }
+  return insertionLayout
+}
+
 function syncGridMetadata() {
   const grid = getGridElement()
   if (!grid) return
   gridRef.value = grid
+  resetInsertionLayout()
 
   Array.from(grid.children).forEach((element, index) => {
     if (!(element instanceof HTMLElement)) return
@@ -82,6 +135,21 @@ function reorderFormItems(event: DraggableEvent<FormItemSchema>) {
   restoreDraggedItem(event)
   if (oldIndex == null || newIndex == null || oldIndex === newIndex) return
   editorContext.reorderChildren(schema.id, oldIndex, newIndex)
+}
+
+function hideSortDragImage(event: DragEvent) {
+  const target = event.target
+  const emptyDragImage = emptyDragImageRef.value
+  if (
+    !(target instanceof Element) ||
+    !target.closest('.business-form-editor__item') ||
+    !emptyDragImage ||
+    !event.dataTransfer
+  ) {
+    return
+  }
+
+  event.dataTransfer.setDragImage(emptyDragImage, 0, 0)
 }
 
 const sortable = useDraggable<FormItemSchema>(gridRef, formItems, {
@@ -125,35 +193,28 @@ function canDropDraggedMaterial() {
   return Boolean(template && canMaterialTypeBeChild(schema, template.type))
 }
 
-function getInsertionIndex(clientX: number, clientY: number) {
-  const items = getGridItems()
-  if (!items.length) return 0
+function getInsertionIndex(clientX: number, clientY: number, layout: InsertionLayout) {
+  if (!layout.items.length) return 0
 
-  const rows = items.map((element, index) => ({
-    index,
-    rect: element.getBoundingClientRect(),
-  }))
-  for (const item of rows) {
-    const centerY = item.rect.top + item.rect.height / 2
-    const centerX = item.rect.left + item.rect.width / 2
-    if (clientY < centerY || (clientY <= item.rect.bottom && clientX < centerX)) {
-      return item.index
+  for (let index = 0; index < layout.itemRects.length; index += 1) {
+    const rect = layout.itemRects[index]
+    const centerY = rect.top + rect.height / 2
+    const centerX = rect.left + rect.width / 2
+    if (clientY < centerY || (clientY <= rect.bottom && clientX < centerX)) {
+      return index
     }
   }
-  return items.length
+  return layout.items.length
 }
 
-function updateInsertionLine(index: number) {
-  const root = rootRef.value
-  if (!root) return
-  const items = getGridItems()
-  const rootRect = root.getBoundingClientRect()
-  const scale = root.clientWidth ? rootRect.width / root.clientWidth : 1
-  const targetRect =
-    index < items.length
-      ? items[index].getBoundingClientRect()
-      : items.at(-1)?.getBoundingClientRect()
+function updateInsertionLine(index: number, layout: InsertionLayout) {
+  if (insertionIndex.value === index && renderedInsertionLayout === layout) return
 
+  const { itemRects, rootRect, scale } = layout
+  const targetRect = index < itemRects.length ? itemRects[index] : itemRects.at(-1)
+
+  insertionIndex.value = index
+  renderedInsertionLayout = layout
   if (!targetRect) {
     insertionLineStyle.value = {
       left: '16px',
@@ -164,7 +225,7 @@ function updateInsertionLine(index: number) {
   }
 
   const top =
-    index < items.length
+    index < itemRects.length
       ? (targetRect.top - rootRect.top) / scale
       : (targetRect.bottom - rootRect.top) / scale
   insertionLineStyle.value = {
@@ -174,9 +235,32 @@ function updateInsertionLine(index: number) {
   }
 }
 
+function flushInsertionPoint() {
+  insertionFrame = undefined
+  const point = pendingInsertionPoint
+  pendingInsertionPoint = undefined
+  const layout = getInsertionLayout()
+  if (!point || !layout) return
+
+  updateInsertionLine(getInsertionIndex(point.clientX, point.clientY, layout), layout)
+}
+
+function scheduleInsertionPoint(clientX: number, clientY: number) {
+  pendingInsertionPoint = { clientX, clientY }
+  if (insertionFrame === undefined) {
+    insertionFrame = requestAnimationFrame(flushInsertionPoint)
+  }
+}
+
 function clearInsertion() {
-  insertionIndex.value = undefined
-  insertionLineStyle.value = {}
+  if (insertionFrame !== undefined) {
+    cancelAnimationFrame(insertionFrame)
+    insertionFrame = undefined
+  }
+  pendingInsertionPoint = undefined
+  resetInsertionLayout()
+  if (insertionIndex.value !== undefined) insertionIndex.value = undefined
+  if (Object.keys(insertionLineStyle.value).length) insertionLineStyle.value = {}
 }
 
 function onDragOver(event: DragEvent) {
@@ -187,9 +271,7 @@ function onDragOver(event: DragEvent) {
   event.preventDefault()
   event.stopPropagation()
   if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy'
-  const index = getInsertionIndex(event.clientX, event.clientY)
-  insertionIndex.value = index
-  updateInsertionLine(index)
+  scheduleInsertionPoint(event.clientX, event.clientY)
 }
 
 function onDragLeave(event: DragEvent) {
@@ -199,11 +281,18 @@ function onDragLeave(event: DragEvent) {
 }
 
 function onDrop(event: DragEvent) {
+  if (!canDropDraggedMaterial()) {
+    clearInsertion()
+    return
+  }
+
   event.preventDefault()
   event.stopPropagation()
-  const index = insertionIndex.value ?? formItems.value.length
+  const layout = getInsertionLayout()
+  const index = layout
+    ? getInsertionIndex(event.clientX, event.clientY, layout)
+    : formItems.value.length
   clearInsertion()
-  if (!canDropDraggedMaterial()) return
 
   const data = event.dataTransfer?.getData('schema')
   if (!data) return
@@ -218,17 +307,27 @@ function onDrop(event: DragEvent) {
 }
 
 useEventListener('dragend', clearInsertion)
+onScopeDispose(clearInsertion)
 </script>
 
 <template>
   <div
     ref="root"
     class="business-form-editor"
+    :style="formStyle"
     @mousedown="onFormMouseDown"
+    @dragstart="hideSortDragImage"
     @dragover="onDragOver"
     @dragleave="onDragLeave"
     @drop="onDrop"
   >
+    <canvas
+      ref="emptyDragImage"
+      class="business-form-editor__empty-drag-image"
+      width="1"
+      height="1"
+      aria-hidden="true"
+    />
     <div v-if="!formItems.length" class="business-form-editor__empty">拖入表单字段</div>
     <CommonForm
       :model-value="formValues"
@@ -280,7 +379,6 @@ useEventListener('dragend', clearInsertion)
   box-sizing: border-box;
   padding: 16px;
   overflow: auto;
-  background: var(--surface-panel);
 }
 
 .business-form-editor__empty {
@@ -291,6 +389,16 @@ useEventListener('dragend', clearInsertion)
   border: 1px dashed var(--border-color-strong);
   color: var(--text-muted);
   font-size: 13px;
+  pointer-events: none;
+}
+
+.business-form-editor__empty-drag-image {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
   pointer-events: none;
 }
 

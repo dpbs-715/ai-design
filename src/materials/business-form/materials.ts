@@ -15,6 +15,7 @@ import {
   formInputNodeSchema,
   formRadioGroupNodeSchema,
 } from './schema.ts'
+import { createThemeColorReference } from '@/theme/renderTheme.ts'
 
 const labelPositionOptions = [
   { label: '左侧', value: 'left' },
@@ -152,6 +153,13 @@ export const businessFormMaterial: MaterialDefinition = {
   validationSchema: businessFormNodeSchema,
   setters: [
     {
+      component: 'themeColor',
+      label: '背景颜色',
+      field: 'style.backgroundColor',
+      span: 24,
+      props: { showAlpha: true },
+    },
+    {
       component: 'commonSelect',
       label: '标签位置',
       field: 'props.labelPosition',
@@ -201,6 +209,9 @@ export const businessFormMaterial: MaterialDefinition = {
     childrenLayout: {
       type: 'form-grid',
     },
+    style: {
+      backgroundColor: createThemeColorReference('container-background'),
+    },
     props: {
       labelPosition: 'top',
       labelWidth: 100,
@@ -212,7 +223,7 @@ export const businessFormMaterial: MaterialDefinition = {
 }
 
 export const formInputMaterial: MaterialDefinition = {
-  name: 'Input',
+  name: '输入框',
   group: 'form',
   icon: 'fluent:text-field-20-filled',
   preview: {
@@ -284,7 +295,7 @@ export const formInputMaterial: MaterialDefinition = {
   customEventOptions: formItemEventOptions,
   schema: {
     type: 'form-input',
-    name: 'Input',
+    name: '输入框',
     placement: { type: 'form-item', span: 12 },
     props: {
       field: 'name',
@@ -315,7 +326,7 @@ export const formInputMaterial: MaterialDefinition = {
 }
 
 export const formCommonSelectMaterial: MaterialDefinition = {
-  name: 'CommonSelect',
+  name: '选择器',
   group: 'form',
   icon: 'fluent:list-bar-20-filled',
   preview: {
@@ -369,7 +380,7 @@ export const formCommonSelectMaterial: MaterialDefinition = {
   ],
   schema: {
     type: 'form-common-select',
-    name: 'CommonSelect',
+    name: '选择器',
     placement: { type: 'form-item', span: 12 },
     props: {
       field: 'department',
