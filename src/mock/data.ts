@@ -7,6 +7,7 @@ Mock.setup({
 Mock.mock(/\/api\/data/, 'get', (options) => {
   const url = new URL(options.url, location.origin)
   const search = new URLSearchParams(url.search)
+  console.log(options)
   const date = search.get('date')
   const data = Mock.mock({
     'list|10': [
