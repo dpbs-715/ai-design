@@ -40,6 +40,10 @@ interface RenderThemeContext {
 const SYSTEM_DARK_QUERY = '(prefers-color-scheme: dark)'
 const CSS_VARIABLE_PREFIX = '--render-theme-'
 
+function renderThemeVariable(key: string) {
+  return `var(${CSS_VARIABLE_PREFIX}${key}, transparent)`
+}
+
 const defaultThemeVariables: ThemeVariable[] = [
   {
     key: 'primary',
@@ -140,9 +144,25 @@ export function normalizeRenderTheme(theme?: Partial<RenderThemeConfig>): Render
     ? (theme.mode as RenderThemeMode)
     : fallback.mode
 
+  const configuredVariables = Array.isArray(theme.variables) ? theme.variables : []
+  const configuredByKey = new Map(
+    configuredVariables.map((variable) => [variable.key, variable] as const),
+  )
+  const builtinKeys = new Set(fallback.variables.map((variable) => variable.key))
+  const variables = [
+    ...fallback.variables.map((variable) => ({
+      ...variable,
+      ...configuredByKey.get(variable.key),
+    })),
+    ...configuredVariables
+      .filter((variable) => !builtinKeys.has(variable.key))
+      .map((variable) => ({ ...variable })),
+  ]
+
   return {
     mode,
-    variables: Array.isArray(theme.variables) ? theme.variables : fallback.variables,
+    variables,
+    ...(theme.extensions ? { extensions: { ...theme.extensions } } : {}),
   }
 }
 
@@ -181,10 +201,10 @@ export function provideRenderTheme(themeSource: MaybeRefOrGetter<RenderThemeConf
     systemMode.value = query.matches ? 'dark' : 'light'
   }
 
-  onMounted(() => {
+  if (typeof window !== 'undefined') {
     systemThemeQuery.value = window.matchMedia(SYSTEM_DARK_QUERY)
     syncSystemMode(systemThemeQuery.value)
-  })
+  }
 
   useEventListener<MediaQueryListEvent>(systemThemeQuery, 'change', syncSystemMode)
 
@@ -194,12 +214,61 @@ export function provideRenderTheme(themeSource: MaybeRefOrGetter<RenderThemeConf
   })
 
   const rootStyle = computed<CSSProperties>(() => {
-    return Object.fromEntries(
+    const renderThemeVariables = Object.fromEntries(
       theme.value.variables.map((variable) => [
         getCssVariableName(variable.key),
         variable[resolvedMode.value],
       ]),
     )
+
+    const primary = renderThemeVariable('primary')
+    const pageBackground = renderThemeVariable('page-background')
+    const containerBackground = renderThemeVariable('container-background')
+    const textPrimary = renderThemeVariable('text-primary')
+    const textSecondary = renderThemeVariable('text-secondary')
+    const textPlaceholder = renderThemeVariable('text-placeholder')
+    const border = renderThemeVariable('border')
+
+    return {
+      ...renderThemeVariables,
+      colorScheme: resolvedMode.value,
+      '--el-color-primary': primary,
+      '--el-color-success': renderThemeVariable('success'),
+      '--el-color-warning': renderThemeVariable('warning'),
+      '--el-color-danger': renderThemeVariable('danger'),
+      '--el-color-primary-light-3': `color-mix(in srgb, ${primary} 70%, ${containerBackground})`,
+      '--el-color-primary-light-5': `color-mix(in srgb, ${primary} 50%, ${containerBackground})`,
+      '--el-color-primary-light-7': `color-mix(in srgb, ${primary} 30%, ${containerBackground})`,
+      '--el-color-primary-light-8': `color-mix(in srgb, ${primary} 20%, ${containerBackground})`,
+      '--el-color-primary-light-9': `color-mix(in srgb, ${primary} 10%, ${containerBackground})`,
+      '--el-color-primary-dark-2': `color-mix(in srgb, ${primary} 82%, ${pageBackground})`,
+      '--el-bg-color': containerBackground,
+      '--el-bg-color-page': pageBackground,
+      '--el-bg-color-overlay': containerBackground,
+      '--el-fill-color-darker': `color-mix(in srgb, ${pageBackground} 82%, ${border})`,
+      '--el-fill-color-dark': `color-mix(in srgb, ${pageBackground} 88%, ${border})`,
+      '--el-fill-color': `color-mix(in srgb, ${pageBackground} 72%, ${containerBackground})`,
+      '--el-fill-color-light': `color-mix(in srgb, ${pageBackground} 58%, ${containerBackground})`,
+      '--el-fill-color-lighter': `color-mix(in srgb, ${pageBackground} 38%, ${containerBackground})`,
+      '--el-fill-color-extra-light': `color-mix(in srgb, ${pageBackground} 20%, ${containerBackground})`,
+      '--el-fill-color-blank': containerBackground,
+      '--el-border-color': border,
+      '--el-border': `var(--el-border-width) var(--el-border-style) ${border}`,
+      '--el-border-color-light': `color-mix(in srgb, ${border} 82%, transparent)`,
+      '--el-border-color-lighter': `color-mix(in srgb, ${border} 62%, transparent)`,
+      '--el-border-color-extra-light': `color-mix(in srgb, ${border} 42%, transparent)`,
+      '--el-border-color-dark': border,
+      '--el-border-color-darker': `color-mix(in srgb, ${border} 82%, ${textSecondary})`,
+      '--el-border-color-hover': textPlaceholder,
+      '--el-text-color-primary': textPrimary,
+      '--el-text-color-regular': textSecondary,
+      '--el-text-color-secondary': textPlaceholder,
+      '--el-text-color-placeholder': textPlaceholder,
+      '--el-text-color-disabled': `color-mix(in srgb, ${textPlaceholder} 58%, transparent)`,
+      '--el-disabled-bg-color': `color-mix(in srgb, ${pageBackground} 58%, ${containerBackground})`,
+      '--el-disabled-text-color': textPlaceholder,
+      '--el-disabled-border-color': border,
+    }
   })
 
   function resolveColor(

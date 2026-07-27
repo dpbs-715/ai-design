@@ -2,7 +2,12 @@
 import type { CSSProperties } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { MaterialSchema } from '@/schema/material.ts'
-import { useRenderTheme } from '@/theme/renderTheme.ts'
+import {
+  getMaterialStyleValue,
+  toCssLength,
+  useMaterialRootStyle,
+} from '@/materials/materialStyle.ts'
+import { useRenderTheme, type ThemeColorValue } from '@/theme/renderTheme.ts'
 import { injectMaterialRenderContext } from '@/context/materialRender.ts'
 import { writeClipboardText } from '@/utils/clipboard.ts'
 
@@ -27,25 +32,29 @@ async function copyDescription() {
   }
 }
 
-const frameStyle = computed<CSSProperties>(() => {
-  const style = props.schema.style ?? {}
-
-  return {
-    '--annotation-accent': resolveColor(style.color) || 'currentColor',
-    backgroundColor: resolveColor(style.backgroundColor) || 'transparent',
-    borderColor: resolveColor(style.color) || 'currentColor',
-    borderRadius: `${style.borderRadius ?? 4}px`,
-    borderStyle: style.borderStyle ?? 'solid',
-    borderWidth: `${style.borderWidth ?? 2}px`,
-  }
+const frameStyle = useMaterialRootStyle(() => props.schema.style, {
+  defaults: {
+    backgroundColor: 'transparent',
+    borderStyle: 'solid',
+  },
+  overrides: () => ({
+    '--annotation-accent': getMaterialStyleValue(props.schema.style, 'color') ?? 'currentColor',
+    borderColor: getMaterialStyleValue(props.schema.style, 'color') ?? 'currentColor',
+    borderRadius: toCssLength(getMaterialStyleValue(props.schema.style, 'borderRadius'), 4),
+    borderWidth: toCssLength(getMaterialStyleValue(props.schema.style, 'borderWidth'), 2),
+  }),
 })
 
 const labelStyle = computed<CSSProperties>(() => ({
-  backgroundColor: resolveColor(props.schema.style?.color) || 'currentColor',
+  backgroundColor:
+    resolveColor(getMaterialStyleValue<ThemeColorValue>(props.schema.style, 'color')) ||
+    'currentColor',
 }))
 
 const detailsStyle = computed<CSSProperties>(() => ({
-  '--annotation-accent': resolveColor(props.schema.style?.color, 'value') || 'currentColor',
+  '--annotation-accent':
+    resolveColor(getMaterialStyleValue<ThemeColorValue>(props.schema.style, 'color'), 'value') ||
+    'currentColor',
   '--el-bg-color-overlay': resolveColor({ type: 'theme', key: 'container-background' }, 'value'),
   '--el-border-color-light': resolveColor({ type: 'theme', key: 'border' }, 'value'),
   '--el-popover-bg-color': resolveColor({ type: 'theme', key: 'container-background' }, 'value'),

@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import type { CSSProperties } from 'vue'
 import type { MaterialSchema } from '@/schema/material.ts'
-import { useRenderTheme } from '@/theme/renderTheme.ts'
+import {
+  getMaterialStyleValue,
+  toCssLength,
+  useMaterialRootStyle,
+} from '@/materials/materialStyle.ts'
 
 defineOptions({
   name: 'ImageMaterial',
@@ -10,21 +13,21 @@ defineOptions({
 const props = defineProps<{
   schema: MaterialSchema
 }>()
-const { resolveColor } = useRenderTheme()
 
-const containerStyle = computed<CSSProperties>(() => {
-  const style = props.schema.style ?? {}
-  const borderWidth = style.borderWidth ?? 0
-  return {
-    backgroundColor: resolveColor(style.backgroundColor) || 'transparent',
-    borderRadius: `${style.borderRadius ?? 0}px`,
-    border: borderWidth
-      ? `${borderWidth}px solid ${resolveColor(style.borderColor) || 'transparent'}`
-      : 'none',
-  }
+const containerStyle = useMaterialRootStyle(() => props.schema.style, {
+  defaults: {
+    backgroundColor: 'transparent',
+    borderColor: 'transparent',
+    borderStyle: 'solid',
+    borderWidth: 0,
+  },
+  overrides: () => ({
+    borderRadius: toCssLength(getMaterialStyleValue(props.schema.style, 'borderRadius')),
+    borderWidth: toCssLength(getMaterialStyleValue(props.schema.style, 'borderWidth')),
+  }),
 })
 
-const imageStyle = computed<CSSProperties>(() => {
+const imageStyle = computed(() => {
   const imageProps = props.schema.props
   return {
     objectFit: imageProps.fit ?? 'cover',

@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import type { CSSProperties } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { MaterialSchema } from '@/schema/material.ts'
-import { useRenderTheme } from '@/theme/renderTheme.ts'
+import {
+  getMaterialStyleValue,
+  toCssLength,
+  useMaterialRootStyle,
+} from '@/materials/materialStyle.ts'
 import { injectMaterialRenderContext } from '@/context/materialRender.ts'
 import { writeClipboardText } from '@/utils/clipboard.ts'
 
@@ -12,7 +15,6 @@ const props = defineProps<{
   schema: MaterialSchema
 }>()
 
-const { resolveColor } = useRenderTheme()
 const { mode } = injectMaterialRenderContext()
 const isEditor = mode === 'editor'
 
@@ -27,17 +29,18 @@ async function copyNote() {
   }
 }
 
-const noteStyle = computed<CSSProperties>(() => {
-  const style = props.schema.style ?? {}
-
-  return {
-    '--annotation-accent': resolveColor(style.accentColor) || 'currentColor',
-    backgroundColor: resolveColor(style.backgroundColor) || 'transparent',
-    borderRadius: `${style.borderRadius ?? 6}px`,
-    color: resolveColor(style.color) || 'inherit',
-    fontSize: `${style.fontSize ?? 14}px`,
-    padding: `${style.padding ?? 14}px`,
-  }
+const noteStyle = useMaterialRootStyle(() => props.schema.style, {
+  defaults: {
+    backgroundColor: 'transparent',
+    color: 'inherit',
+  },
+  overrides: () => ({
+    '--annotation-accent':
+      getMaterialStyleValue(props.schema.style, 'accentColor') ?? 'currentColor',
+    borderRadius: toCssLength(getMaterialStyleValue(props.schema.style, 'borderRadius'), 6),
+    fontSize: toCssLength(getMaterialStyleValue(props.schema.style, 'fontSize'), 14),
+    padding: toCssLength(getMaterialStyleValue(props.schema.style, 'padding'), 14),
+  }),
 })
 </script>
 

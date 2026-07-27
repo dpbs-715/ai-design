@@ -76,6 +76,7 @@ function onMouseDown(event: MouseEvent) {
 <style scoped>
 .canvas-node {
   position: absolute;
+  isolation: isolate;
 }
 
 .canvas-node.is-container.is-drop-target {

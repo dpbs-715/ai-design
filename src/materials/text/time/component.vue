@@ -2,8 +2,17 @@
 import type { CSSProperties } from 'vue'
 import dayjs from 'dayjs'
 import RollingNumber from '@/components/RollingNumber/index.vue'
+import {
+  getMaterialStyleValue,
+  toCssLength,
+  useMaterialRootStyle,
+} from '@/materials/materialStyle.ts'
 import type { MaterialSchema } from '@/schema/material.ts'
-import { createThemeColorReference, useRenderTheme } from '@/theme/renderTheme.ts'
+import {
+  createThemeColorReference,
+  useRenderTheme,
+  type ThemeColorValue,
+} from '@/theme/renderTheme.ts'
 
 defineOptions({
   name: 'TimeMaterial',
@@ -55,13 +64,12 @@ const extraText = computed(() => {
 
 const rollingEnabled = computed(() => props.schema.props.animated !== false)
 
-const containerStyle = computed<CSSProperties>(() => {
-  const style = props.schema.style ?? {}
-  return {
-    backgroundColor: resolveColor(style.backgroundColor) || 'transparent',
-    padding: `${style.padding ?? 0}px`,
-    borderRadius: `${style.borderRadius ?? 0}px`,
-  }
+const containerStyle = useMaterialRootStyle(() => props.schema.style, {
+  defaults: { backgroundColor: 'transparent' },
+  overrides: () => ({
+    padding: toCssLength(getMaterialStyleValue(props.schema.style, 'padding')),
+    borderRadius: toCssLength(getMaterialStyleValue(props.schema.style, 'borderRadius')),
+  }),
 })
 
 const justifyContentMap: Record<string, CSSProperties['justifyContent']> = {
@@ -72,14 +80,15 @@ const justifyContentMap: Record<string, CSSProperties['justifyContent']> = {
 
 const timeStyle = computed<CSSProperties>(() => {
   const style = props.schema.style ?? {}
-  const textAlign = style.textAlign ?? 'left'
+  const textAlign = getMaterialStyleValue(style, 'textAlign') ?? 'left'
+  const color = getMaterialStyleValue<ThemeColorValue>(style, 'color')
   return {
-    color: resolveColor(style.color ?? createThemeColorReference('text-primary')),
-    fontFamily: style.fontFamily,
-    fontSize: `${style.fontSize ?? 16}px`,
-    fontWeight: style.fontWeight ?? 400,
-    letterSpacing: `${style.letterSpacing ?? 0}px`,
-    justifyContent: justifyContentMap[textAlign] ?? 'flex-start',
+    color: resolveColor(color ?? createThemeColorReference('text-primary')),
+    fontFamily: getMaterialStyleValue(style, 'fontFamily') as string | undefined,
+    fontSize: toCssLength(getMaterialStyleValue(style, 'fontSize'), 16),
+    fontWeight: (getMaterialStyleValue(style, 'fontWeight') ?? 400) as CSSProperties['fontWeight'],
+    letterSpacing: toCssLength(getMaterialStyleValue(style, 'letterSpacing')),
+    justifyContent: justifyContentMap[String(textAlign)] ?? 'flex-start',
   }
 })
 </script>

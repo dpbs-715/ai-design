@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import type { CSSProperties } from 'vue'
 import type { MaterialSchema } from '@/schema/material.ts'
 import { injectMaterialRenderContext } from '@/context/materialRender.ts'
-import { useRenderTheme } from '@/theme/renderTheme.ts'
+import {
+  getMaterialStyleValue,
+  toCssLength,
+  useMaterialRootStyle,
+} from '@/materials/materialStyle.ts'
 
 defineOptions({ name: 'FreeContainerMaterial' })
 
@@ -11,23 +14,23 @@ const props = defineProps<{
 }>()
 
 const { mode } = injectMaterialRenderContext()
-const { resolveColor } = useRenderTheme()
 
-const containerStyle = computed<CSSProperties>(() => {
-  const style = props.schema.style ?? {}
-  const borderWidth = style.borderWidth ?? 1
-
-  return {
-    backgroundColor: resolveColor(style.backgroundColor) || 'transparent',
-    borderColor: resolveColor(style.borderColor) || 'transparent',
-    borderRadius: `${style.borderRadius ?? 0}px`,
-    borderStyle: style.borderStyle ?? 'solid',
-    borderWidth: `${borderWidth}px`,
+const containerStyle = useMaterialRootStyle(() => props.schema.style, {
+  defaults: {
+    backgroundColor: 'transparent',
+    borderColor: 'transparent',
+    borderRadius: 0,
+    borderStyle: 'solid',
+    borderWidth: 1,
+  },
+  overrides: () => ({
+    borderRadius: toCssLength(getMaterialStyleValue(props.schema.style, 'borderRadius')),
+    borderWidth: toCssLength(getMaterialStyleValue(props.schema.style, 'borderWidth'), 1),
     overflow:
       props.schema.childrenLayout?.type === 'absolute' && props.schema.childrenLayout.clip
         ? 'hidden'
         : 'visible',
-  }
+  }),
 })
 </script>
 

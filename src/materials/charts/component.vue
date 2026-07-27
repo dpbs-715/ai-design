@@ -3,6 +3,7 @@ import type { MaterialSchema } from '@/schema/material.ts'
 import { init, type EChartsType } from 'echarts'
 import { useRefResizeObserver } from '@/hooks/useRefResizeObserver.ts'
 import { useDataSource } from '@/hooks/useDataSource.ts'
+import { useMaterialRootStyle } from '@/materials/materialStyle.ts'
 import { useMaterialDataQuery } from '@/runtime/dataQuery.ts'
 import { injectRuntimeContext } from '@/runtime/runtimeContextProvider.ts'
 import { useRenderTheme } from '@/theme/renderTheme.ts'
@@ -15,6 +16,7 @@ let chart: EChartsType
 const props = defineProps<{ schema: MaterialSchema }>()
 const chartRef = useTemplateRef('chartRef')
 const { resolveReferences } = useRenderTheme()
+const chartStyle = useMaterialRootStyle(() => props.schema.style)
 
 const runtimeContext = injectRuntimeContext(null)
 const dataId = computed(() => props.schema.dataId)
@@ -53,7 +55,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div v-loading="loading" class="chart-material w-full h-full">
+  <div v-loading="loading" class="chart-material w-full h-full" :style="chartStyle">
     <div class="w-full h-full" ref="chartRef" />
   </div>
 </template>
