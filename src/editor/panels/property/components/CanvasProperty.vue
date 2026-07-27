@@ -5,6 +5,8 @@ import { type CommonFormConfig } from '@vunio/ui'
 import { useConfigs } from '@vunio/hooks'
 import { useUndoRedo } from '@/hooks/useUndoRedo.ts'
 import RenderThemeSection from '@/editor/panels/property/components/RenderThemeSection.vue'
+import BackgroundPositionPicker from '@/editor/panels/property/components/BackgroundPositionPicker.vue'
+import { markRaw } from 'vue'
 
 defineOptions({
   name: 'CanvasProperty',
@@ -76,11 +78,8 @@ const { config } = useConfigs<CommonFormConfig>(
     {
       label: '图片位置',
       field: 'style.background.image.position',
-      component: 'input',
+      component: markRaw(BackgroundPositionPicker),
       span: 12,
-      props: {
-        placeholder: 'center center',
-      },
     },
     {
       label: '透明度',
