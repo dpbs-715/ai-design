@@ -5,6 +5,7 @@ import {
   formGridChildrenLayoutSchema,
   formItemPlacementSchema,
   jsonDataSchema,
+  jsonObjectSchema,
   materialDataQuerySchema,
   materialEventsSchema,
   materialSchema,
@@ -49,6 +50,7 @@ export const businessFormPropsSchema = extensibleObject({
   labelWidth: z.number().finite().nonnegative(),
   size: z.enum(['small', 'default', 'large']),
   disabled: z.boolean(),
+  readonly: z.boolean().default(false),
 })
 
 export const formInputControlSchema = extensibleObject({
@@ -200,6 +202,7 @@ const formItemBaseShape = {
   dataId: z.union([z.string(), z.number()]).optional(),
   dataQuery: materialDataQuerySchema.optional(),
   placement: formItemPlacementSchema,
+  style: jsonObjectSchema.optional(),
   children: z.tuple([]),
   events: materialEventsSchema,
 }
@@ -291,6 +294,9 @@ export const businessFormNodeSchema = extensibleObject({
   lockKey: z.string().optional(),
   placement: absolutePlacementSchema,
   childrenLayout: formGridChildrenLayoutSchema,
+  style: jsonObjectSchema.optional(),
+  dataId: z.union([z.string(), z.number()]).optional(),
+  dataQuery: materialDataQuerySchema.optional(),
   props: businessFormPropsSchema,
   children: z.array(materialSchema),
   events: materialEventsSchema,
@@ -357,6 +363,7 @@ export interface BusinessFormProps {
   labelWidth: number
   size: 'small' | 'default' | 'large'
   disabled: boolean
+  readonly: boolean
 }
 
 export interface BusinessFormSchema extends MaterialSchema {

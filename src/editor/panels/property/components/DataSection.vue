@@ -10,7 +10,7 @@ import { getByKeyOrPath } from '@vunio/utils'
 import { storeToRefs } from 'pinia'
 import { fetchData } from '@/hooks/useDataSource.ts'
 import { useUndoRedo } from '@/hooks/useUndoRedo.ts'
-import { getMaterialDataBindings } from '@/materials'
+import { getMaterialDataBindings, getMaterialDefinition } from '@/materials'
 import { resolveDataQuery } from '@/runtime/dataQuery.ts'
 import { isFormItemPlacement, type MaterialDataQueryParam } from '@/schema/material.ts'
 import { useEditorStore } from '@/stores/editor.ts'
@@ -39,7 +39,10 @@ const { dispatchCommand } = useUndoRedo()
 const selectedNode = computed(() => selectedNodeRef.value!)
 const dataBindings = computed(() => getMaterialDataBindings(selectedNode.value.type))
 const hasComponentData = computed(() => props.config.length > 0)
-const supportsDataBinding = computed(() => dataBindings.value.length > 0)
+const supportsDataSource = computed(() => {
+  const definition = getMaterialDefinition(selectedNode.value.type)
+  return Boolean(definition?.supportsDataSource || dataBindings.value.length)
+})
 const selectedSource = computed(() =>
   dataSources.value.find((source) => source.id === selectedNode.value.dataId),
 )
@@ -49,9 +52,7 @@ const dataSourceOptions = computed(() =>
 )
 const formItemOptions = computed(() =>
   nodes.value
-    .filter(
-      (node) => isFormItemPlacement(node.placement) && node.id !== selectedNode.value.id,
-    )
+    .filter((node) => isFormItemPlacement(node.placement) && node.id !== selectedNode.value.id)
     .map((node) => ({
       label: `${node.name} · ${String(node.props.field ?? node.id)}`,
       value: node.id,
@@ -117,6 +118,12 @@ const sourceConfig = computed<CommonFormConfig[]>(() => [
 ])
 
 type PreviewRow = Record<string, unknown>
+
+interface FormPreviewField {
+  field: string
+  label: string
+  value: unknown
+}
 
 const previewRows = ref<PreviewRow[]>([])
 const previewRecordCount = ref(0)
@@ -202,9 +209,7 @@ async function loadPreview() {
       return
     }
     const payload =
-      source.type === 'static'
-        ? source.data
-        : await fetchData(source, previewQuery.value.params)
+      source.type === 'static' ? source.data : await fetchData(source, previewQuery.value.params)
     if (requestId === previewRequestId) previewRows.value = normalizeRows(payload)
   } catch (error) {
     if (requestId === previewRequestId) {
@@ -253,12 +258,51 @@ const bindingConfig = computed<CommonFormConfig[]>(() =>
   })),
 )
 
+const isFormPreview = computed(() => selectedNode.value.type === 'business-form')
+
+const formPreviewFields = computed<FormPreviewField[]>(() => {
+  const record = previewRows.value[0]
+  if (!record) return []
+
+  const fields: FormPreviewField[] = []
+  const configuredFields = new Set<string>()
+  const configuredRoots = new Set<string>()
+
+  selectedNode.value.children.forEach((child) => {
+    if (!isFormItemPlacement(child.placement)) return
+    const field = child.props.field
+    if (typeof field !== 'string' || !field) return
+
+    configuredFields.add(field)
+    configuredRoots.add(field.split('.')[0]!)
+    fields.push({
+      field,
+      label: typeof child.props.label === 'string' && child.props.label ? child.props.label : field,
+      value: getByKeyOrPath(record, field),
+    })
+  })
+
+  Object.entries(record).forEach(([field, value]) => {
+    if (configuredFields.has(field) || configuredRoots.has(field)) return
+    fields.push({ field, label: field, value })
+  })
+
+  return fields
+})
+
 const sourceSummary = computed(() => {
   const source = selectedSource.value
   if (!source) return ''
   if (source.type === 'api') return `API · ${(source.method ?? 'get').toUpperCase()}`
+  if (isFormPreview.value) return `静态对象 · ${formPreviewFields.value.length} 个字段`
   return `静态数据 · ${previewRecordCount.value} 条`
 })
+
+const previewSummary = computed(() =>
+  isFormPreview.value
+    ? `${formPreviewFields.value.length} 个字段`
+    : `${previewRecordCount.value} 条记录`,
+)
 
 const visibleFields = computed(() => previewFields.value.slice(0, 3))
 
@@ -273,6 +317,10 @@ const previewTableConfig = computed<CommonTableConfig[]>(() =>
 
 function formatCell(value: unknown) {
   if (value == null) return '—'
+  if (Array.isArray(value)) {
+    if (!value.length) return '—'
+    if (value.every((item) => item == null || typeof item !== 'object')) return value.join('、')
+  }
   if (typeof value === 'object') return JSON.stringify(value)
   return String(value)
 }
@@ -299,7 +347,7 @@ function openSourceManager() {
       />
     </section>
 
-    <template v-if="supportsDataBinding">
+    <template v-if="supportsDataSource">
       <section class="property-group">
         <div class="section-heading">
           <div>
@@ -317,7 +365,7 @@ function openSourceManager() {
       </section>
 
       <template v-if="selectedSource">
-        <section class="property-group">
+        <section v-if="dataBindings.length" class="property-group">
           <div class="section-heading">
             <div>
               <h3>字段映射</h3>
@@ -385,7 +433,7 @@ function openSourceManager() {
           <div class="section-heading">
             <div>
               <h3>数据预览</h3>
-              <p>{{ previewRecordCount }} 条记录</p>
+              <p>{{ previewSummary }}</p>
             </div>
             <button
               type="button"
@@ -404,6 +452,19 @@ function openSourceManager() {
           <div v-else-if="previewLoading" class="preview-state">
             <Icon class="loading-icon" icon="fluent:arrow-clockwise-20-regular" width="18" />
             <span>正在加载数据</span>
+          </div>
+          <dl v-else-if="isFormPreview && formPreviewFields.length" class="form-preview">
+            <div v-for="field in formPreviewFields" :key="field.field" class="form-preview-row">
+              <dt>
+                <strong>{{ field.label }}</strong>
+                <code>{{ field.field }}</code>
+              </dt>
+              <dd>{{ formatCell(field.value) }}</dd>
+            </div>
+          </dl>
+          <div v-else-if="isFormPreview" class="preview-state">
+            <Icon icon="fluent:form-20-regular" width="18" />
+            <span>返回对象中暂无可预览字段</span>
           </div>
           <div v-else-if="previewRows.length" class="preview-table-wrap">
             <CommonTable :config="previewTableConfig" :data="previewRows" />
@@ -502,6 +563,62 @@ function openSourceManager() {
 
   :deep(.el-table__header .cell) {
     font-weight: 500;
+  }
+}
+
+.form-preview {
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--surface-raised);
+}
+
+.form-preview-row {
+  display: grid;
+  min-height: 46px;
+  grid-template-columns: minmax(92px, 0.8fr) minmax(0, 1.2fr);
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-color);
+
+  &:last-child {
+    border-bottom: 0;
+  }
+
+  dt {
+    display: grid;
+    min-width: 0;
+    gap: 2px;
+  }
+
+  strong {
+    overflow: hidden;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  code {
+    overflow: hidden;
+    color: var(--text-muted);
+    font-family: var(--el-font-family);
+    font-size: 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  dd {
+    min-width: 0;
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 12px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+    text-align: right;
   }
 }
 

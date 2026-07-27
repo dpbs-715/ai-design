@@ -1,7 +1,7 @@
 import type { FormItemRule } from 'element-plus'
-import type { CommonFormConfig } from '@vunio/ui'
+import type { CommonFormConfig, CommonFormProps } from '@vunio/ui'
 import { getByKeyOrPath } from '@vunio/utils'
-import type { FormItemSchema, FormRuleSchema } from './schema.ts'
+import type { BusinessFormProps, FormItemSchema, FormRuleSchema } from './schema.ts'
 
 const formControlComponents: Record<string, string> = {
   'form-input': 'input',
@@ -77,6 +77,23 @@ export function toCommonFormConfig(node: FormItemSchema): CommonFormConfig {
     component,
     props,
     rules: toElementFormRules(rules),
+  }
+}
+
+export function toCommonFormProps(formProps: BusinessFormProps): CommonFormProps {
+  const {
+    config: _config,
+    commandDispatcher: _commandDispatcher,
+    disabled: _disabled,
+    loading: _loading,
+    modelValue: _modelValue,
+    labelWidth,
+    ...commonFormProps
+  } = formProps
+
+  return {
+    ...commonFormProps,
+    labelWidth: `${labelWidth}px`,
   }
 }
 

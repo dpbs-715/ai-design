@@ -38,6 +38,11 @@ const group = [
     key: 'charts',
   },
   {
+    name: '数据',
+    icon: 'fluent:table-20-filled',
+    key: 'data',
+  },
+  {
     name: '文本',
     icon: 'fluent:text-font-20-filled',
     key: 'info',

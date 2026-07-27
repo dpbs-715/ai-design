@@ -3,12 +3,15 @@ import type { CommonFormConfig } from '@vunio/ui'
 import { useConfigs } from '@vunio/hooks'
 import { deepClone, getByKeyOrPath, setByKeyOrPath } from '@vunio/utils'
 import type { BusinessFormSchema, FormItemSchema } from './schema.ts'
-import { toCommonFormConfig } from './formConfig.ts'
-import { createInitialFormValues, replaceFormValues } from './formValues.ts'
+import { toCommonFormConfig, toCommonFormProps } from './formConfig.ts'
+import { createInitialFormValues, createSourceFormValues, replaceFormValues } from './formValues.ts'
 import FormItemControl, { type FormItemControlExpose } from './FormItemControl.vue'
 import { injectRuntimeContext } from '@/runtime/runtimeContextProvider.ts'
 import { createMaterialEventProps } from '@/runtime/materialEvents.ts'
-import { createThemeColorReference, useRenderTheme } from '@/theme/renderTheme.ts'
+import { createThemeColorReference } from '@/theme/renderTheme.ts'
+import { useDataSource } from '@/hooks/useDataSource.ts'
+import { useMaterialDataQuery } from '@/runtime/dataQuery.ts'
+import { useMaterialRootStyle } from '@/materials/materialStyle.ts'
 
 defineOptions({ name: 'BusinessFormMaterial' })
 
@@ -26,6 +29,7 @@ export interface BusinessFormExpose {
   setValue(field: string, value: unknown): void
   setValues(values: Record<string, unknown>): void
   submit(): Promise<Record<string, unknown>>
+  refresh(): Promise<void>
   configManager: ReturnType<typeof useConfigs<CommonFormConfig>>
 }
 
@@ -41,16 +45,22 @@ const emit = defineEmits<{
 
 const formRef = useTemplateRef<CommonFormExpose>('form')
 const runtimeContext = injectRuntimeContext()
-const { resolveColor } = useRenderTheme()
 const defaultBackgroundColor = createThemeColorReference('container-background')
-const initialValues = computed(() => createInitialFormValues(schema.children))
-const formValues = reactive<Record<string, unknown>>(initialValues.value)
 const formItems = computed(() => schema.children as FormItemSchema[])
+const initialValues = computed(() => createInitialFormValues(formItems.value))
+const formValues = reactive<Record<string, unknown>>(initialValues.value)
+const baselineValues = ref<Record<string, unknown>>(deepClone(initialValues.value))
+const pendingSourceValues = ref<Record<string, unknown>>()
+const dataId = computed(() => schema.dataId)
+const dataQuery = useMaterialDataQuery(() => schema, runtimeContext)
+const { data, loading, refresh: refreshSource } = useDataSource(dataId, dataQuery)
 const schemaConfigs = computed(() => formItems.value.map(toCommonFormConfig))
 const configManager = useConfigs<CommonFormConfig>(schemaConfigs, false)
-const formStyle = computed(() => ({
-  backgroundColor: resolveColor(schema.style?.backgroundColor ?? defaultBackgroundColor),
-}))
+const commonFormProps = computed(() => toCommonFormProps(schema.props))
+const formStyle = useMaterialRootStyle(() => schema.style, {
+  defaults: { backgroundColor: defaultBackgroundColor },
+})
+const dirty = computed(() => JSON.stringify(formValues) !== JSON.stringify(baselineValues.value))
 
 watchEffect((onCleanup) => {
   const unregisterValues = formItems.value.map((item) => {
@@ -58,6 +68,41 @@ watchEffect((onCleanup) => {
     return runtimeContext.registerNodeValue(item.id, () => getByKeyOrPath(formValues, field))
   })
   onCleanup(() => unregisterValues.forEach((unregister) => unregister()))
+})
+
+function getSourceValues() {
+  if (dataId.value == null || data.value === undefined || loading.value) {
+    return initialValues.value
+  }
+  return createSourceFormValues(formItems.value, data.value)
+}
+
+function replaceSourceValues(values: Record<string, unknown>) {
+  const nextValues = deepClone(values)
+  baselineValues.value = nextValues
+  replaceFormValues(formValues, nextValues)
+  pendingSourceValues.value = undefined
+}
+
+watch(dataId, () => replaceSourceValues(initialValues.value))
+
+watch(
+  data,
+  (payload) => {
+    if (dataId.value == null || payload === undefined) return
+    const sourceValues = createSourceFormValues(formItems.value, payload)
+    if (dirty.value) {
+      pendingSourceValues.value = deepClone(sourceValues)
+      return
+    }
+    replaceSourceValues(sourceValues)
+  },
+  { immediate: true },
+)
+
+watch(dirty, (value) => {
+  if (value || !pendingSourceValues.value) return
+  replaceSourceValues(pendingSourceValues.value)
 })
 
 function notifyFieldChange(field: string, value: unknown) {
@@ -94,7 +139,7 @@ onBeforeUnmount(() => {
 watch(
   () => formItems.value.map((item) => item.props.field),
   () => {
-    const nextValues = createInitialFormValues(formItems.value)
+    const nextValues = deepClone(getSourceValues())
     formItems.value.forEach((item) => {
       const currentValue = getByKeyOrPath(formValues, item.props.field)
       if (currentValue !== undefined) {
@@ -128,7 +173,7 @@ function setValues(values: Record<string, unknown>) {
 }
 
 function resetFields() {
-  replaceFormValues(formValues, initialValues.value)
+  replaceSourceValues(pendingSourceValues.value ?? baselineValues.value)
   nextTick(() => clearValidate())
   emit('reset', getValues())
 }
@@ -140,6 +185,10 @@ async function submit() {
   return values
 }
 
+async function refresh() {
+  await refreshSource()
+}
+
 defineExpose<BusinessFormExpose>({
   validate,
   resetFields,
@@ -148,6 +197,7 @@ defineExpose<BusinessFormExpose>({
   setValue,
   setValues,
   submit,
+  refresh,
   configManager,
 })
 </script>
@@ -158,11 +208,10 @@ defineExpose<BusinessFormExpose>({
     <CommonForm
       v-else
       ref="form"
+      v-bind="commonFormProps"
       :model-value="formValues"
       :config="runtimeConfigs"
-      :label-position="schema.props.labelPosition"
-      :label-width="`${schema.props.labelWidth}px`"
-      :size="schema.props.size"
+      :loading="loading"
     >
       <template
         v-for="item in formItems"
@@ -177,6 +226,7 @@ defineExpose<BusinessFormExpose>({
           :node="item"
           :config="config"
           :model-value="modelValue"
+          :readonly="schema.props.readonly"
           :event-props="createMaterialEventProps(item, runtimeContext)"
           @update:model-value="updateModelValue"
         />

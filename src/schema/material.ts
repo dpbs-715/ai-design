@@ -236,6 +236,7 @@ export interface MaterialDefinition {
   setters: MaterialSetter[]
 
   customEventOptions?: EventOption[]
+  supportsDataSource?: boolean
   dataBindings?: MaterialDataBinding[]
 
   schema: MaterialTemplate

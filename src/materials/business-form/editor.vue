@@ -3,13 +3,16 @@ import type { CommonFormConfig } from '@vunio/ui'
 import { useConfigs, useEventListener } from '@vunio/hooks'
 import { useDraggable, type DraggableEvent } from 'vue-draggable-plus'
 import { canMaterialTypeBeChild, createNode } from '@/materials'
+import { useMaterialRootStyle } from '@/materials/materialStyle.ts'
 import { injectMaterialEditorContext } from '@/editor/canvas/materialEditorContext.ts'
 import { getDraggedMaterialTemplate } from '@/editor/canvas/materialDrag.ts'
-import { createThemeColorReference, useRenderTheme } from '@/theme/renderTheme.ts'
+import { createThemeColorReference } from '@/theme/renderTheme.ts'
 import type { BusinessFormSchema, FormItemSchema } from './schema.ts'
-import { toCommonFormConfig } from './formConfig.ts'
-import { createInitialFormValues } from './formValues.ts'
+import { toCommonFormConfig, toCommonFormProps } from './formConfig.ts'
+import { createInitialFormValues, createSourceFormValues, replaceFormValues } from './formValues.ts'
 import FormItemControl from './FormItemControl.vue'
+import { useDataSource } from '@/hooks/useDataSource.ts'
+import { useMaterialDataQuery } from '@/runtime/dataQuery.ts'
 
 defineOptions({ name: 'BusinessFormEditorMaterial' })
 
@@ -18,7 +21,6 @@ const { schema } = defineProps<{
 }>()
 
 const editorContext = injectMaterialEditorContext()
-const { resolveColor } = useRenderTheme()
 const defaultBackgroundColor = createThemeColorReference('container-background')
 const rootRef = useTemplateRef<HTMLDivElement>('root')
 const gridRef = shallowRef<HTMLElement | null>(null)
@@ -26,12 +28,16 @@ const emptyDragImageRef = useTemplateRef<HTMLCanvasElement>('emptyDragImage')
 const insertionIndex = ref<number>()
 const insertionLineStyle = ref<Record<string, string>>({})
 const formItems = computed(() => schema.children as FormItemSchema[])
-const formValues = computed(() => createInitialFormValues(formItems.value))
+const formValues = reactive<Record<string, unknown>>(createInitialFormValues(formItems.value))
+const dataId = computed(() => schema.dataId)
+const dataQuery = useMaterialDataQuery(() => schema, null)
+const { data, loading } = useDataSource(dataId, dataQuery)
 const schemaConfigs = computed(() => formItems.value.map(toCommonFormConfig))
 const configManager = useConfigs<CommonFormConfig>(schemaConfigs, false)
-const formStyle = computed(() => ({
-  backgroundColor: resolveColor(schema.style?.backgroundColor ?? defaultBackgroundColor),
-}))
+const commonFormProps = computed(() => toCommonFormProps(schema.props))
+const formStyle = useMaterialRootStyle(() => schema.style, {
+  defaults: { backgroundColor: defaultBackgroundColor },
+})
 const editorConfigs = computed<CommonFormConfig[]>(() =>
   configManager.config.map((config) => ({
     ...config,
@@ -40,6 +46,34 @@ const editorConfigs = computed<CommonFormConfig[]>(() =>
       disabled: true,
     },
   })),
+)
+
+watch(dataId, () => replaceFormValues(formValues, createInitialFormValues(formItems.value)))
+
+watch(
+  data,
+  (payload) => {
+    if (dataId.value == null || payload === undefined) return
+    replaceFormValues(formValues, createSourceFormValues(formItems.value, payload))
+  },
+  { immediate: true },
+)
+
+watch(
+  () =>
+    formItems.value.map((item) => ({
+      id: item.id,
+      field: item.props.field,
+      initialValue: item.props.initialValue,
+    })),
+  () => {
+    const values =
+      dataId.value != null && data.value !== undefined
+        ? createSourceFormValues(formItems.value, data.value)
+        : createInitialFormValues(formItems.value)
+    replaceFormValues(formValues, values)
+  },
+  { deep: true },
 )
 
 function getGridElement() {
@@ -330,22 +364,17 @@ onScopeDispose(clearInsertion)
     />
     <div v-if="!formItems.length" class="business-form-editor__empty">拖入表单字段</div>
     <CommonForm
+      v-bind="commonFormProps"
       :model-value="formValues"
       :config="editorConfigs"
-      :label-position="schema.props.labelPosition"
-      :label-width="`${schema.props.labelWidth}px`"
-      :size="schema.props.size"
+      :loading="loading"
     >
       <template
         v-for="item in formItems"
         :key="item.id"
         #[item.props.field]="{ config, modelValue }"
       >
-        <div
-          class="business-form-editor__field"
-          :class="{ 'is-date-picker': item.type === 'form-date-picker' }"
-          :data-node-id="item.id"
-        >
+        <div class="business-form-editor__field" :data-node-id="item.id">
           <button
             v-if="!editorContext.isNodeLocked(item.id)"
             type="button"
@@ -358,10 +387,8 @@ onScopeDispose(clearInsertion)
             class="business-form-editor__control"
             :node="item"
             :model-value="modelValue"
-            :config="{
-              ...config,
-              props: { ...config.props, disabled: true },
-            }"
+            :config="config"
+            :readonly="schema.props.readonly"
           />
         </div>
       </template>
@@ -411,14 +438,6 @@ onScopeDispose(clearInsertion)
   width: 100%;
 }
 
-.business-form-editor__field.is-date-picker::after {
-  position: absolute;
-  z-index: 1;
-  inset: 0;
-  cursor: default;
-  content: '';
-}
-
 .business-form-editor__drag-handle {
   position: absolute;
   z-index: 2;
@@ -432,8 +451,8 @@ onScopeDispose(clearInsertion)
   transform: translateY(-50%);
   border: 0;
   border-radius: 4px;
-  background: var(--surface-raised);
-  color: var(--text-muted);
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-placeholder);
   cursor: grab;
 }
 

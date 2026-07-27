@@ -13,6 +13,7 @@ import {
 } from '@/theme/renderTheme.ts'
 import { canMaterialAcceptChild } from '@/materials'
 import { parsePageSchema, type SchemaParseResult } from '@/schema/validation.ts'
+import { createDefaultDataSources, mergeDefaultDataSources } from '@/dataSources/defaults.ts'
 
 export type NodePastePlacement =
   | { kind: 'preserve' }
@@ -56,39 +57,7 @@ function createDefaultPage(): PageSchema {
       events: [],
       children: [],
     },
-    dataSources: [
-      {
-        type: 'static',
-        id: '123',
-        name: '销售数据',
-        data: [
-          { label: 'label1', value: 100 },
-          { label: 'label2', value: 200 },
-          { label: 'label3', value: 300 },
-        ],
-      },
-      {
-        type: 'static',
-        id: '456',
-        name: '访问数据',
-        data: [
-          { label: '1label1', value: 1001 },
-          { label: '2label2', value: 2002 },
-          { label: '3label3', value: 3003 },
-        ],
-      },
-      {
-        type: 'api',
-        id: '789',
-        name: '上升趋势',
-        url: '/api/data',
-        method: 'get',
-        params: {
-          date: '2026-10-10',
-        },
-        data: [],
-      },
-    ],
+    dataSources: createDefaultDataSources(),
   }
 }
 
@@ -182,6 +151,7 @@ export const useEditorStore = defineStore('editor', () => {
     page.value = {
       ...result.data,
       theme: normalizeRenderTheme(result.data.theme),
+      dataSources: mergeDefaultDataSources(result.data.dataSources),
     }
     return result
   }

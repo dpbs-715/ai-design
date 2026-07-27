@@ -16,6 +16,11 @@ import {
   formRadioGroupNodeSchema,
 } from './schema.ts'
 import { createThemeColorReference } from '@/theme/renderTheme.ts'
+import {
+  DEFAULT_MOCK_OPTIONS_SOURCE_ID,
+  DEFAULT_STATIC_FORM_SOURCE_ID,
+  DEFAULT_STATIC_OPTIONS_SOURCE_ID,
+} from '@/dataSources/defaults.ts'
 
 const labelPositionOptions = [
   { label: '左侧', value: 'left' },
@@ -110,31 +115,6 @@ function hiddenUnlessMultiple({ formData }: { formData: Record<string, any> }) {
   return !formData.props?.control?.multiple
 }
 
-const departmentOptions = [
-  {
-    id: 'option-development',
-    label: '研发部',
-    value: 'development',
-    disabled: false,
-  },
-  {
-    id: 'option-product',
-    label: '产品部',
-    value: 'product',
-    disabled: false,
-  },
-]
-
-const statusOptions = [
-  { id: 'option-enabled', label: '启用', value: 'enabled', disabled: false },
-  { id: 'option-disabled', label: '停用', value: 'disabled', disabled: false },
-]
-
-const tagOptions = [
-  { id: 'option-important', label: '重点', value: 'important', disabled: false },
-  { id: 'option-follow-up', label: '待跟进', value: 'follow-up', disabled: false },
-]
-
 export const businessFormMaterial: MaterialDefinition = {
   name: '业务表单',
   group: 'container',
@@ -186,6 +166,12 @@ export const businessFormMaterial: MaterialDefinition = {
       field: 'props.disabled',
       span: 12,
     },
+    {
+      component: 'switch',
+      label: '只读展示',
+      field: 'props.readonly',
+      span: 12,
+    },
   ],
   customEventOptions: [
     { label: '提交', value: 'submit', payloadType: 'Record<string, unknown>' },
@@ -196,9 +182,11 @@ export const businessFormMaterial: MaterialDefinition = {
       payloadType: '{ field: string; value: unknown; values: Record<string, unknown> }',
     },
   ],
+  supportsDataSource: true,
   schema: {
     type: 'business-form',
     name: '业务表单',
+    dataId: DEFAULT_STATIC_FORM_SOURCE_ID,
     placement: {
       type: 'absolute',
       x: 0,
@@ -217,6 +205,7 @@ export const businessFormMaterial: MaterialDefinition = {
       labelWidth: 100,
       size: 'default',
       disabled: false,
+      readonly: false,
     },
     events: [],
   },
@@ -382,6 +371,7 @@ export const formCommonSelectMaterial: MaterialDefinition = {
     type: 'form-common-select',
     name: '选择器',
     placement: { type: 'form-item', span: 12 },
+    dataId: DEFAULT_STATIC_OPTIONS_SOURCE_ID,
     props: {
       field: 'department',
       label: '所属部门',
@@ -395,7 +385,7 @@ export const formCommonSelectMaterial: MaterialDefinition = {
         joinSplit: '',
         disabled: false,
         checkStrictly: false,
-        options: departmentOptions,
+        options: [],
         labelField: 'label',
         valueField: 'value',
         disabledField: 'disabled',
@@ -448,14 +438,15 @@ export const formRadioGroupMaterial: MaterialDefinition = {
     type: 'form-radio-group',
     name: '单选框组',
     placement: { type: 'form-item', span: 12 },
+    dataId: DEFAULT_MOCK_OPTIONS_SOURCE_ID,
     props: {
       field: 'status',
       label: '状态',
-      initialValue: 'enabled',
+      initialValue: null,
       control: {
         disabled: false,
         type: 'radio',
-        options: statusOptions,
+        options: [],
         labelField: 'label',
         valueField: 'value',
         disabledField: 'disabled',
@@ -503,6 +494,7 @@ export const formCheckboxGroupMaterial: MaterialDefinition = {
     type: 'form-checkbox-group',
     name: '复选框组',
     placement: { type: 'form-item', span: 12 },
+    dataId: DEFAULT_MOCK_OPTIONS_SOURCE_ID,
     props: {
       field: 'tags',
       label: '标签',
@@ -511,7 +503,7 @@ export const formCheckboxGroupMaterial: MaterialDefinition = {
         disabled: false,
         min: 0,
         max: 2,
-        options: tagOptions,
+        options: [],
         labelField: 'label',
         valueField: 'value',
         disabledField: 'disabled',

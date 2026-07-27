@@ -13,6 +13,7 @@ import { initializeEditorTheme } from '@/editor/theme/editorTheme.ts'
 import ThemeColorPicker from '@/components/ThemeColorPicker/index.vue'
 import JsonValueSetter from '@/materials/business-form/setters/JsonValueSetter.vue'
 import FormRulesSetter from '@/materials/business-form/setters/FormRulesSetter.vue'
+import TableColumnsSetter from '@/materials/table/setters/TableColumnsSetter.vue'
 
 initializeEditorTheme()
 
@@ -28,6 +29,7 @@ registerComponent({
   themeColor: ThemeColorPicker,
   jsonValue: JsonValueSetter,
   formRules: FormRulesSetter,
+  tableColumns: TableColumnsSetter,
 })
 registerComponentDefaultPropsMap({
   CommonForm: {
