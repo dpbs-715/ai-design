@@ -249,12 +249,16 @@ function toggleConditionGroup(key: ConditionKey, enabled: boolean) {
   const selected = selectedColumn.value
   if (selected?.type !== 'column') return
   const editor = ensureEditor(selected)
-  editor[key] = enabled
-    ? {
-        logic: 'and',
-        conditions: [{ field: '$rowIndex', operator: 'greaterThan', value: -1 }],
-      }
-    : undefined
+  if (!enabled) {
+    delete editor[key]
+    commit()
+    return
+  }
+
+  editor[key] = {
+    logic: 'and',
+    conditions: [{ field: '$rowIndex', operator: 'greaterThan', value: -1 }],
+  }
   commit()
 }
 
