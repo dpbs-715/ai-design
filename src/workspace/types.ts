@@ -18,7 +18,10 @@ export interface DesignProject {
   systemId: string
   name: string
   description: string
+  createdAt: string
   updatedAt: string
+  lastOpenedAt?: string
+  isFavorite: boolean
   pageIds: string[]
   moduleIds: string[]
   lastEditedPageId: string
@@ -28,10 +31,9 @@ export interface DesignProject {
 export interface ProjectPageRecord {
   id: string
   projectId: string
-  name: string
-  width: number
-  height: number
+  schema: PageSchema
   moduleReferenceCount: number
+  createdAt: string
   updatedAt: string
   thumbnailVariant: ThumbnailVariant
 }
@@ -39,9 +41,10 @@ export interface ProjectPageRecord {
 export interface PublicModuleRecord {
   id: string
   projectId: string
-  name: string
+  schema: PageSchema
   version: string
   referenceCount: number
+  createdAt: string
   updatedAt: string
   thumbnailVariant: ThumbnailVariant
   exposedParameters: string[]
@@ -55,3 +58,4 @@ export interface ProjectModuleInstanceProps {
   displayCount: number
   parameters: Record<string, unknown>
 }
+import type { PageSchema } from '@/schema/page.ts'

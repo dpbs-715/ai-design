@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { ProjectPageRecord } from '../types.ts'
 import DesignThumbnail from './DesignThumbnail.vue'
+import { formatWorkspaceTime } from '../time.ts'
 
 defineOptions({ name: 'ProjectPageCard' })
 
@@ -20,7 +21,7 @@ defineEmits<{
     <RouterLink
       class="asset-preview"
       :to="`/projects/${page.projectId}/pages/${page.id}/editor`"
-      :aria-label="`编辑页面 ${page.name}`"
+      :aria-label="`编辑页面 ${page.schema.root.name}`"
     >
       <DesignThumbnail :variant="page.thumbnailVariant" compact />
       <span class="asset-kind">页面</span>
@@ -33,8 +34,8 @@ defineEmits<{
     <div class="asset-body">
       <header class="asset-heading">
         <div>
-          <h3>{{ page.name }}</h3>
-          <p>{{ page.width }} × {{ page.height }}</p>
+          <h3>{{ page.schema.root.name }}</h3>
+          <p>{{ page.schema.root.placement.width }} × {{ page.schema.root.placement.height }}</p>
         </div>
         <el-dropdown trigger="click" placement="bottom-end">
           <button type="button" class="asset-more" aria-label="页面更多操作">
@@ -53,7 +54,7 @@ defineEmits<{
           <Icon icon="fluent:puzzle-piece-20-regular" width="13" />
           {{ page.moduleReferenceCount }} 个公共模块
         </span>
-        <span>{{ page.updatedAt }}</span>
+        <span>{{ formatWorkspaceTime(page.updatedAt) }}</span>
       </div>
 
       <footer class="asset-actions">

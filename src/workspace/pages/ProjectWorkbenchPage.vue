@@ -65,6 +65,14 @@ const currentSection = computed<WorkbenchSection>(() => {
 })
 const currentNav = computed(() => navigation.find((item) => item.key === currentSection.value)!)
 
+watch(
+  projectId,
+  (value) => {
+    if (value) workspaceStore.recordProjectVisit(value)
+  },
+  { immediate: true },
+)
+
 function sectionPath(section: WorkbenchSection) {
   return `/projects/${projectId.value}/${section}`
 }
@@ -93,6 +101,7 @@ async function createPage() {
   const name = await promptForName('新建页面', '例如：生产运营总览')
   if (!name) return
   const pageId = workspaceStore.addPage(projectId.value, name)
+  if (!pageId) return
   await router.push(`/projects/${projectId.value}/pages/${pageId}/editor`)
 }
 
@@ -100,22 +109,23 @@ async function createModule() {
   const name = await promptForName('新建公共模块', '例如：核心指标条')
   if (!name) return
   const moduleId = workspaceStore.addModule(projectId.value, name)
+  if (!moduleId) return
   await router.push(`/projects/${projectId.value}/modules/${moduleId}/editor`)
 }
 
 async function renamePage(page: ProjectPageRecord) {
-  const name = await promptForName('重命名页面', '页面名称', page.name)
+  const name = await promptForName('重命名页面', '页面名称', page.schema.root.name)
   if (name) workspaceStore.renamePage(page.id, name)
 }
 
 async function renameModule(publicModule: PublicModuleRecord) {
-  const name = await promptForName('重命名公共模块', '模块名称', publicModule.name)
+  const name = await promptForName('重命名公共模块', '模块名称', publicModule.schema.root.name)
   if (name) workspaceStore.renameModule(publicModule.id, name)
 }
 
 async function removePage(page: ProjectPageRecord) {
   try {
-    await ElMessageBox.confirm(`删除后将无法在项目中打开“${page.name}”。`, '删除页面', {
+    await ElMessageBox.confirm(`删除后将无法在项目中打开“${page.schema.root.name}”。`, '删除页面', {
       type: 'warning',
       confirmButtonText: '删除',
       cancelButtonText: '取消',
@@ -129,7 +139,7 @@ async function removePage(page: ProjectPageRecord) {
 async function removeModule(publicModule: PublicModuleRecord) {
   try {
     await ElMessageBox.confirm(
-      `“${publicModule.name}”当前被 ${publicModule.referenceCount} 个页面引用，删除前请确认引用关系。`,
+      `“${publicModule.schema.root.name}”当前被 ${publicModule.referenceCount} 个页面引用，删除前请确认引用关系。`,
       '删除公共模块',
       {
         type: 'warning',
@@ -146,8 +156,8 @@ async function removeModule(publicModule: PublicModuleRecord) {
 function showReferences(publicModule: PublicModuleRecord) {
   ElMessage.info(
     publicModule.referenceCount
-      ? `${publicModule.name} 被 ${publicModule.referenceCount} 个页面引用`
-      : `${publicModule.name} 暂无页面引用`,
+      ? `${publicModule.schema.root.name} 被 ${publicModule.referenceCount} 个页面引用`
+      : `${publicModule.schema.root.name} 暂无页面引用`,
   )
 }
 </script>

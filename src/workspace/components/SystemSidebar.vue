@@ -6,13 +6,27 @@ defineOptions({ name: 'SystemSidebar' })
 const collapsed = defineModel<boolean>('collapsed', { required: true })
 const selectedSystemId = defineModel<string>('selectedSystemId', { required: true })
 
-defineProps<{
+const props = defineProps<{
   systems: BusinessSystem[]
+  drawer?: boolean
+  open?: boolean
 }>()
+
+const emit = defineEmits<{
+  close: []
+}>()
+
+function selectSystem(systemId: string) {
+  selectedSystemId.value = systemId
+  if (props.drawer) emit('close')
+}
 </script>
 
 <template>
-  <aside class="system-sidebar" :class="{ 'is-collapsed': collapsed }">
+  <aside
+    class="system-sidebar"
+    :class="{ 'is-collapsed': collapsed, 'is-drawer': drawer, 'is-open': open }"
+  >
     <div class="sidebar-heading">
       <div class="sidebar-heading-copy" :aria-hidden="collapsed">
         <span>业务系统</span>
@@ -21,14 +35,16 @@ defineProps<{
       <button
         type="button"
         class="collapse-button"
-        :aria-label="collapsed ? '展开系统栏' : '折叠系统栏'"
-        @click="collapsed = !collapsed"
+        :aria-label="drawer ? '关闭系统栏' : collapsed ? '展开系统栏' : '折叠系统栏'"
+        @click="drawer ? $emit('close') : (collapsed = !collapsed)"
       >
         <Icon
           :icon="
-            collapsed
-              ? 'fluent:panel-left-expand-20-regular'
-              : 'fluent:panel-left-contract-20-regular'
+            drawer
+              ? 'fluent:dismiss-20-regular'
+              : collapsed
+                ? 'fluent:panel-left-expand-20-regular'
+                : 'fluent:panel-left-contract-20-regular'
           "
           width="18"
         />
@@ -44,7 +60,7 @@ defineProps<{
         :class="{ active: selectedSystemId === system.id }"
         :aria-label="system.name"
         :aria-pressed="selectedSystemId === system.id"
-        @click="selectedSystemId = system.id"
+        @click="selectSystem(system.id)"
       >
         <span class="system-icon">
           <Icon :icon="system.icon" width="18" />
@@ -66,6 +82,8 @@ defineProps<{
 
 <style scoped lang="scss">
 .system-sidebar {
+  position: relative;
+  z-index: 18;
   display: flex;
   width: 228px;
   min-height: 0;
@@ -78,6 +96,21 @@ defineProps<{
 
   &.is-collapsed {
     width: 68px;
+  }
+}
+
+.system-sidebar.is-drawer {
+  position: fixed;
+  top: 68px;
+  bottom: 0;
+  left: 0;
+  width: min(286px, calc(100vw - 52px));
+  box-shadow: 18px 0 44px rgb(0 0 0 / 18%);
+  transform: translateX(-102%);
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  &.is-open {
+    transform: translateX(0);
   }
 }
 
@@ -319,6 +352,10 @@ defineProps<{
   .system-indicator,
   .sidebar-foot,
   .sidebar-foot-copy {
+    transition: none;
+  }
+
+  .system-sidebar.is-drawer {
     transition: none;
   }
 }

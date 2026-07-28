@@ -57,16 +57,17 @@ export const projectModuleMaterial: MaterialDefinition = {
 }
 
 export function createProjectModuleTemplate(publicModule: PublicModuleRecord): MaterialTemplate {
+  const moduleName = publicModule.schema.root.name
   return {
     ...projectModuleMaterial.schema,
-    name: publicModule.name,
+    name: moduleName,
     placement: { ...projectModuleMaterial.schema.placement },
     props: {
       ...projectModuleMaterial.schema.props,
       moduleId: publicModule.id,
       moduleVersion: publicModule.version,
       availableVersion: publicModule.version,
-      title: publicModule.name,
+      title: moduleName,
       parameters: {},
     },
   }

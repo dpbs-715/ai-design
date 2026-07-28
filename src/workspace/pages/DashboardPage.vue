@@ -1,23 +1,69 @@
 <script setup lang="ts">
-import { ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { storeToRefs } from 'pinia'
 import ProjectStackCard from '../components/ProjectStackCard.vue'
 import SystemSidebar from '../components/SystemSidebar.vue'
 import WorkspaceTopbar from '../components/WorkspaceTopbar.vue'
 import { useWorkspaceStore } from '../store.ts'
+import { compareWorkspaceTimeDescending } from '../time.ts'
+import { useWorkspaceResponsive } from '../useWorkspaceResponsive.ts'
+import type { DesignProject } from '../types.ts'
 
 defineOptions({ name: 'WorkspaceDashboard' })
 
 const workspaceStore = useWorkspaceStore()
 const { systems, projects, selectedSystemId } = storeToRefs(workspaceStore)
 const sidebarCollapsed = ref(false)
+const drawerOpen = ref(false)
+const searchOpen = ref(false)
+const searchQuery = ref('')
+const dashboardMode = ref<'all' | 'recent' | 'favorites'>('all')
+const { isCompact, isMobile } = useWorkspaceResponsive()
+
+const sidebarCollapsedModel = computed({
+  get: () => (isMobile.value ? false : sidebarCollapsed.value),
+  set: (value) => {
+    sidebarCollapsed.value = value
+  },
+})
+const selectedSystemModel = computed({
+  get: () => selectedSystemId.value,
+  set: (value) => workspaceStore.selectSystem(value),
+})
 
 const selectedSystem = computed(() =>
   systems.value.find((system) => system.id === selectedSystemId.value),
 )
-const visibleProjects = computed(() =>
-  projects.value.filter((project) => project.systemId === selectedSystemId.value),
-)
+const visibleProjects = computed(() => {
+  const query = searchQuery.value.trim().toLocaleLowerCase()
+  return projects.value
+    .filter((project) => project.systemId === selectedSystemId.value)
+    .filter((project) => {
+      if (dashboardMode.value === 'recent' && !project.lastOpenedAt) return false
+      if (dashboardMode.value === 'favorites' && !project.isFavorite) return false
+      return (
+        !query ||
+        project.name.toLocaleLowerCase().includes(query) ||
+        project.description.toLocaleLowerCase().includes(query)
+      )
+    })
+    .sort((left, right) =>
+      dashboardMode.value === 'recent'
+        ? compareWorkspaceTimeDescending(left.lastOpenedAt, right.lastOpenedAt)
+        : compareWorkspaceTimeDescending(left.updatedAt, right.updatedAt),
+    )
+})
+
+const modeLabel = computed(() => {
+  if (dashboardMode.value === 'recent') return '最近访问'
+  if (dashboardMode.value === 'favorites') return '收藏项目'
+  return '全部项目'
+})
+
+watch([isCompact, isMobile], ([compact, mobile]) => {
+  if (compact && !mobile) sidebarCollapsed.value = true
+  if (!mobile) drawerOpen.value = false
+})
 
 async function createProject() {
   try {
@@ -33,12 +79,67 @@ async function createProject() {
     // Closing the prompt keeps the current dashboard state unchanged.
   }
 }
+
+async function renameProject(project: DesignProject) {
+  try {
+    const { value } = await ElMessageBox.prompt('', '重命名项目', {
+      confirmButtonText: '保存',
+      cancelButtonText: '取消',
+      inputValue: project.name,
+      inputPattern: /\S+/,
+      inputErrorMessage: '项目名称不能为空',
+    })
+    workspaceStore.renameProject(project.id, value.trim())
+  } catch {
+    // Cancelling leaves the project unchanged.
+  }
+}
+
+function duplicateProject(project: DesignProject) {
+  workspaceStore.duplicateProject(project.id)
+  ElMessage.success(`已复制“${project.name}”`)
+}
+
+async function removeProject(project: DesignProject) {
+  try {
+    await ElMessageBox.confirm(
+      `将同时删除项目内的 ${project.pageIds.length} 个页面和 ${project.moduleIds.length} 个公共模块。`,
+      `删除“${project.name}”`,
+      {
+        type: 'warning',
+        confirmButtonText: '删除项目',
+        cancelButtonText: '取消',
+      },
+    )
+    workspaceStore.removeProject(project.id)
+  } catch {
+    // Cancelled destructive action.
+  }
+}
+
+function changeMode(mode: typeof dashboardMode.value) {
+  dashboardMode.value = mode
+}
+
+function toggleSearch() {
+  searchOpen.value = !searchOpen.value
+  if (!searchOpen.value) searchQuery.value = ''
+}
 </script>
 
 <template>
   <div class="dashboard-shell">
     <WorkspaceTopbar>
       <div class="topbar-note">
+        <button
+          v-if="isMobile"
+          type="button"
+          class="mobile-system-trigger"
+          aria-label="打开业务系统"
+          @click="drawerOpen = true"
+        >
+          <Icon icon="fluent:navigation-20-regular" width="18" />
+        </button>
         <span>设计工作区</span>
         <i></i>
         <strong>{{ selectedSystem?.name }}</strong>
@@ -46,10 +147,20 @@ async function createProject() {
     </WorkspaceTopbar>
 
     <div class="dashboard-body">
+      <button
+        v-if="isMobile && drawerOpen"
+        type="button"
+        class="drawer-backdrop"
+        aria-label="关闭业务系统"
+        @click="drawerOpen = false"
+      ></button>
       <SystemSidebar
-        v-model:collapsed="sidebarCollapsed"
-        v-model:selected-system-id="selectedSystemId"
+        v-model:collapsed="sidebarCollapsedModel"
+        v-model:selected-system-id="selectedSystemModel"
         :systems="systems"
+        :drawer="isMobile"
+        :open="drawerOpen"
+        @close="drawerOpen = false"
       />
 
       <main class="dashboard-main">
@@ -68,10 +179,24 @@ async function createProject() {
             </CommonButton>
           </header>
 
+          <div v-if="searchOpen" class="dashboard-search">
+            <Icon icon="fluent:search-20-regular" width="17" />
+            <el-input
+              v-model="searchQuery"
+              autofocus
+              clearable
+              placeholder="搜索当前业务系统中的项目"
+              aria-label="搜索项目"
+            />
+            <span>{{ visibleProjects.length }} 个结果</span>
+          </div>
+
           <div class="project-count">
             <span>{{ visibleProjects.length }} 个项目</span>
             <i></i>
-            <span>最近更新优先</span>
+            <span>{{ modeLabel }}</span>
+            <i></i>
+            <span>{{ dashboardMode === 'recent' ? '最近访问优先' : '最近更新优先' }}</span>
           </div>
 
           <div class="project-grid">
@@ -79,9 +204,19 @@ async function createProject() {
               v-for="project in visibleProjects"
               :key="project.id"
               :project="project"
+              @open="workspaceStore.recordProjectVisit(project.id)"
+              @rename="renameProject(project)"
+              @duplicate="duplicateProject(project)"
+              @remove="removeProject(project)"
+              @toggle-favorite="workspaceStore.toggleProjectFavorite(project.id)"
             />
 
-            <button type="button" class="new-project-card" @click="createProject">
+            <button
+              v-if="dashboardMode === 'all' && !searchQuery"
+              type="button"
+              class="new-project-card"
+              @click="createProject"
+            >
               <span class="new-stack">
                 <i></i>
                 <i></i>
@@ -100,23 +235,55 @@ async function createProject() {
               </span>
             </button>
           </div>
+
+          <div
+            v-if="!visibleProjects.length && (dashboardMode !== 'all' || searchQuery)"
+            class="dashboard-empty"
+          >
+            <span>
+              <Icon
+                :icon="
+                  dashboardMode === 'favorites'
+                    ? 'fluent:star-off-20-regular'
+                    : dashboardMode === 'recent'
+                      ? 'fluent:clock-dismiss-20-regular'
+                      : 'fluent:search-info-20-regular'
+                "
+                width="25"
+              />
+            </span>
+            <strong>暂时没有匹配的项目</strong>
+            <p>可以切换筛选条件，或清除搜索关键词后再试。</p>
+          </div>
         </section>
 
         <nav class="floating-dock" aria-label="工作区快捷入口">
-          <RouterLink to="/" class="active">
+          <button
+            type="button"
+            :class="{ active: dashboardMode === 'all' }"
+            @click="changeMode('all')"
+          >
             <Icon icon="fluent:grid-20-filled" width="18" />
             <span>项目</span>
-          </RouterLink>
-          <button type="button">
+          </button>
+          <button
+            type="button"
+            :class="{ active: dashboardMode === 'recent' }"
+            @click="changeMode('recent')"
+          >
             <Icon icon="fluent:clock-20-regular" width="18" />
             <span>最近</span>
           </button>
-          <button type="button">
+          <button
+            type="button"
+            :class="{ active: dashboardMode === 'favorites' }"
+            @click="changeMode('favorites')"
+          >
             <Icon icon="fluent:star-20-regular" width="18" />
             <span>收藏</span>
           </button>
           <i></i>
-          <button type="button">
+          <button type="button" :class="{ active: searchOpen }" @click="toggleSearch">
             <Icon icon="fluent:search-20-regular" width="18" />
             <span>搜索</span>
           </button>
@@ -157,10 +324,34 @@ async function createProject() {
   }
 }
 
+.mobile-system-trigger {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  margin-left: 8px;
+}
+
 .dashboard-body {
+  position: relative;
   display: flex;
   min-height: 0;
   flex: 1;
+}
+
+.drawer-backdrop {
+  position: fixed;
+  z-index: 17;
+  inset: 68px 0 0;
+  padding: 0;
+  border: 0;
+  background: rgb(4 8 12 / 48%);
+  backdrop-filter: blur(2px);
 }
 
 .dashboard-main {
@@ -234,6 +425,32 @@ async function createProject() {
   }
 }
 
+.dashboard-search {
+  display: grid;
+  max-width: 620px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  margin: 22px 0 0;
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent-color) 24%, var(--border-color));
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--surface-panel) 82%, transparent);
+  color: var(--text-muted);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 6%);
+
+  :deep(.el-input__wrapper) {
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  > span {
+    font-size: 10px;
+    white-space: nowrap;
+  }
+}
+
 .project-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(220px, 1fr));
@@ -301,6 +518,38 @@ async function createProject() {
   border-color: var(--accent-color);
   background: var(--accent-soft);
   transform: translateY(-5px);
+}
+
+.dashboard-empty {
+  display: flex;
+  min-height: 280px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  color: var(--text-muted);
+  text-align: center;
+
+  > span {
+    display: grid;
+    width: 52px;
+    height: 52px;
+    place-items: center;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background: var(--surface-panel);
+    color: var(--accent-color);
+  }
+
+  strong {
+    margin-top: 16px;
+    color: var(--text-secondary);
+    font-size: 14px;
+  }
+
+  p {
+    margin: 7px 0 0;
+    font-size: 11px;
+  }
 }
 
 .new-project-info {
@@ -415,6 +664,15 @@ async function createProject() {
   .page-intro {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .topbar-note {
+    justify-content: flex-start;
+
+    > span,
+    > i {
+      display: none;
+    }
   }
 
   .project-grid {

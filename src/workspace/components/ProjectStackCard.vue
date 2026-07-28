@@ -1,12 +1,27 @@
 <script setup lang="ts">
 import type { DesignProject } from '../types.ts'
 import DesignThumbnail from './DesignThumbnail.vue'
+import { formatWorkspaceTime } from '../time.ts'
 
 defineOptions({ name: 'ProjectStackCard' })
 
 defineProps<{
   project: DesignProject
 }>()
+
+const emit = defineEmits<{
+  duplicate: []
+  open: []
+  remove: []
+  rename: []
+  'toggle-favorite': []
+}>()
+
+function handleCommand(command: string | number | object) {
+  if (command === 'rename') emit('rename')
+  if (command === 'duplicate') emit('duplicate')
+  if (command === 'remove') emit('remove')
+}
 </script>
 
 <template>
@@ -15,6 +30,7 @@ defineProps<{
       class="project-stack"
       :to="`/projects/${project.id}/pages`"
       :aria-label="`进入项目 ${project.name}`"
+      @click="$emit('open')"
     >
       <span class="stack-sheet sheet-back"></span>
       <span class="stack-sheet sheet-middle"></span>
@@ -34,16 +50,31 @@ defineProps<{
           <h2>{{ project.name }}</h2>
           <p>{{ project.description }}</p>
         </div>
-        <el-dropdown trigger="click" placement="bottom-end">
-          <button type="button" class="project-more" aria-label="项目更多操作">
-            <Icon icon="fluent:more-horizontal-20-regular" width="18" />
+        <div class="project-heading-actions">
+          <button
+            type="button"
+            class="project-favorite"
+            :class="{ active: project.isFavorite }"
+            :aria-label="project.isFavorite ? '取消收藏项目' : '收藏项目'"
+            :aria-pressed="project.isFavorite"
+            @click="$emit('toggle-favorite')"
+          >
+            <Icon
+              :icon="project.isFavorite ? 'fluent:star-20-filled' : 'fluent:star-20-regular'"
+              width="17"
+            />
           </button>
-          <template #dropdown>
-            <el-dropdown-item>重命名项目</el-dropdown-item>
-            <el-dropdown-item>复制项目</el-dropdown-item>
-            <el-dropdown-item>项目设置</el-dropdown-item>
-          </template>
-        </el-dropdown>
+          <el-dropdown trigger="click" placement="bottom-end" @command="handleCommand">
+            <button type="button" class="project-more" aria-label="项目更多操作">
+              <Icon icon="fluent:more-horizontal-20-regular" width="18" />
+            </button>
+            <template #dropdown>
+              <el-dropdown-item command="rename">重命名项目</el-dropdown-item>
+              <el-dropdown-item command="duplicate">复制项目</el-dropdown-item>
+              <el-dropdown-item command="remove" divided>删除项目</el-dropdown-item>
+            </template>
+          </el-dropdown>
+        </div>
       </div>
 
       <div class="project-meta">
@@ -51,11 +82,11 @@ defineProps<{
         <i></i>
         <span>{{ project.moduleIds.length }} 模块</span>
         <i></i>
-        <span>{{ project.updatedAt }}</span>
+        <span>{{ formatWorkspaceTime(project.updatedAt) }}</span>
       </div>
 
       <div class="project-actions">
-        <RouterLink class="enter-link" :to="`/projects/${project.id}/pages`">
+        <RouterLink class="enter-link" :to="`/projects/${project.id}/pages`" @click="$emit('open')">
           进入项目
           <Icon icon="fluent:arrow-right-20-regular" width="15" />
         </RouterLink>
@@ -63,6 +94,7 @@ defineProps<{
           v-if="project.lastEditedPageId"
           class="continue-link"
           :to="`/projects/${project.id}/pages/${project.lastEditedPageId}/editor`"
+          @click="$emit('open')"
         >
           继续编辑
         </RouterLink>
@@ -184,7 +216,15 @@ defineProps<{
   }
 }
 
-.project-more {
+.project-heading-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+}
+
+.project-more,
+.project-favorite {
   display: grid;
   width: 28px;
   height: 28px;
@@ -201,6 +241,10 @@ defineProps<{
     background: var(--surface-hover);
     color: var(--text-primary);
   }
+}
+
+.project-favorite.active {
+  color: var(--accent-color);
 }
 
 .project-meta {

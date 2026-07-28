@@ -1,23 +1,16 @@
 import { defineStore } from 'pinia'
 
 import { isAbsolutePlacement, isFormItemPlacement, type MaterialSchema } from '@/schema/material.ts'
-import {
-  PAGE_SCHEMA_VERSION,
-  type PageRootSchema,
-  type PageSchema,
-} from '@/schema/page.ts'
+import type { PageRootSchema, PageSchema } from '@/schema/page.ts'
+import { createPageSchema } from '@/schema/createPage.ts'
 import { createMaterialTreeIndex, mapMaterialTree, someMaterialNode } from '@/schema/nodeTree.ts'
 import { deepClone } from '@vunio/utils'
 import { useUndoRedo } from '@/hooks/useUndoRedo.ts'
 import { SetFormFieldCommand } from '@vunio/ui'
-import {
-  createDefaultRenderTheme,
-  createThemeColorReference,
-  normalizeRenderTheme,
-} from '@/theme/renderTheme.ts'
+import { normalizeRenderTheme } from '@/theme/renderTheme.ts'
 import { canMaterialAcceptChild } from '@/materials'
 import { parsePageSchema, type SchemaParseResult } from '@/schema/validation.ts'
-import { createDefaultDataSources, mergeDefaultDataSources } from '@/dataSources/defaults.ts'
+import { mergeDefaultDataSources } from '@/dataSources/defaults.ts'
 
 export type NodePastePlacement =
   | { kind: 'preserve' }
@@ -30,40 +23,6 @@ export interface CanvasRect {
   y: number
   width: number
   height: number
-}
-
-function createDefaultPage(): PageSchema {
-  return {
-    schemaVersion: PAGE_SCHEMA_VERSION,
-    id: crypto.randomUUID(),
-    theme: createDefaultRenderTheme(),
-    root: {
-      id: 'page-root',
-      type: 'page-root',
-      name: '页面',
-      placement: {
-        type: 'canvas',
-        width: 1920,
-        height: 1080,
-      },
-      style: {
-        background: {
-          color: createThemeColorReference('page-background'),
-          image: {
-            src: '',
-            fit: 'cover',
-            position: 'center center',
-            repeat: 'no-repeat',
-            opacity: 1,
-          },
-        },
-      },
-      props: {},
-      events: [],
-      children: [],
-    },
-    dataSources: createDefaultDataSources(),
-  }
 }
 
 function cloneNodeTree(
@@ -103,7 +62,7 @@ function cloneNodeForest(
 export const useEditorStore = defineStore('editor', () => {
   const { dispatchCommand, startBatch, commitBatch, clearHistory } = useUndoRedo()
 
-  const page = ref<PageSchema>(createDefaultPage())
+  const page = ref<PageSchema>(createPageSchema())
   const root = computed(() => page.value.root)
   const canvas = computed(() => page.value.root.placement)
   const rootChildren = computed(() => page.value.root.children)

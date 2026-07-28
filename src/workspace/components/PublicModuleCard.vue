@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PublicModuleRecord } from '../types.ts'
 import DesignThumbnail from './DesignThumbnail.vue'
+import { formatWorkspaceTime } from '../time.ts'
 
 defineOptions({ name: 'PublicModuleCard' })
 
@@ -22,7 +23,7 @@ defineEmits<{
       <RouterLink
         class="module-preview"
         :to="`/projects/${publicModule.projectId}/modules/${publicModule.id}/editor`"
-        :aria-label="`编辑公共模块 ${publicModule.name}`"
+        :aria-label="`编辑公共模块 ${publicModule.schema.root.name}`"
       >
         <DesignThumbnail :variant="publicModule.thumbnailVariant" compact />
         <span class="module-crop crop-top"></span>
@@ -41,7 +42,7 @@ defineEmits<{
     <div class="module-body">
       <header class="module-heading">
         <div>
-          <h3>{{ publicModule.name }}</h3>
+          <h3>{{ publicModule.schema.root.name }}</h3>
           <p>
             <span>{{ publicModule.version }}</span>
             {{ publicModule.exposedParameters.join(' · ') }}
@@ -65,7 +66,7 @@ defineEmits<{
           <Icon icon="fluent:link-20-regular" width="13" />
           被 {{ publicModule.referenceCount }} 个页面引用
         </button>
-        <span>{{ publicModule.updatedAt }}</span>
+        <span>{{ formatWorkspaceTime(publicModule.updatedAt) }}</span>
       </div>
 
       <footer class="module-actions">

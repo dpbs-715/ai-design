@@ -21,7 +21,7 @@ function startDrag(event: DragEvent) {
   <div
     class="project-module-item"
     draggable="true"
-    :aria-label="`拖拽添加公共模块 ${publicModule.name}`"
+    :aria-label="`拖拽添加公共模块 ${publicModule.schema.root.name}`"
     @dragstart="startDrag"
     @dragend="finishMaterialDrag"
   >
@@ -36,7 +36,7 @@ function startDrag(event: DragEvent) {
     </div>
     <div class="module-copy">
       <span>
-        <strong>{{ publicModule.name }}</strong>
+        <strong>{{ publicModule.schema.root.name }}</strong>
         <small>{{ publicModule.referenceCount }} 个页面引用</small>
       </span>
       <Icon icon="mdi:drag" width="15" />
