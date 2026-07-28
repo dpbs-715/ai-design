@@ -119,16 +119,13 @@ function onPreview() {
 }
 
 function onPublish() {
-  const pageId = page.value.id ?? crypto.randomUUID()
-  const result = parsePageSchema({ ...page.value, id: pageId })
+  const result = parsePageSchema(page.value)
   if (result.success === false) {
     ElMessage.error(formatSchemaValidationIssue(result.issues[0]))
     return
   }
 
   const id = publishPage(result.data)
-  editorStore.setPageId(id)
-
   router.push({ name: 'Screen', query: { id } })
 }
 

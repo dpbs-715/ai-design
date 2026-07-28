@@ -8,6 +8,8 @@ import type { MaterialSchema } from '@/schema/material.ts'
 import type { RenderThemeConfig, ThemeColorValue } from '@/theme/renderTheme.ts'
 import { z } from 'zod'
 
+export const PAGE_SCHEMA_VERSION = 1
+
 // Page-owned objects keep unknown fields so imported and agent-authored extensions round-trip.
 const dataSourceBaseShape = {
   id: z.string().min(1),
@@ -118,8 +120,8 @@ export const dataSourcesSchema = z.array(dataSourceSchema).superRefine((sources,
 })
 
 export const pageSchema = extensibleObject({
-  schemaVersion: z.literal(2),
-  id: z.string().optional(),
+  schemaVersion: z.literal(PAGE_SCHEMA_VERSION),
+  id: z.string().min(1),
   theme: renderThemeSchema,
   root: pageRootSchema,
   dataSources: dataSourcesSchema,
@@ -185,8 +187,8 @@ export interface PageRootSchema {
 }
 
 export interface PageSchema {
-  schemaVersion: 2
-  id?: string
+  schemaVersion: typeof PAGE_SCHEMA_VERSION
+  id: string
   theme: RenderThemeConfig
   root: PageRootSchema
   dataSources: DataSourceSchema[]

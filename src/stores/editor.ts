@@ -1,7 +1,11 @@
 import { defineStore } from 'pinia'
 
 import { isAbsolutePlacement, isFormItemPlacement, type MaterialSchema } from '@/schema/material.ts'
-import type { PageRootSchema, PageSchema } from '@/schema/page.ts'
+import {
+  PAGE_SCHEMA_VERSION,
+  type PageRootSchema,
+  type PageSchema,
+} from '@/schema/page.ts'
 import { createMaterialTreeIndex, mapMaterialTree, someMaterialNode } from '@/schema/nodeTree.ts'
 import { deepClone } from '@vunio/utils'
 import { useUndoRedo } from '@/hooks/useUndoRedo.ts'
@@ -30,7 +34,8 @@ export interface CanvasRect {
 
 function createDefaultPage(): PageSchema {
   return {
-    schemaVersion: 2,
+    schemaVersion: PAGE_SCHEMA_VERSION,
+    id: crypto.randomUUID(),
     theme: createDefaultRenderTheme(),
     root: {
       id: 'page-root',
@@ -154,10 +159,6 @@ export const useEditorStore = defineStore('editor', () => {
       dataSources: mergeDefaultDataSources(result.data.dataSources),
     }
     return result
-  }
-
-  function setPageId(id: string) {
-    page.value.id = id
   }
 
   function dispatchCommandBatch(callback: () => void) {
@@ -765,6 +766,5 @@ export const useEditorStore = defineStore('editor', () => {
     unlockNodes,
     updateNode,
     setPage,
-    setPageId,
   }
 })
