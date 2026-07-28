@@ -14,11 +14,21 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   close: []
+  create: []
+  rename: [system: BusinessSystem]
+  remove: [system: BusinessSystem]
 }>()
+
+type SystemAction = 'rename' | 'remove'
 
 function selectSystem(systemId: string) {
   selectedSystemId.value = systemId
   if (props.drawer) emit('close')
+}
+
+function runSystemAction(action: SystemAction, system: BusinessSystem) {
+  if (action === 'rename') emit('rename', system)
+  else emit('remove', system)
 }
 </script>
 
@@ -32,45 +42,78 @@ function selectSystem(systemId: string) {
         <span>业务系统</span>
         <small>SYSTEMS</small>
       </div>
-      <button
-        type="button"
-        class="collapse-button"
-        :aria-label="drawer ? '关闭系统栏' : collapsed ? '展开系统栏' : '折叠系统栏'"
-        @click="drawer ? $emit('close') : (collapsed = !collapsed)"
-      >
-        <Icon
-          :icon="
-            drawer
-              ? 'fluent:dismiss-20-regular'
-              : collapsed
-                ? 'fluent:panel-left-expand-20-regular'
-                : 'fluent:panel-left-contract-20-regular'
-          "
-          width="18"
-        />
-      </button>
+      <div class="sidebar-heading-actions">
+        <button
+          v-if="!collapsed"
+          type="button"
+          class="heading-action"
+          aria-label="新增业务系统"
+          @click="$emit('create')"
+        >
+          <Icon icon="fluent:add-20-regular" width="17" />
+        </button>
+        <button
+          type="button"
+          class="heading-action"
+          :aria-label="drawer ? '关闭系统栏' : collapsed ? '展开系统栏' : '折叠系统栏'"
+          @click="drawer ? $emit('close') : (collapsed = !collapsed)"
+        >
+          <Icon
+            :icon="
+              drawer
+                ? 'fluent:dismiss-20-regular'
+                : collapsed
+                  ? 'fluent:panel-left-expand-20-regular'
+                  : 'fluent:panel-left-contract-20-regular'
+            "
+            width="18"
+          />
+        </button>
+      </div>
     </div>
 
     <nav class="system-list" aria-label="业务系统">
-      <button
+      <div
         v-for="system in systems"
         :key="system.id"
-        type="button"
-        class="system-item"
+        class="system-row"
         :class="{ active: selectedSystemId === system.id }"
-        :aria-label="system.name"
-        :aria-pressed="selectedSystemId === system.id"
-        @click="selectSystem(system.id)"
       >
-        <span class="system-icon">
-          <Icon :icon="system.icon" width="18" />
-        </span>
-        <span class="system-copy" :aria-hidden="collapsed">
-          <strong>{{ system.name }}</strong>
-          <small>{{ system.description }}</small>
-        </span>
-        <span class="system-indicator"></span>
-      </button>
+        <button
+          type="button"
+          class="system-item"
+          :class="{ active: selectedSystemId === system.id }"
+          :aria-label="system.name"
+          :aria-pressed="selectedSystemId === system.id"
+          @click="selectSystem(system.id)"
+        >
+          <span class="system-icon">
+            <Icon :icon="system.icon" width="18" />
+          </span>
+          <span class="system-copy" :aria-hidden="collapsed">
+            <strong>{{ system.name }}</strong>
+            <small>{{ system.description }}</small>
+          </span>
+        </button>
+
+        <el-dropdown
+          v-if="!collapsed"
+          class="system-menu"
+          trigger="click"
+          placement="bottom-end"
+          @command="runSystemAction($event, system)"
+        >
+          <button type="button" class="system-actions" :aria-label="`管理${system.name}`">
+            <Icon icon="fluent:more-horizontal-20-regular" width="17" />
+          </button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="rename">编辑系统</el-dropdown-item>
+              <el-dropdown-item command="remove" divided>删除系统</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+      </div>
     </nav>
 
     <div class="sidebar-foot">
@@ -156,7 +199,14 @@ function selectSystem(systemId: string) {
   }
 }
 
-.collapse-button {
+.sidebar-heading-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+}
+
+.heading-action {
   display: grid;
   width: 30px;
   height: 30px;
@@ -193,7 +243,13 @@ function selectSystem(systemId: string) {
   flex-direction: column;
   gap: 5px;
   padding: 0 10px;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.system-row {
+  position: relative;
+  flex: none;
 }
 
 .system-item {
@@ -202,7 +258,8 @@ function selectSystem(systemId: string) {
   min-height: 58px;
   align-items: center;
   gap: 10px;
-  padding: 8px 10px;
+  width: 100%;
+  padding: 8px 34px 8px 10px;
   overflow: hidden;
   border: 1px solid transparent;
   border-radius: 9px;
@@ -220,6 +277,36 @@ function selectSystem(systemId: string) {
     border-color: color-mix(in srgb, var(--accent-color) 16%, var(--border-color));
     background: var(--accent-soft);
     color: var(--accent-color);
+  }
+}
+
+.system-menu {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+}
+
+.system-actions {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--surface-panel) 88%, transparent);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--surface-hover);
+    color: var(--text-primary);
   }
 }
 
@@ -265,22 +352,6 @@ function selectSystem(systemId: string) {
   }
 }
 
-.system-indicator {
-  width: 4px;
-  height: 4px;
-  flex: none;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0;
-  transition:
-    width 180ms ease,
-    opacity 120ms ease;
-}
-
-.system-item.active .system-indicator {
-  opacity: 1;
-}
-
 .is-collapsed .system-item {
   gap: 0;
   justify-content: center;
@@ -290,11 +361,6 @@ function selectSystem(systemId: string) {
 .is-collapsed .system-copy {
   max-width: 0;
   flex-basis: 0;
-  opacity: 0;
-}
-
-.is-collapsed .system-indicator {
-  width: 0;
   opacity: 0;
 }
 
@@ -349,7 +415,7 @@ function selectSystem(systemId: string) {
   .sidebar-heading,
   .sidebar-heading-copy,
   .system-copy,
-  .system-indicator,
+  .system-actions,
   .sidebar-foot,
   .sidebar-foot-copy {
     transition: none;

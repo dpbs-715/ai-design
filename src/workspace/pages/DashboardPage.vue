@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useConfigs } from '@vunio/hooks'
+import type { CommonFormConfig } from '@vunio/ui'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { storeToRefs } from 'pinia'
 import ProjectStackCard from '../components/ProjectStackCard.vue'
@@ -7,7 +9,7 @@ import WorkspaceTopbar from '../components/WorkspaceTopbar.vue'
 import { useWorkspaceStore } from '../store.ts'
 import { compareWorkspaceTimeDescending } from '../time.ts'
 import { useWorkspaceResponsive } from '../useWorkspaceResponsive.ts'
-import type { DesignProject } from '../types.ts'
+import type { BusinessSystem, DesignProject } from '../types.ts'
 
 defineOptions({ name: 'WorkspaceDashboard' })
 
@@ -18,7 +20,36 @@ const drawerOpen = ref(false)
 const searchOpen = ref(false)
 const searchQuery = ref('')
 const dashboardMode = ref<'all' | 'recent' | 'favorites'>('all')
+const systemDialogVisible = ref(false)
+const systemEditorMode = ref<'create' | 'edit'>('create')
+const editingSystemId = ref('')
+const systemDraft = ref({ name: '', description: '' })
 const { isCompact, isMobile } = useWorkspaceResponsive()
+
+const { config: systemFormConfig } = useConfigs<CommonFormConfig>([
+  {
+    label: '系统名称',
+    field: 'name',
+    component: 'input',
+    props: {
+      maxlength: 24,
+      showWordLimit: true,
+      placeholder: '例如：仓储物流',
+    },
+  },
+  {
+    label: '系统描述',
+    field: 'description',
+    component: 'input',
+    props: {
+      type: 'textarea',
+      rows: 3,
+      maxlength: 80,
+      showWordLimit: true,
+      placeholder: '概括该系统管理的业务范围',
+    },
+  },
+])
 
 const sidebarCollapsedModel = computed({
   get: () => (isMobile.value ? false : sidebarCollapsed.value),
@@ -125,6 +156,69 @@ function toggleSearch() {
   searchOpen.value = !searchOpen.value
   if (!searchOpen.value) searchQuery.value = ''
 }
+
+function createSystem() {
+  systemEditorMode.value = 'create'
+  editingSystemId.value = ''
+  systemDraft.value = { name: '', description: '' }
+  systemDialogVisible.value = true
+}
+
+function editSystem(system: BusinessSystem) {
+  systemEditorMode.value = 'edit'
+  editingSystemId.value = system.id
+  systemDraft.value = {
+    name: system.name,
+    description: system.description,
+  }
+  systemDialogVisible.value = true
+}
+
+function saveSystem(close: () => void) {
+  const systemDetails = {
+    name: systemDraft.value.name.trim(),
+    description: systemDraft.value.description.trim(),
+  }
+  if (!systemDetails.name || !systemDetails.description) {
+    ElMessage.warning('请填写系统名称和描述')
+    return
+  }
+
+  const saved =
+    systemEditorMode.value === 'create'
+      ? workspaceStore.addSystem(systemDetails.name, systemDetails.description)
+      : workspaceStore.updateSystem(editingSystemId.value, systemDetails)
+  if (!saved) {
+    ElMessage.warning('系统名称已存在')
+    return
+  }
+  close()
+}
+
+async function removeSystem(system: BusinessSystem) {
+  if (systems.value.length <= 1) {
+    ElMessage.warning('工作区至少需要保留一个业务系统')
+    return
+  }
+
+  const systemProjects = projects.value.filter((project) => project.systemId === system.id)
+  const pageCount = systemProjects.reduce((count, project) => count + project.pageIds.length, 0)
+  const moduleCount = systemProjects.reduce((count, project) => count + project.moduleIds.length, 0)
+  try {
+    await ElMessageBox.confirm(
+      `将同时删除 ${systemProjects.length} 个项目、${pageCount} 个页面和 ${moduleCount} 个公共模块。`,
+      `删除“${system.name}”`,
+      {
+        type: 'warning',
+        confirmButtonText: '删除系统',
+        cancelButtonText: '取消',
+      },
+    )
+    workspaceStore.removeSystem(system.id)
+  } catch {
+    // Cancelled destructive action.
+  }
+}
 </script>
 
 <template>
@@ -161,6 +255,9 @@ function toggleSearch() {
         :drawer="isMobile"
         :open="drawerOpen"
         @close="drawerOpen = false"
+        @create="createSystem"
+        @rename="editSystem"
+        @remove="removeSystem"
       />
 
       <main class="dashboard-main">
@@ -173,10 +270,6 @@ function toggleSearch() {
                 {{ selectedSystem?.description }}。选择一个项目进入工作台，或从一张空白画布开始。
               </p>
             </div>
-            <CommonButton type="primary" @click="createProject">
-              <Icon icon="fluent:add-20-regular" width="16" />
-              新建项目
-            </CommonButton>
           </header>
 
           <div v-if="searchOpen" class="dashboard-search">
@@ -200,17 +293,6 @@ function toggleSearch() {
           </div>
 
           <div class="project-grid">
-            <ProjectStackCard
-              v-for="project in visibleProjects"
-              :key="project.id"
-              :project="project"
-              @open="workspaceStore.recordProjectVisit(project.id)"
-              @rename="renameProject(project)"
-              @duplicate="duplicateProject(project)"
-              @remove="removeProject(project)"
-              @toggle-favorite="workspaceStore.toggleProjectFavorite(project.id)"
-            />
-
             <button
               v-if="dashboardMode === 'all' && !searchQuery"
               type="button"
@@ -234,6 +316,17 @@ function toggleSearch() {
                 </b>
               </span>
             </button>
+
+            <ProjectStackCard
+              v-for="project in visibleProjects"
+              :key="project.id"
+              :project="project"
+              @open="workspaceStore.recordProjectVisit(project.id)"
+              @rename="renameProject(project)"
+              @duplicate="duplicateProject(project)"
+              @remove="removeProject(project)"
+              @toggle-favorite="workspaceStore.toggleProjectFavorite(project.id)"
+            />
           </div>
 
           <div
@@ -290,6 +383,17 @@ function toggleSearch() {
         </nav>
       </main>
     </div>
+
+    <CommonDialog
+      v-model="systemDialogVisible"
+      destroy-on-close
+      width="460px"
+      :title="systemEditorMode === 'create' ? '新增业务系统' : '编辑业务系统'"
+      @confirm="saveSystem"
+    >
+      <p class="system-editor-note">系统用于归类项目，名称和描述会显示在主页侧栏。</p>
+      <CommonForm v-model="systemDraft" label-position="top" :config="systemFormConfig" />
+    </CommonDialog>
   </div>
 </template>
 
@@ -302,6 +406,13 @@ function toggleSearch() {
     radial-gradient(circle at 72% 12%, var(--accent-soft), transparent 28%),
     var(--surface-workbench);
   color: var(--text-primary);
+}
+
+.system-editor-note {
+  margin: 0 0 18px;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.7;
 }
 
 .topbar-note {
@@ -390,15 +501,6 @@ function toggleSearch() {
     color: var(--text-muted);
     font-size: 12px;
     line-height: 1.7;
-  }
-
-  :deep(.CommonButton) {
-    display: inline-flex;
-    height: 36px;
-    flex: none;
-    align-items: center;
-    gap: 7px;
-    padding: 0 15px;
   }
 }
 

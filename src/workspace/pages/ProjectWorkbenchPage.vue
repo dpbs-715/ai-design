@@ -211,15 +211,7 @@ function showReferences(publicModule: PublicModuleRecord) {
               <h1>{{ currentNav.label }}</h1>
               <p>{{ currentNav.description }}</p>
             </div>
-            <CommonButton v-if="currentSection === 'pages'" type="primary" @click="createPage">
-              <Icon icon="fluent:add-20-regular" width="16" />
-              新建页面
-            </CommonButton>
-            <CommonButton
-              v-else-if="currentSection === 'modules'"
-              type="primary"
-              @click="createModule"
-            >
+            <CommonButton v-if="currentSection === 'modules'" type="primary" @click="createModule">
               <Icon icon="fluent:add-20-regular" width="16" />
               新建模块
             </CommonButton>
@@ -227,6 +219,11 @@ function showReferences(publicModule: PublicModuleRecord) {
 
           <template v-if="currentSection === 'pages'">
             <div v-if="projectPages.length" class="asset-grid">
+              <button type="button" class="asset-create-card" @click="createPage">
+                <Icon icon="fluent:add-square-multiple-20-regular" width="24" />
+                <strong>新建页面</strong>
+                <span>创建一张独立画布</span>
+              </button>
               <ProjectPageCard
                 v-for="page in projectPages"
                 :key="page.id"
@@ -235,11 +232,6 @@ function showReferences(publicModule: PublicModuleRecord) {
                 @duplicate="workspaceStore.duplicatePage(page.id)"
                 @remove="removePage(page)"
               />
-              <button type="button" class="asset-create-card" @click="createPage">
-                <Icon icon="fluent:add-square-multiple-20-regular" width="24" />
-                <strong>新建页面</strong>
-                <span>创建一张独立画布</span>
-              </button>
             </div>
             <div v-else class="large-empty-state">
               <span><Icon icon="fluent:window-new-20-regular" width="28" /></span>

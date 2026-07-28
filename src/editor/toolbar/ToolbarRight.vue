@@ -4,8 +4,8 @@ import { storeToRefs } from 'pinia'
 import { ElMessage } from 'element-plus'
 import DataSourceManager from './components/DataSourceManager.vue'
 import { useRouter } from 'vue-router'
-import { publishPage } from '@/utils/publish.ts'
 import { formatSchemaValidationIssue, parsePageSchema } from '@/schema/validation.ts'
+import { useWorkspaceStore } from '@/workspace/store.ts'
 
 defineOptions({ name: 'ToolbarRight' })
 
@@ -19,6 +19,7 @@ const dataSourceManagerRef = useTemplateRef<DataSourceManagerExpose>('dataSource
 const router = useRouter()
 
 const editorStore = useEditorStore()
+const workspaceStore = useWorkspaceStore()
 const { page } = storeToRefs(editorStore)
 
 const visible = ref(false)
@@ -125,8 +126,14 @@ function onPublish() {
     return
   }
 
-  const id = publishPage(result.data)
-  router.push({ name: 'Screen', query: { id } })
+  const pageRecord = workspaceStore.getPage(result.data.id)
+  if (!pageRecord) {
+    ElMessage.error('当前页面不属于工作空间，无法发布')
+    return
+  }
+
+  workspaceStore.savePageSchema(pageRecord.id, result.data)
+  router.push({ name: 'Screen', query: { id: pageRecord.id } })
 }
 
 type MoreAction = 'json' | 'import' | 'export'

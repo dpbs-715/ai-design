@@ -9,7 +9,6 @@ import PropertyPanel from '@/editor/panels/property/index.vue'
 import { storeToRefs } from 'pinia'
 import { provideDataSources } from '@/context'
 import { useRoute } from 'vue-router'
-import { getPublishPage } from '@/utils/publish.ts'
 import { useResponsiveEditorLayout } from '@/editor/composables/useResponsiveEditorLayout.ts'
 import { provideRenderTheme } from '@/theme/renderTheme.ts'
 import { useWorkspaceStore } from '@/workspace/store.ts'
@@ -25,9 +24,7 @@ const projectId = computed(() => String(route.params.projectId ?? ''))
 const pageRouteId = computed(() => String(route.params.pageId ?? ''))
 const moduleRouteId = computed(() => String(route.params.moduleId ?? ''))
 const project = computed(() => workspaceStore.getProject(projectId.value))
-const pageRecord = computed(() =>
-  workspaceStore.pages.find((page) => page.id === pageRouteId.value),
-)
+const pageRecord = computed(() => workspaceStore.getPage(pageRouteId.value))
 const moduleRecord = computed(() =>
   workspaceStore.modules.find((publicModule) => publicModule.id === moduleRouteId.value),
 )
@@ -44,8 +41,8 @@ function loadEditorPage(page: unknown) {
 }
 
 watch(
-  [pageRecord, moduleRecord, () => route.query.id],
-  ([currentPage, currentModule, publishedPageId]) => {
+  [pageRecord, moduleRecord],
+  ([currentPage, currentModule]) => {
     if (pendingWorkspaceSave) clearTimeout(pendingWorkspaceSave)
     const workspaceAsset = currentPage ?? currentModule
     if (workspaceAsset) {
@@ -55,9 +52,6 @@ watch(
         currentPage ? workspaceAsset.id : undefined,
       )
       return
-    }
-    if (typeof publishedPageId === 'string') {
-      loadEditorPage(getPublishPage(publishedPageId))
     }
   },
   { immediate: true },

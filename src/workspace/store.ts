@@ -3,13 +3,17 @@ import { deepClone } from '@vunio/utils'
 import { createPageSchema } from '@/schema/createPage.ts'
 import { mapMaterialTree } from '@/schema/nodeTree.ts'
 import type { PageSchema } from '@/schema/page.ts'
+import { createDefaultWorkspaceData } from './defaults.ts'
 import { businessSystems } from './systems.ts'
 import {
   loadWorkspaceSnapshot,
+  removeWorkspaceSchemas,
   saveWorkspaceSnapshot,
+  saveWorkspaceSchemas,
   WORKSPACE_DATA_VERSION,
 } from './persistence.ts'
 import type {
+  BusinessSystem,
   DesignProject,
   ProjectPageRecord,
   PublicModuleRecord,
@@ -36,13 +40,14 @@ function nextThumbnail(index: number) {
 
 export const useWorkspaceStore = defineStore('workspace', () => {
   const restored = loadWorkspaceSnapshot()
-  const systems = ref(deepClone(businessSystems))
-  const projects = ref<DesignProject[]>(restored?.projects ?? [])
-  const pages = ref<ProjectPageRecord[]>(restored?.pages ?? [])
-  const modules = ref<PublicModuleRecord[]>(restored?.modules ?? [])
+  const initialWorkspace = restored ?? createDefaultWorkspaceData()
+  const systems = ref<BusinessSystem[]>(initialWorkspace.systems)
+  const projects = ref<DesignProject[]>(initialWorkspace.projects)
+  const pages = ref<ProjectPageRecord[]>(initialWorkspace.pages)
+  const modules = ref<PublicModuleRecord[]>(initialWorkspace.modules)
   const selectedSystemId = ref(
-    systems.value.some((system) => system.id === restored?.selectedSystemId)
-      ? restored!.selectedSystemId
+    systems.value.some((system) => system.id === initialWorkspace.selectedSystemId)
+      ? initialWorkspace.selectedSystemId
       : (systems.value[0]?.id ?? ''),
   )
 
@@ -50,10 +55,16 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     saveWorkspaceSnapshot({
       version: WORKSPACE_DATA_VERSION,
       selectedSystemId: selectedSystemId.value,
+      systems: systems.value,
       projects: projects.value,
       pages: pages.value,
       modules: modules.value,
     })
+  }
+
+  if (!restored) {
+    saveWorkspaceSchemas(pages.value.map((page) => page.schema))
+    persist()
   }
 
   function touchProject(projectId: string, timestamp = now()) {
@@ -93,8 +104,71 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     persist()
   }
 
+  function addSystem(name: string, description: string) {
+    if (systems.value.some((system) => system.name === name)) return undefined
+    const systemId = crypto.randomUUID()
+    const fallbackIcon = 'fluent:apps-list-detail-20-regular'
+    const icon =
+      businessSystems[systems.value.length % businessSystems.length]?.icon ?? fallbackIcon
+    systems.value.unshift({ id: systemId, name, description, icon })
+    selectedSystemId.value = systemId
+    persist()
+    return systemId
+  }
+
+  function updateSystem(
+    systemId: string,
+    systemDetails: Pick<BusinessSystem, 'name' | 'description'>,
+  ) {
+    const system = systems.value.find((candidate) => candidate.id === systemId)
+    if (
+      !system ||
+      systems.value.some(
+        (candidate) => candidate.id !== systemId && candidate.name === systemDetails.name,
+      )
+    ) {
+      return false
+    }
+    system.name = systemDetails.name
+    system.description = systemDetails.description
+    persist()
+    return true
+  }
+
+  function removeSystem(systemId: string) {
+    if (systems.value.length <= 1) return false
+    const systemIndex = systems.value.findIndex((system) => system.id === systemId)
+    if (systemIndex < 0) return false
+
+    const projectIds = new Set(
+      projects.value
+        .filter((project) => project.systemId === systemId)
+        .map((project) => project.id),
+    )
+    const schemaIds = [
+      ...pages.value.filter((page) => projectIds.has(page.projectId)).map((page) => page.id),
+      ...modules.value
+        .filter((publicModule) => projectIds.has(publicModule.projectId))
+        .map((publicModule) => publicModule.id),
+    ]
+    const nextSystem = systems.value[systemIndex + 1] ?? systems.value[systemIndex - 1]
+
+    systems.value = systems.value.filter((system) => system.id !== systemId)
+    projects.value = projects.value.filter((project) => !projectIds.has(project.id))
+    pages.value = pages.value.filter((page) => !projectIds.has(page.projectId))
+    modules.value = modules.value.filter((publicModule) => !projectIds.has(publicModule.projectId))
+    if (selectedSystemId.value === systemId) selectedSystemId.value = nextSystem?.id ?? ''
+    persist()
+    removeWorkspaceSchemas(schemaIds)
+    return true
+  }
+
   function getProject(projectId: string) {
     return projects.value.find((project) => project.id === projectId)
+  }
+
+  function getPage(pageId: string) {
+    return pages.value.find((page) => page.id === pageId)
   }
 
   function getProjectPages(projectId: string) {
@@ -197,16 +271,25 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       lastEditedPageId: copiedPages[0]?.id ?? '',
     })
     recomputeProjectReferences(newProjectId)
+    saveWorkspaceSchemas([
+      ...copiedPages.map((page) => page.schema),
+      ...copiedModules.map((module) => module.schema),
+    ])
     persist()
     return newProjectId
   }
 
   function removeProject(projectId: string) {
     if (!getProject(projectId)) return
+    const schemaIds = [
+      ...getProjectPages(projectId).map((page) => page.id),
+      ...getProjectModules(projectId).map((module) => module.id),
+    ]
     projects.value = projects.value.filter((project) => project.id !== projectId)
     pages.value = pages.value.filter((page) => page.projectId !== projectId)
     modules.value = modules.value.filter((module) => module.projectId !== projectId)
     persist()
+    removeWorkspaceSchemas(schemaIds)
   }
 
   function toggleProjectFavorite(projectId: string) {
@@ -244,6 +327,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     project.lastEditedPageId = pageId
     project.updatedAt = timestamp
     project.lastOpenedAt = timestamp
+    saveWorkspaceSchemas([projectPage.schema])
     persist()
     return pageId
   }
@@ -267,6 +351,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     modules.value.unshift(publicModule)
     project.moduleIds.unshift(moduleId)
     project.updatedAt = timestamp
+    saveWorkspaceSchemas([publicModule.schema])
     persist()
     return moduleId
   }
@@ -277,6 +362,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     page.schema.root.name = name
     page.updatedAt = now()
     touchProject(page.projectId, page.updatedAt)
+    saveWorkspaceSchemas([page.schema])
     persist()
   }
 
@@ -286,6 +372,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     publicModule.schema.root.name = name
     publicModule.updatedAt = now()
     touchProject(publicModule.projectId, publicModule.updatedAt)
+    saveWorkspaceSchemas([publicModule.schema])
     persist()
   }
 
@@ -296,6 +383,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     page.updatedAt = now()
     recomputeProjectReferences(page.projectId)
     touchProject(page.projectId, page.updatedAt)
+    saveWorkspaceSchemas([page.schema])
     persist()
   }
 
@@ -305,6 +393,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     publicModule.schema = deepClone(schema)
     publicModule.updatedAt = now()
     touchProject(publicModule.projectId, publicModule.updatedAt)
+    saveWorkspaceSchemas([publicModule.schema])
     persist()
   }
 
@@ -327,6 +416,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     project.pageIds.unshift(id)
     project.updatedAt = timestamp
     recomputeProjectReferences(project.id)
+    saveWorkspaceSchemas([schema])
     persist()
     return id
   }
@@ -351,6 +441,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     })
     project.moduleIds.unshift(id)
     project.updatedAt = timestamp
+    saveWorkspaceSchemas([schema])
     persist()
     return id
   }
@@ -369,6 +460,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       recomputeProjectReferences(project.id)
     }
     persist()
+    removeWorkspaceSchemas([pageId])
   }
 
   function removeModule(moduleId: string) {
@@ -381,6 +473,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       project.updatedAt = now()
     }
     persist()
+    removeWorkspaceSchemas([moduleId])
   }
 
   return {
@@ -390,7 +483,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     modules,
     selectedSystemId,
     selectSystem,
+    addSystem,
+    updateSystem,
+    removeSystem,
     getProject,
+    getPage,
     getProjectPages,
     getProjectModules,
     addProject,

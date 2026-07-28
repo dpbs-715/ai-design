@@ -13,6 +13,7 @@ declare module 'vue' {
   export interface GlobalComponents {
     CanvasBackground: typeof import('./src/components/CanvasBackground/index.vue')['default']
     CommonButton: typeof import('@vunio/ui')['CommonButton']
+    CommonDialog: typeof import('@vunio/ui')['CommonDialog']
     CommonForm: typeof import('@vunio/ui')['CommonForm']
     CommonTable: typeof import('@vunio/ui')['CommonTable']
     ElCascader: typeof import('element-plus/es')['ElCascader']
