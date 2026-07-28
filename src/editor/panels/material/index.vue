@@ -1,19 +1,48 @@
 <script setup lang="ts">
 import MaterialItem from '@/editor/panels/material/components/MaterialItem.vue'
+import ProjectModuleItem from '@/editor/panels/material/components/ProjectModuleItem.vue'
 import { getMaterialByGroup, geyMaterialGroups } from '@/materials'
+import { useWorkspaceStore } from '@/workspace/store.ts'
+import { useRoute } from 'vue-router'
 
 defineOptions({ name: 'MaterialPanel' })
 
 const activeGroup = ref('charts')
-const groups = geyMaterialGroups()
+const route = useRoute()
+const workspaceStore = useWorkspaceStore()
+
+const projectId = computed(() => String(route.params.projectId ?? ''))
+const projectModules = computed(() =>
+  projectId.value ? workspaceStore.getProjectModules(projectId.value) : [],
+)
+const groups = computed(() => {
+  const materialGroups = geyMaterialGroups()
+  if (route.name !== 'ProjectPageEditor') return materialGroups
+  return [
+    {
+      name: '项目模块',
+      icon: 'fluent:puzzle-piece-20-filled',
+      key: 'project-modules',
+    },
+    ...materialGroups,
+  ]
+})
 
 const currentMaterial = computed(() => {
-  return getMaterialByGroup(activeGroup.value)
+  return activeGroup.value === 'project-modules' ? [] : getMaterialByGroup(activeGroup.value)
 })
 
 const activeGroupName = computed(() => {
-  return groups.find((group) => group.key === activeGroup.value)?.name ?? ''
+  return groups.value.find((group) => group.key === activeGroup.value)?.name ?? ''
 })
+
+watch(
+  () => route.name,
+  (routeName) => {
+    if (routeName === 'ProjectPageEditor') activeGroup.value = 'project-modules'
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
@@ -39,7 +68,19 @@ const activeGroupName = computed(() => {
       </nav>
 
       <div class="material-list overflow-auto">
-        <MaterialItem v-for="material in currentMaterial" :key="material.name" :material />
+        <template v-if="activeGroup === 'project-modules'">
+          <ProjectModuleItem
+            v-for="publicModule in projectModules"
+            :key="publicModule.id"
+            :public-module="publicModule"
+          />
+          <div v-if="!projectModules.length" class="project-modules-empty">
+            <Icon icon="fluent:puzzle-piece-20-regular" width="24" />
+            <strong>暂无公共模块</strong>
+            <span>先在项目工作台创建模块，再拖入页面。</span>
+          </div>
+        </template>
+        <MaterialItem v-else v-for="material in currentMaterial" :key="material.name" :material />
       </div>
     </div>
   </div>
@@ -51,6 +92,30 @@ const activeGroupName = computed(() => {
   min-width: 0;
   flex-direction: column;
   background: var(--surface-panel);
+}
+
+.project-modules-empty {
+  display: flex;
+  min-height: 180px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  color: var(--text-muted);
+  text-align: center;
+
+  strong {
+    margin-top: 10px;
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  span {
+    max-width: 130px;
+    margin-top: 5px;
+    font-size: 9px;
+    line-height: 1.6;
+  }
 }
 
 .panel-heading {

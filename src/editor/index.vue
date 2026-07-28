@@ -12,11 +12,40 @@ import { useRoute } from 'vue-router'
 import { getPublishPage } from '@/utils/publish.ts'
 import { useResponsiveEditorLayout } from '@/editor/composables/useResponsiveEditorLayout.ts'
 import { provideRenderTheme } from '@/theme/renderTheme.ts'
+import { useWorkspaceStore } from '@/workspace/store.ts'
 
 defineOptions({ name: 'ScreenEditor' })
 
 const route = useRoute()
 const editorStore = useEditorStore()
+const workspaceStore = useWorkspaceStore()
+
+const projectId = computed(() => String(route.params.projectId ?? ''))
+const pageRouteId = computed(() => String(route.params.pageId ?? ''))
+const moduleRouteId = computed(() => String(route.params.moduleId ?? ''))
+const project = computed(() => workspaceStore.getProject(projectId.value))
+const pageRecord = computed(() =>
+  workspaceStore.pages.find((page) => page.id === pageRouteId.value),
+)
+const moduleRecord = computed(() =>
+  workspaceStore.modules.find((publicModule) => publicModule.id === moduleRouteId.value),
+)
+const editorAsset = computed(() => pageRecord.value ?? moduleRecord.value)
+const editorKind = computed(() => (moduleRecord.value ? '公共模块' : '页面'))
+
+if (editorAsset.value && editorStore.page.id !== editorAsset.value.id) {
+  const result = editorStore.setPage({
+    ...editorStore.page,
+    id: editorAsset.value.id,
+    root: {
+      ...editorStore.page.root,
+      name: editorAsset.value.name,
+    },
+  })
+  if (result.success === false) {
+    throw new Error(result.issues[0]?.message ?? 'Invalid page schema')
+  }
+}
 
 const pageId = route.query.id
 if (pageId) {
@@ -39,7 +68,12 @@ const { isNarrowWorkspace, materialWidth, layerWidth, propertyWidth } = useRespo
   <div class="editor h-screen select-none" :class="{ 'is-narrow': isNarrowWorkspace }">
     <header class="header flex justify-between items-center px-20">
       <ToolbarLeft class="editor-toolbar editor-toolbar-left" />
-      <div class="editor-title flex-1 text-center">未命名大屏</div>
+      <div class="editor-title flex-1 text-center">
+        <span v-if="project">{{ project.name }}</span>
+        <i v-if="project"></i>
+        <strong>{{ editorAsset?.name ?? '未命名大屏' }}</strong>
+        <small v-if="editorAsset">{{ editorKind }}</small>
+      </div>
       <ToolbarRight class="editor-toolbar editor-toolbar-right" />
     </header>
     <main class="editor-main flex">
@@ -81,7 +115,11 @@ const { isNarrowWorkspace, materialWidth, layerWidth, propertyWidth } = useRespo
   }
 
   .editor-title {
+    display: flex;
     min-width: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
     overflow: hidden;
     color: var(--text-secondary);
     font-size: 12px;
@@ -89,6 +127,36 @@ const { isNarrowWorkspace, materialWidth, layerWidth, propertyWidth } = useRespo
     letter-spacing: 0.02em;
     text-overflow: ellipsis;
     white-space: nowrap;
+
+    span {
+      overflow: hidden;
+      color: var(--text-muted);
+      text-overflow: ellipsis;
+    }
+
+    i {
+      width: 3px;
+      height: 3px;
+      flex: none;
+      border-radius: 50%;
+      background: var(--border-color-strong);
+    }
+
+    strong {
+      overflow: hidden;
+      color: var(--text-secondary);
+      font-weight: 600;
+      text-overflow: ellipsis;
+    }
+
+    small {
+      flex: none;
+      padding: 3px 6px;
+      border-radius: 99px;
+      background: var(--accent-soft);
+      color: var(--accent-color);
+      font-size: 9px;
+    }
   }
 
   .editor-main {

@@ -5,17 +5,39 @@ import { storeToRefs } from 'pinia'
 import EditorAccentControl from '@/editor/theme/EditorAccentControl.vue'
 import EditorThemeControl from '@/editor/theme/EditorThemeControl.vue'
 import { getEditorShortcutLabels } from '@/editor/shortcuts.ts'
+import { useWorkspaceStore } from '@/workspace/store.ts'
+import { useRoute } from 'vue-router'
+
 defineOptions({ name: 'ToolbarLeft' })
 
 const editorPanelStore = useEditorPanelStore()
+const workspaceStore = useWorkspaceStore()
+const route = useRoute()
 const { panelVisible } = storeToRefs(editorPanelStore)
 
 const { undo, redo, canUndo, canRedo } = useUndoRedo()
 const shortcutLabels = getEditorShortcutLabels()
+const projectId = computed(() => String(route.params.projectId ?? ''))
+const project = computed(() => workspaceStore.getProject(projectId.value))
+const workbenchPath = computed(() => {
+  if (route.name === 'ProjectPageEditor') return `/projects/${projectId.value}/pages`
+  if (route.name === 'ProjectModuleEditor') return `/projects/${projectId.value}/modules`
+  return ''
+})
 </script>
 
 <template>
   <div class="toolbar flex items-center">
+    <RouterLink
+      v-if="workbenchPath"
+      class="toolbar-button toolbar-back"
+      :to="workbenchPath"
+      :aria-label="`返回${project?.name ?? '项目'}工作台`"
+    >
+      <Icon icon="fluent:arrow-left-20-regular" width="17" />
+    </RouterLink>
+    <el-divider v-if="workbenchPath" direction="vertical" />
+
     <EditorThemeControl />
     <EditorAccentControl />
     <el-divider direction="vertical" />
@@ -77,5 +99,10 @@ const shortcutLabels = getEditorShortcutLabels()
 <style scoped lang="scss">
 .toolbar {
   gap: 4px;
+}
+
+.toolbar-back {
+  flex: none;
+  text-decoration: none;
 }
 </style>

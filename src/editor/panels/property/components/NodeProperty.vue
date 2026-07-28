@@ -12,6 +12,8 @@ import { useUndoRedo } from '@/hooks/useUndoRedo.ts'
 import { getMaterialIcon, getMaterialSetters } from '@/materials'
 import { isFormItemPlacement, type MaterialEvent } from '@/schema/material.ts'
 import { useEditorStore } from '@/stores/editor.ts'
+import type { ProjectModuleInstanceProps } from '@/workspace/types.ts'
+import { useRoute, useRouter } from 'vue-router'
 import {
   formatSchemaValidationIssue,
   parseMaterialSchema,
@@ -44,12 +46,49 @@ const sectionOptions: PropertySectionOption[] = [
 ]
 
 const editorStore = useEditorStore()
+const route = useRoute()
+const router = useRouter()
 const { selectedNode: selectedNodeRef } = storeToRefs(editorStore)
 const { dispatchCommand, startBatch, commitBatch } = useUndoRedo()
 const selectedNode = computed(() => selectedNodeRef.value!)
 
 const activeSection = ref<PropertySection>('config')
 const componentIcon = computed(() => getMaterialIcon(selectedNode.value.type))
+const isProjectModuleInstance = computed(
+  () => selectedNode.value.type === 'project-module-instance',
+)
+const projectModuleProps = computed(
+  () => selectedNode.value.props as unknown as ProjectModuleInstanceProps,
+)
+const hasProjectModuleUpdate = computed(
+  () =>
+    isProjectModuleInstance.value &&
+    projectModuleProps.value.moduleVersion !== projectModuleProps.value.availableVersion,
+)
+
+function openProjectModuleEditor() {
+  const projectId = String(route.params.projectId ?? '')
+  const moduleId = projectModuleProps.value.moduleId
+  if (!projectId || !moduleId) return
+  void router.push(`/projects/${projectId}/modules/${moduleId}/editor`)
+}
+
+function upgradeProjectModule() {
+  if (!hasProjectModuleUpdate.value) return
+  const currentNode = selectedNode.value
+  const result = editorStore.updateNode(currentNode.id, {
+    ...currentNode,
+    props: {
+      ...currentNode.props,
+      moduleVersion: projectModuleProps.value.availableVersion,
+    },
+  })
+  if (result.success === false) {
+    ElMessage.error(formatSchemaValidationIssue(result.issues[0]))
+    return
+  }
+  ElMessage.success('模块版本已升级，实例参数和数据绑定保持不变')
+}
 
 function withBatchEvents(configs: CommonFormConfig[]) {
   return configs.map((config) => ({
@@ -236,6 +275,10 @@ watch(
           <Icon icon="fluent:more-horizontal-20-regular" width="18" />
         </button>
         <template #dropdown>
+          <el-dropdown-item v-if="isProjectModuleInstance" @click="openProjectModuleEditor">
+            <Icon class="mr-8" icon="fluent:open-20-regular" width="16" />
+            进入模块编辑
+          </el-dropdown-item>
           <el-dropdown-item @click="previewJson">
             <Icon class="mr-8" icon="fluent:code-20-regular" width="16" />
             编辑组件 JSON
@@ -303,6 +346,29 @@ watch(
           <div class="content-heading">
             <h2>配置</h2>
             <span>内容、行为与视觉样式</span>
+          </div>
+          <div v-if="isProjectModuleInstance" class="module-instance-status">
+            <div>
+              <span>
+                <Icon icon="fluent:puzzle-piece-20-filled" width="15" />
+                {{ projectModuleProps.moduleVersion }}
+              </span>
+              <strong>
+                {{ hasProjectModuleUpdate ? '公共模块有新版本' : '已使用当前模块版本' }}
+              </strong>
+              <small>页面仅保存实例参数，不允许直接修改模块内部结构。</small>
+            </div>
+            <CommonButton
+              v-if="hasProjectModuleUpdate"
+              size="small"
+              type="primary"
+              @click="upgradeProjectModule"
+            >
+              升级到 {{ projectModuleProps.availableVersion }}
+            </CommonButton>
+            <CommonButton v-else size="small" type="normal" @click="openProjectModuleEditor">
+              进入模块编辑
+            </CommonButton>
           </div>
           <div class="form-area">
             <CommonForm
@@ -439,6 +505,52 @@ watch(
 
 .form-area {
   padding: 16px 14px;
+}
+
+.module-instance-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 12px 12px 0;
+  padding: 11px;
+  border: 1px solid color-mix(in srgb, var(--accent-color) 22%, var(--border-color));
+  border-radius: 7px;
+  background: var(--accent-soft);
+
+  > div {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+  }
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--accent-color);
+    font-size: 9px;
+    font-weight: 700;
+  }
+
+  strong {
+    margin-top: 5px;
+    color: var(--text-secondary);
+    font-size: 10px;
+    font-weight: 600;
+  }
+
+  small {
+    margin-top: 4px;
+    color: var(--text-muted);
+    font-size: 8px;
+    line-height: 1.5;
+  }
+
+  :deep(.CommonButton) {
+    flex: none;
+  }
 }
 
 :deep(.el-form-item) {
