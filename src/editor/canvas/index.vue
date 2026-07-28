@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { canMaterialAcceptChild, canMaterialTypeBeChild, createNode } from '@/materials'
+import { canMaterialAcceptChild, canMaterialTypeBeChild } from '@/materials'
 import Selecto from 'vue3-selecto'
 import Moveable from 'vue3-moveable'
 import { useEventListener } from '@vunio/hooks'
 import { useEditorStore } from '@/stores/editor.ts'
 import { storeToRefs } from 'pinia'
-import { isAbsolutePlacement, type MaterialSchema } from '@/schema/material.ts'
+import type { MaterialSchema } from '@/schema/material.ts'
 import SketchRuler from 'vue3-sketch-ruler'
 import 'vue3-sketch-ruler/lib/style.css'
 import { useCanvasRuler } from '@/editor/canvas/composables/useCanvasRuler.ts'
@@ -27,6 +27,12 @@ import { provideMaterialRenderContext } from '@/context/materialRender.ts'
 import { findCanvasDropTarget } from '@/editor/canvas/canvasTarget.ts'
 import { provideMaterialEditorContext } from '@/editor/canvas/materialEditorContext.ts'
 import { getDraggedMaterialTemplate } from '@/editor/canvas/materialDrag.ts'
+import {
+  createCanvasDropNode,
+  getCanvasDropType,
+  placeCanvasDropNode,
+  type CanvasDropNode,
+} from '@/editor/canvas/materialDrop.ts'
 
 defineOptions({
   name: 'CanvasRoot',
@@ -230,45 +236,41 @@ function onDrop(e: DragEvent) {
   clearDropTarget()
   const data = e.dataTransfer.getData('schema')
   if (!data) return
-  let node: MaterialSchema
+  let dropNode: CanvasDropNode | undefined
   try {
-    node = createNode(JSON.parse(data))
+    dropNode = createCanvasDropNode(JSON.parse(data))
   } catch {
     return
   }
+  if (!dropNode) return
 
+  const { node, selectedNodeId } = dropNode
   const dropTarget = getDropTarget(e.clientX, e.clientY, node.type)
   if (!dropTarget) return
   const parentId = dropTarget.parentId
   const parent = parentId === root.value.id ? root.value : editorStore.findNode(parentId)
-  if (!parent || !canMaterialAcceptChild(parent, node) || !isAbsolutePlacement(node.placement)) {
+  if (!parent || !canMaterialAcceptChild(parent, node) || !placeCanvasDropNode(node, dropTarget)) {
     return
   }
 
-  const x = dropTarget.point.x - node.placement.width / 2
-  const y = dropTarget.point.y - node.placement.height / 2
-  node.placement.x = Math.min(Math.max(x, 0), Math.max(dropTarget.width - node.placement.width, 0))
-  node.placement.y = Math.min(
-    Math.max(y, 0),
-    Math.max(dropTarget.height - node.placement.height, 0),
-  )
-  if (editorStore.addNode(node, parentId)) editorStore.selectNode(node.id)
+  if (editorStore.addNode(node, parentId)) editorStore.selectNode(selectedNodeId)
 }
 
 function onDragOver(event: DragEvent) {
   const template = getDraggedMaterialTemplate()
-  if (!template || template.placement.type !== 'absolute') {
+  if (!template) {
     clearDropTarget()
     return
   }
 
-  const dropTarget = getDropTarget(event.clientX, event.clientY, template.type)
+  const canvasChildType = getCanvasDropType(template)
+  const dropTarget = getDropTarget(event.clientX, event.clientY, canvasChildType)
   const parent =
     dropTarget?.parentId === root.value.id ? root.value : editorStore.findNode(dropTarget?.parentId)
   if (
     !dropTarget ||
     !parent ||
-    !canMaterialTypeBeChild(parent, template.type) ||
+    !canMaterialTypeBeChild(parent, canvasChildType) ||
     (dropTarget.parentId !== root.value.id && editorStore.getNodeLockKey(dropTarget.parentId))
   ) {
     dropTargetId.value = undefined
