@@ -11,6 +11,11 @@ import {
   type PageRootSchema,
   type PageSchema,
 } from '@/schema/page.ts'
+import {
+  publicModuleSchema,
+  type ModuleExpression,
+  type PublicModuleSchema,
+} from '@/schema/module.ts'
 import { z } from 'zod'
 
 export interface SchemaValidationIssue {
@@ -209,6 +214,217 @@ export function parsePageSchema(input: unknown): SchemaParseResult<PageSchema> {
     new Map([[data.root.id, rootIdPath]]),
     ['root', 'children'],
   )
+  return issues.length ? { success: false, issues } : { success: true, data }
+}
+
+function collectModuleExpressionInputIds(expression: ModuleExpression, inputIds: Set<string>) {
+  if (expression.kind === 'input') {
+    inputIds.add(expression.inputId)
+    return
+  }
+  if (expression.kind === 'path') {
+    collectModuleExpressionInputIds(expression.source, inputIds)
+    return
+  }
+  if (expression.kind === 'call') {
+    expression.arguments.forEach((argument) => collectModuleExpressionInputIds(argument, inputIds))
+  }
+}
+
+export function parsePublicModuleSchema(input: unknown): SchemaParseResult<PublicModuleSchema> {
+  const result = publicModuleSchema.safeParse(input)
+  if (!result.success) {
+    return { success: false, issues: fromZodError(result.error) }
+  }
+
+  const data = asParsedSchema<PublicModuleSchema>(result.data)
+  const pageResult = parsePageSchema({
+    ...data,
+    id: data.moduleId,
+    root: {
+      ...data.root,
+      type: 'page-root',
+    },
+  })
+  if (pageResult.success === false) return pageResult
+
+  const issues: SchemaValidationIssue[] = []
+  const validateContractCollection = (
+    collection: Array<{ id: string; key: string }>,
+    collectionName: 'inputs' | 'outputs' | 'slots' | 'actions',
+    label: string,
+  ) => {
+    const ids = new Set<string>()
+    const keys = new Set<string>()
+    collection.forEach((item, index) => {
+      if (ids.has(item.id)) {
+        issues.push({
+          path: ['contract', collectionName, index, 'id'],
+          message: `${label} id “${item.id}” 不能重复`,
+        })
+      }
+      if (keys.has(item.key)) {
+        issues.push({
+          path: ['contract', collectionName, index, 'key'],
+          message: `${label} key “${item.key}” 不能重复`,
+        })
+      }
+      ids.add(item.id)
+      keys.add(item.key)
+    })
+    return ids
+  }
+
+  const inputIds = validateContractCollection(data.contract.inputs, 'inputs', '输入')
+  const outputIds = validateContractCollection(data.contract.outputs, 'outputs', '输出')
+  const slotIds = validateContractCollection(data.contract.slots, 'slots', '插槽')
+  const actionIds = validateContractCollection(data.contract.actions, 'actions', '动作')
+
+  data.contract.inputs.forEach((input, index) => {
+    if (new Set(input.acceptedSources).size !== input.acceptedSources.length) {
+      issues.push({
+        path: ['contract', 'inputs', index, 'acceptedSources'],
+        message: '输入来源不能重复',
+      })
+    }
+
+    const defaultValue = input.defaultValue
+    if (defaultValue === undefined) return
+    const valueType = input.valueType
+    const valid =
+      valueType.kind === 'json' ||
+      valueType.kind === 'data' ||
+      (valueType.kind === 'string' && typeof defaultValue === 'string') ||
+      (valueType.kind === 'boolean' && typeof defaultValue === 'boolean') ||
+      (valueType.kind === 'color' &&
+        (typeof defaultValue === 'string' ||
+          (typeof defaultValue === 'object' && defaultValue !== null))) ||
+      (valueType.kind === 'number' &&
+        typeof defaultValue === 'number' &&
+        Number.isFinite(defaultValue) &&
+        (valueType.min === undefined || defaultValue >= valueType.min) &&
+        (valueType.max === undefined || defaultValue <= valueType.max) &&
+        (!valueType.integer || Number.isInteger(defaultValue)))
+    if (!valid) {
+      issues.push({
+        path: ['contract', 'inputs', index, 'defaultValue'],
+        message: `默认值不符合 ${valueType.kind} 类型约束`,
+      })
+    }
+  })
+
+  const nodeMap = new Map<string, MaterialSchema>()
+  const collectNodeIds = (nodes: MaterialSchema[]) => {
+    nodes.forEach((node) => {
+      nodeMap.set(node.id, node)
+      collectNodeIds(node.children)
+    })
+  }
+  collectNodeIds(data.root.children)
+  const nodeIds = new Set<string>([data.root.id, ...nodeMap.keys()])
+
+  data.wiring.values.forEach((binding, index) => {
+    if (!nodeIds.has(binding.target.nodeId)) {
+      issues.push({
+        path: ['wiring', 'values', index, 'target', 'nodeId'],
+        message: `绑定目标节点 “${binding.target.nodeId}” 不存在`,
+      })
+    }
+    if (
+      !['props.', 'style.', 'placement.'].some((prefix) => binding.target.path.startsWith(prefix))
+    ) {
+      issues.push({
+        path: ['wiring', 'values', index, 'target', 'path'],
+        message: '字段绑定只能写入 props、style 或 placement',
+      })
+    }
+    if (
+      binding.target.path === 'placement.type' ||
+      binding.target.path
+        .split('.')
+        .some((segment) => ['__proto__', 'prototype', 'constructor'].includes(segment))
+    ) {
+      issues.push({
+        path: ['wiring', 'values', index, 'target', 'path'],
+        message: '字段绑定路径包含不可写入的结构字段',
+      })
+    }
+    const referencedInputIds = new Set<string>()
+    collectModuleExpressionInputIds(binding.expression, referencedInputIds)
+    referencedInputIds.forEach((inputId) => {
+      if (!inputIds.has(inputId)) {
+        issues.push({
+          path: ['wiring', 'values', index, 'expression'],
+          message: `绑定引用的输入 “${inputId}” 不存在`,
+        })
+      }
+    })
+  })
+
+  data.wiring.outputs.forEach((binding, index) => {
+    if (!nodeIds.has(binding.source.nodeId)) {
+      issues.push({
+        path: ['wiring', 'outputs', index, 'source', 'nodeId'],
+        message: `输出来源节点 “${binding.source.nodeId}” 不存在`,
+      })
+    }
+    if (!outputIds.has(binding.outputId)) {
+      issues.push({
+        path: ['wiring', 'outputs', index, 'outputId'],
+        message: `输出 “${binding.outputId}” 未在 contract 中声明`,
+      })
+    }
+  })
+
+  data.wiring.actions.forEach((binding, index) => {
+    if (!actionIds.has(binding.actionId)) {
+      issues.push({
+        path: ['wiring', 'actions', index, 'actionId'],
+        message: `动作 “${binding.actionId}” 未在 contract 中声明`,
+      })
+    }
+    binding.targets.forEach((target, targetIndex) => {
+      if (!nodeIds.has(target.nodeId)) {
+        issues.push({
+          path: ['wiring', 'actions', index, 'targets', targetIndex, 'nodeId'],
+          message: `动作目标节点 “${target.nodeId}” 不存在`,
+        })
+      }
+    })
+  })
+
+  data.contract.slots.forEach((slot, index) => {
+    const container = nodeMap.get(slot.containerNodeId)
+    if (!container) {
+      issues.push({
+        path: ['contract', 'slots', index, 'containerNodeId'],
+        message: `插槽容器节点 “${slot.containerNodeId}” 不存在`,
+      })
+      return
+    }
+    if (getMaterialDefinition(container.type)?.capability?.kind !== 'container') {
+      issues.push({
+        path: ['contract', 'slots', index, 'containerNodeId'],
+        message: '插槽只能挂载到容器物料',
+      })
+    }
+  })
+
+  data.wiring.slots.forEach((binding, index) => {
+    if (!slotIds.has(binding.slotId)) {
+      issues.push({
+        path: ['wiring', 'slots', index, 'slotId'],
+        message: `插槽 “${binding.slotId}” 未在 contract 中声明`,
+      })
+    }
+    if (!nodeIds.has(binding.containerNodeId)) {
+      issues.push({
+        path: ['wiring', 'slots', index, 'containerNodeId'],
+        message: `插槽容器节点 “${binding.containerNodeId}” 不存在`,
+      })
+    }
+  })
+
   return issues.length ? { success: false, issues } : { success: true, data }
 }
 

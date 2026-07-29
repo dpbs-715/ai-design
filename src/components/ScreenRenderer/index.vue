@@ -8,12 +8,18 @@ import { provideMaterialRenderContext } from '@/context/materialRender.ts'
 import { provideRuntimeContext } from '@/runtime/runtimeContextProvider.ts'
 import CanvasBackground from '@/components/CanvasBackground/index.vue'
 import ScreenNode from './ScreenNode.vue'
+import { useWorkspaceStore } from '@/workspace/store.ts'
+import { providePublicModules } from '@/context/publicModules.ts'
+import { storeToRefs } from 'pinia'
 
 defineOptions({ name: 'ScreenRenderer' })
 
 const props = defineProps<{ page: PageSchema }>()
+const workspaceStore = useWorkspaceStore()
+const { modules } = storeToRefs(workspaceStore)
 
 provideMaterialRenderContext({ mode: 'runtime' })
+providePublicModules(modules)
 const runtimePage = ref(props.page)
 const renderTheme = provideRenderTheme(() => runtimePage.value.theme)
 const context = createRuntimeContext(runtimePage)

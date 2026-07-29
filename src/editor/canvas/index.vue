@@ -33,17 +33,20 @@ import {
   placeCanvasDropNode,
   type CanvasDropNode,
 } from '@/editor/canvas/materialDrop.ts'
+import { useRoute } from 'vue-router'
 
 defineOptions({
   name: 'CanvasRoot',
 })
 const editorStore = useEditorStore()
+const route = useRoute()
 provideMaterialRenderContext({ mode: 'editor' })
 const canvasRootRef = useTemplateRef<HTMLDivElement>('canvasRoot')
 const moveableRef = useTemplateRef('moveable')
 const selectoRef = useTemplateRef<CanvasSelectoRef>('selecto')
 const stageRef = useTemplateRef('stage')
 const dropTargetId = ref<string>()
+const isModuleEditor = computed(() => route.name === 'ProjectModuleEditor')
 
 const {
   height: viewportHeight,
@@ -341,6 +344,7 @@ const moveableBounds = {
         <div
           ref="stage"
           class="canvas-stage"
+          :class="{ 'is-module-stage': isModuleEditor }"
           :data-render-theme="resolvedMode"
           :style="stageStyle"
           @dragover.capture.prevent="onDragOver"
@@ -432,6 +436,25 @@ const moveableBounds = {
   .canvas-stage {
     position: relative;
     box-shadow: var(--el-box-shadow-light);
+  }
+
+  .canvas-stage.is-module-stage {
+    background-color: color-mix(in srgb, var(--surface-panel) 88%, transparent);
+    background-image:
+      linear-gradient(45deg, var(--border-color) 25%, transparent 25%),
+      linear-gradient(-45deg, var(--border-color) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, var(--border-color) 75%),
+      linear-gradient(-45deg, transparent 75%, var(--border-color) 75%);
+    background-position:
+      0 0,
+      0 12px,
+      12px -12px,
+      -12px 0;
+    background-size: 24px 24px;
+    box-shadow:
+      0 0 0 2px var(--accent-color),
+      0 0 0 9px var(--accent-soft),
+      var(--el-box-shadow-light);
   }
 
   .canvas-zoom {

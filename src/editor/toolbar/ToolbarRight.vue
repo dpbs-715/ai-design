@@ -4,10 +4,24 @@ import { storeToRefs } from 'pinia'
 import { ElMessage } from 'element-plus'
 import DataSourceManager from './components/DataSourceManager.vue'
 import { useRouter } from 'vue-router'
-import { formatSchemaValidationIssue, parsePageSchema } from '@/schema/validation.ts'
+import {
+  formatSchemaValidationIssue,
+  parsePageSchema,
+  parsePublicModuleSchema,
+} from '@/schema/validation.ts'
 import { useWorkspaceStore } from '@/workspace/store.ts'
 import { getEditorShortcutLabels } from '@/editor/shortcuts.ts'
 import { useEventListener } from '@vunio/hooks'
+import {
+  fromModuleEditorPage,
+  getNextPublicModuleVersion,
+  isSamePublicModuleContent,
+  toModuleEditorPage,
+  type PublicModuleSchema,
+} from '@/schema/module.ts'
+import type { PageSchema } from '@/schema/page.ts'
+import ModuleRemovalDialog from '@/workspace/components/ModuleRemovalDialog.vue'
+import type { PublicModuleRecord } from '@/workspace/types.ts'
 
 defineOptions({ name: 'ToolbarRight' })
 
@@ -29,9 +43,125 @@ const visible = ref(false)
 const jsonText = ref('')
 
 const dataSourceVisible = ref(false)
+const moduleRemovalVisible = ref(false)
+
+const currentModuleRecord = computed(() =>
+  workspaceStore.modules.find((publicModule) => publicModule.id === page.value.id),
+)
+
+function getCurrentModuleRecord() {
+  return currentModuleRecord.value
+}
+
+const editorModuleSchema = computed(() => {
+  const moduleRecord = currentModuleRecord.value
+  return moduleRecord ? fromModuleEditorPage(page.value, moduleRecord.schema) : undefined
+})
+
+const latestPublishedModuleVersion = computed(() => {
+  const moduleRecord = currentModuleRecord.value
+  if (!moduleRecord) return undefined
+  return (
+    moduleRecord.versions.find((version) => version.version === moduleRecord.version) ??
+    moduleRecord.versions.at(-1)
+  )
+})
+
+type ModuleSyncState =
+  | { kind: 'unsaved'; label: '未保存'; title: string }
+  | { kind: 'publish-needed'; label: string; title: string }
+  | { kind: 'current'; label: string; title: string }
+
+const moduleSyncState = computed<ModuleSyncState | undefined>(() => {
+  const moduleRecord = currentModuleRecord.value
+  const editorSchema = editorModuleSchema.value
+  if (!moduleRecord || !editorSchema) return undefined
+
+  if (!isSamePublicModuleContent(editorSchema, moduleRecord.schema)) {
+    return {
+      kind: 'unsaved',
+      label: '未保存',
+      title: '编辑内容尚未保存为模块草稿',
+    }
+  }
+
+  const publishedVersion = latestPublishedModuleVersion.value
+  if (
+    !publishedVersion ||
+    !isSamePublicModuleContent(moduleRecord.schema, publishedVersion.schema)
+  ) {
+    return {
+      kind: 'publish-needed',
+      label: publishedVersion ? '待发布' : '待首次发布',
+      title: publishedVersion
+        ? `草稿与 ${publishedVersion.version} 不一致，可以发布新版本`
+        : '草稿尚未发布过，可以发布首个版本',
+    }
+  }
+
+  return {
+    kind: 'current',
+    label: `已是 ${publishedVersion.version}`,
+    title: `当前草稿与 ${publishedVersion.version} 内容一致，无需重复发布`,
+  }
+})
+
+const isModuleSaveUnavailable = computed(
+  () => moduleSyncState.value !== undefined && moduleSyncState.value.kind !== 'unsaved',
+)
+const isModulePublishUnavailable = computed(
+  () => moduleSyncState.value !== undefined && moduleSyncState.value.kind !== 'publish-needed',
+)
+const saveButtonTitle = computed(() =>
+  isModuleSaveUnavailable.value
+    ? '当前模块没有未保存修改，点击可查看状态'
+    : `保存 (${shortcutLabels.save})`,
+)
+const publishButtonTitle = computed(() => moduleSyncState.value?.title ?? '发布页面')
+const saveButtonLabel = computed(() =>
+  moduleSyncState.value && moduleSyncState.value.kind !== 'unsaved' ? '已保存' : '保存',
+)
+const nextModuleVersion = computed(() =>
+  currentModuleRecord.value
+    ? getNextPublicModuleVersion(currentModuleRecord.value.versions)
+    : undefined,
+)
+const publishButtonLabel = computed(() => {
+  const syncState = moduleSyncState.value
+  if (!syncState) return '发布'
+  if (syncState.kind === 'unsaved') return '先保存'
+  if (syncState.kind === 'publish-needed') return `发布 ${nextModuleVersion.value}`
+  return syncState.label
+})
+
+function getEditorExportValue(editorPage = page.value): PageSchema | PublicModuleSchema {
+  const moduleRecord = getCurrentModuleRecord()
+  return moduleRecord ? fromModuleEditorPage(editorPage, moduleRecord.schema) : editorPage
+}
+
+function setEditorJsonValue(value: unknown) {
+  const moduleRecord = getCurrentModuleRecord()
+  if (moduleRecord && typeof value === 'object' && value !== null && 'moduleId' in value) {
+    const moduleResult = parsePublicModuleSchema(value)
+    if (moduleResult.success === false) return moduleResult
+    if (moduleResult.data.moduleId !== moduleRecord.id) {
+      return {
+        success: false as const,
+        issues: [
+          {
+            path: ['moduleId'],
+            message: '导入模块与当前模块 id 不一致',
+          },
+        ],
+      }
+    }
+    return editorStore.setPage(toModuleEditorPage(moduleResult.data))
+  }
+  return editorStore.setPage(value)
+}
 
 function previewJson() {
-  jsonText.value = JSON.stringify(page.value, null, 2)
+  jsonText.value = JSON.stringify(getEditorExportValue(), null, 2)
   visible.value = true
 }
 
@@ -42,7 +172,7 @@ function closeJsonEditor() {
 function onConfirm() {
   try {
     const newPage = JSON.parse(jsonText.value)
-    const result = editorStore.setPage(newPage)
+    const result = setEditorJsonValue(newPage)
     if (result.success === false) {
       ElMessage.error(formatSchemaValidationIssue(result.issues[0]))
       return
@@ -65,7 +195,7 @@ async function onFileChange(event: Event) {
   try {
     const text = await file.text()
     const newPage = JSON.parse(text)
-    const result = editorStore.setPage(newPage)
+    const result = setEditorJsonValue(newPage)
     if (result.success === false) {
       ElMessage.error(formatSchemaValidationIssue(result.issues[0]))
       return
@@ -85,12 +215,20 @@ function onExport() {
     return
   }
 
-  const json = JSON.stringify(result.data, null, 2)
+  const exportValue = getEditorExportValue(result.data)
+  const moduleResult =
+    exportValue === result.data ? undefined : parsePublicModuleSchema(exportValue)
+  if (moduleResult?.success === false) {
+    ElMessage.error(formatSchemaValidationIssue(moduleResult.issues[0]))
+    return
+  }
+
+  const json = JSON.stringify(moduleResult?.data ?? result.data, null, 2)
   const blob = new Blob([json], { type: 'application/json;charset-utf-8' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = 'design.json'
+  a.download = moduleResult ? 'public-module.json' : 'design.json'
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)
@@ -144,8 +282,20 @@ function saveEditorSchema({ notify = true }: SaveEditorSchemaOptions = {}) {
     (publicModule) => publicModule.id === result.data.id,
   )
   if (moduleRecord) {
-    workspaceStore.saveModuleSchema(moduleRecord.id, result.data)
-    if (notify) ElMessage.success('公共模块已保存')
+    if (moduleSyncState.value?.kind !== 'unsaved') {
+      if (notify) ElMessage.info('当前模块没有未保存修改')
+      return { kind: 'module' as const, id: moduleRecord.id }
+    }
+
+    const moduleResult = parsePublicModuleSchema(
+      fromModuleEditorPage(result.data, moduleRecord.schema),
+    )
+    if (moduleResult.success === false) {
+      ElMessage.error(formatSchemaValidationIssue(moduleResult.issues[0]))
+      return
+    }
+    workspaceStore.saveModuleSchema(moduleRecord.id, moduleResult.data)
+    if (notify) ElMessage.success('模块草稿已保存')
     return { kind: 'module' as const, id: moduleRecord.id }
   }
 
@@ -178,22 +328,60 @@ function onSaveShortcut(event: KeyboardEvent) {
 useEventListener('keydown', onSaveShortcut)
 
 function onPublish() {
-  const savedAsset = saveEditorSchema({ notify: false })
-  if (!savedAsset) return
-  if (savedAsset.kind !== 'page') {
-    ElMessage.error('公共模块无法单独发布')
+  const result = parsePageSchema(page.value)
+  if (result.success === false) {
+    ElMessage.error(formatSchemaValidationIssue(result.issues[0]))
     return
   }
 
-  router.push({ name: 'Screen', query: { id: savedAsset.id } })
+  const pageRecord = workspaceStore.getPage(result.data.id)
+  if (pageRecord) {
+    workspaceStore.savePageSchema(pageRecord.id, result.data)
+    router.push({ name: 'Screen', query: { id: pageRecord.id } })
+    return
+  }
+
+  const moduleRecord = workspaceStore.modules.find(
+    (publicModule) => publicModule.id === result.data.id,
+  )
+  if (!moduleRecord) {
+    ElMessage.error('当前内容不属于工作空间，无法发布')
+    return
+  }
+
+  if (moduleSyncState.value?.kind === 'unsaved') {
+    ElMessage.warning('请先保存模块草稿，再发布版本')
+    return
+  }
+
+  if (moduleSyncState.value?.kind === 'current') {
+    ElMessage.info(`当前内容已是 ${latestPublishedModuleVersion.value?.version}，无需重复发布`)
+    return
+  }
+
+  const publishResult = workspaceStore.publishModuleSchema(moduleRecord.id, moduleRecord.schema)
+  if (publishResult?.status === 'published') {
+    ElMessage.success(`公共模块已发布为 ${publishResult.version}`)
+  } else if (publishResult?.status === 'unchanged') {
+    ElMessage.info(`当前内容已是 ${publishResult.version}，无需重复发布`)
+  }
 }
 
-type MoreAction = 'json' | 'import' | 'export'
+function openModuleRemoval() {
+  if (currentModuleRecord.value) moduleRemovalVisible.value = true
+}
+
+function onModuleRemoved(publicModule: PublicModuleRecord) {
+  void router.replace(`/projects/${publicModule.projectId}/modules`)
+}
+
+type MoreAction = 'json' | 'import' | 'export' | 'remove-module'
 
 const moreActionHandlers: Record<MoreAction, () => void> = {
   json: previewJson,
   import: onImport,
   export: onExport,
+  'remove-module': openModuleRemoval,
 }
 
 function onMoreAction(action: MoreAction) {
@@ -226,20 +414,37 @@ function onMoreAction(action: MoreAction) {
           <Icon class="mr-8" icon="mdi:file-export-outline" width="16" />
           导出配置
         </el-dropdown-item>
+        <el-dropdown-item v-if="currentModuleRecord" divided command="remove-module">
+          <Icon class="mr-8 danger-action" icon="mdi:delete-outline" width="16" />
+          <span class="danger-action">删除模块</span>
+        </el-dropdown-item>
       </template>
     </el-dropdown>
 
     <el-divider direction="vertical" />
 
+    <span
+      v-if="moduleSyncState"
+      class="module-sync-state"
+      :data-state="moduleSyncState.kind"
+      :title="moduleSyncState.title"
+      aria-live="polite"
+    >
+      {{ moduleSyncState.label }}
+    </span>
     <button
       type="button"
-      class="toolbar-action"
-      aria-label="保存"
-      :title="`保存 (${shortcutLabels.save})`"
+      class="toolbar-action save-button"
+      :class="{
+        'is-action-required': moduleSyncState?.kind === 'unsaved',
+        'is-explained-disabled': isModuleSaveUnavailable,
+      }"
+      :aria-label="saveButtonLabel"
+      :title="saveButtonTitle"
       @click="saveEditorSchema()"
     >
       <Icon icon="mdi:content-save-outline" width="16" />
-      <span>保存</span>
+      <span>{{ saveButtonLabel }}</span>
     </button>
     <button type="button" class="toolbar-action" aria-label="预览" @click="onPreview">
       <Icon icon="mdi:eye-outline" width="16" />
@@ -248,11 +453,13 @@ function onMoreAction(action: MoreAction) {
     <button
       type="button"
       class="toolbar-action publish-button"
-      aria-label="发布"
+      :class="{ 'is-explained-disabled': isModulePublishUnavailable }"
+      :aria-label="publishButtonLabel"
+      :title="publishButtonTitle"
       @click="onPublish"
     >
       <Icon icon="mdi:cloud-upload-outline" width="16" />
-      <span>发布</span>
+      <span>{{ publishButtonLabel }}</span>
     </button>
 
     <input ref="inputRef" type="file" v-show="false" @change="onFileChange" />
@@ -273,11 +480,78 @@ function onMoreAction(action: MoreAction) {
         <CommonButton type="primary" @click="onSave">保存数据源</CommonButton>
       </template>
     </el-drawer>
+
+    <ModuleRemovalDialog
+      v-model="moduleRemovalVisible"
+      :public-module="currentModuleRecord"
+      @removed="onModuleRemoved"
+    />
   </div>
 </template>
 
 <style scoped lang="scss">
 .toolbar {
   gap: 4px;
+}
+
+.module-sync-state {
+  display: inline-flex;
+  height: 22px;
+  align-items: center;
+  padding: 0 7px;
+  border: 1px solid var(--border-color);
+  border-radius: 99px;
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 1;
+  white-space: nowrap;
+
+  &[data-state='unsaved'] {
+    border-color: color-mix(in srgb, var(--el-color-warning) 36%, var(--border-color));
+    background: color-mix(in srgb, var(--el-color-warning) 10%, transparent);
+    color: var(--el-color-warning);
+  }
+
+  &[data-state='publish-needed'] {
+    border-color: color-mix(in srgb, var(--accent-color) 30%, var(--border-color));
+    background: var(--accent-soft);
+    color: var(--accent-color);
+  }
+
+  &[data-state='current'] {
+    border-color: color-mix(in srgb, var(--el-color-success) 28%, var(--border-color));
+    background: color-mix(in srgb, var(--el-color-success) 8%, transparent);
+    color: var(--el-color-success);
+  }
+}
+
+.save-button.is-action-required {
+  border-color: color-mix(in srgb, var(--accent-color) 45%, var(--border-color));
+  background: var(--accent-soft);
+  color: var(--accent-color);
+}
+
+.toolbar-action.is-explained-disabled {
+  border-color: var(--border-color);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: help;
+  opacity: 0.72;
+
+  &:hover {
+    border-color: var(--border-color-strong);
+    background: var(--surface-raised);
+    color: var(--text-secondary);
+  }
+}
+
+.danger-action {
+  color: var(--el-color-danger);
+}
+
+@media (max-width: 1099px) {
+  .module-sync-state {
+    display: none;
+  }
 }
 </style>

@@ -1,17 +1,20 @@
 import { defineStore } from 'pinia'
 import { deepClone } from '@vunio/utils'
 import { createPageSchema } from '@/schema/createPage.ts'
+import { createPublicModuleSchema } from '@/schema/createModule.ts'
+import {
+  getNextPublicModuleVersion,
+  isSamePublicModuleContent,
+  MODULE_DRAFT_VERSION,
+  type PublicModuleSchema,
+} from '@/schema/module.ts'
 import { mapMaterialTree } from '@/schema/nodeTree.ts'
 import type { PageSchema } from '@/schema/page.ts'
+import { parsePublicModuleSchema } from '@/schema/validation.ts'
 import { createDefaultWorkspaceData } from './defaults.ts'
 import { businessSystems } from './systems.ts'
-import {
-  loadWorkspaceSnapshot,
-  removeWorkspaceSchemas,
-  saveWorkspaceSnapshot,
-  saveWorkspaceSchemas,
-  WORKSPACE_DATA_VERSION,
-} from './persistence.ts'
+import { loadWorkspaceSnapshot, persistWorkspace, WORKSPACE_DATA_VERSION } from './persistence.ts'
+import type { WorkspacePersistenceChange } from './persistence.ts'
 import type {
   BusinessSystem,
   DesignProject,
@@ -38,6 +41,19 @@ function nextThumbnail(index: number) {
   return thumbnailVariants[index % thumbnailVariants.length]!
 }
 
+function getReferencedModuleIds(schema: PageSchema) {
+  const moduleIds = new Set<string>()
+  const visit = (node: PageSchema['root']['children'][number]) => {
+    if (node.type === 'project-module-instance') {
+      const moduleId = node.props.moduleId
+      if (typeof moduleId === 'string') moduleIds.add(moduleId)
+    }
+    node.children.forEach(visit)
+  }
+  schema.root.children.forEach(visit)
+  return moduleIds
+}
+
 export const useWorkspaceStore = defineStore('workspace', () => {
   const restored = loadWorkspaceSnapshot()
   const initialWorkspace = restored ?? createDefaultWorkspaceData()
@@ -51,20 +67,25 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       : (systems.value[0]?.id ?? ''),
   )
 
-  function persist() {
-    saveWorkspaceSnapshot({
-      version: WORKSPACE_DATA_VERSION,
-      selectedSystemId: selectedSystemId.value,
-      systems: systems.value,
-      projects: projects.value,
-      pages: pages.value,
-      modules: modules.value,
-    })
+  function persist(change: WorkspacePersistenceChange = {}) {
+    persistWorkspace(
+      {
+        version: WORKSPACE_DATA_VERSION,
+        selectedSystemId: selectedSystemId.value,
+        systems: systems.value,
+        projects: projects.value,
+        pages: pages.value,
+        modules: modules.value,
+      },
+      change,
+    )
   }
 
   if (!restored) {
-    saveWorkspaceSchemas(pages.value.map((page) => page.schema))
-    persist()
+    persist({
+      upsertSchemas: pages.value.map((page) => page.schema),
+      upsertModules: modules.value,
+    })
   }
 
   function touchProject(projectId: string, timestamp = now()) {
@@ -80,15 +101,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     })
 
     getProjectPages(projectId).forEach((page) => {
-      const pageModuleIds = new Set<string>()
-      const visit = (node: PageSchema['root']['children'][number]) => {
-        if (node.type === 'project-module-instance') {
-          const moduleId = node.props.moduleId
-          if (typeof moduleId === 'string') pageModuleIds.add(moduleId)
-        }
-        node.children.forEach(visit)
-      }
-      page.schema.root.children.forEach(visit)
+      const pageModuleIds = getReferencedModuleIds(page.schema)
       page.moduleReferenceCount = pageModuleIds.size
       pageModuleIds.forEach((moduleId) => referencedPageIds.get(moduleId)?.add(page.id))
     })
@@ -158,8 +171,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     pages.value = pages.value.filter((page) => !projectIds.has(page.projectId))
     modules.value = modules.value.filter((publicModule) => !projectIds.has(publicModule.projectId))
     if (selectedSystemId.value === systemId) selectedSystemId.value = nextSystem?.id ?? ''
-    persist()
-    removeWorkspaceSchemas(schemaIds)
+    persist({ removeSchemaIds: schemaIds })
     return true
   }
 
@@ -181,6 +193,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     return modules.value
       .filter((module) => module.projectId === projectId)
       .sort((left, right) => compareWorkspaceTimeDescending(left.updatedAt, right.updatedAt))
+  }
+
+  function getModuleReferences(moduleId: string) {
+    const publicModule = modules.value.find((candidate) => candidate.id === moduleId)
+    if (!publicModule) return []
+    return getProjectPages(publicModule.projectId).filter((page) =>
+      getReferencedModuleIds(page.schema).has(moduleId),
+    )
   }
 
   function addProject(name: string) {
@@ -217,17 +237,37 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
     const timestamp = now()
     const newProjectId = crypto.randomUUID()
-    const moduleIdMap = new Map<string, string>()
-    const copiedModules = getProjectModules(projectId).map((sourceModule) => {
-      const id = crypto.randomUUID()
-      moduleIdMap.set(sourceModule.id, id)
+    const sourceModules = getProjectModules(projectId)
+    const moduleIdMap = new Map(
+      sourceModules.map((sourceModule) => [sourceModule.id, crypto.randomUUID()]),
+    )
+    const remapModuleReferences = (schema: PublicModuleSchema) => {
+      schema.root.children = mapMaterialTree(schema.root.children, (node) => {
+        if (node.type !== 'project-module-instance') return node
+        const copiedModuleId = moduleIdMap.get(String(node.props.moduleId ?? ''))
+        return copiedModuleId
+          ? { ...node, props: { ...node.props, moduleId: copiedModuleId } }
+          : node
+      })
+      return schema
+    }
+    const copiedModules = sourceModules.map((sourceModule) => {
+      const id = moduleIdMap.get(sourceModule.id)!
       const schema = deepClone(sourceModule.schema)
-      schema.id = id
+      schema.moduleId = id
+      const versions = deepClone(sourceModule.versions).map((version) => ({
+        ...version,
+        schema: remapModuleReferences({
+          ...version.schema,
+          moduleId: id,
+        }),
+      }))
       return {
         ...deepClone(sourceModule),
         id,
         projectId: newProjectId,
-        schema,
+        schema: remapModuleReferences(schema),
+        versions,
         createdAt: timestamp,
         updatedAt: timestamp,
         referenceCount: 0,
@@ -271,11 +311,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       lastEditedPageId: copiedPages[0]?.id ?? '',
     })
     recomputeProjectReferences(newProjectId)
-    saveWorkspaceSchemas([
-      ...copiedPages.map((page) => page.schema),
-      ...copiedModules.map((module) => module.schema),
-    ])
-    persist()
+    persist({
+      upsertSchemas: copiedPages.map((page) => page.schema),
+      upsertModules: copiedModules,
+    })
     return newProjectId
   }
 
@@ -288,8 +327,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     projects.value = projects.value.filter((project) => project.id !== projectId)
     pages.value = pages.value.filter((page) => page.projectId !== projectId)
     modules.value = modules.value.filter((module) => module.projectId !== projectId)
-    persist()
-    removeWorkspaceSchemas(schemaIds)
+    persist({ removeSchemaIds: schemaIds })
   }
 
   function toggleProjectFavorite(projectId: string) {
@@ -327,8 +365,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     project.lastEditedPageId = pageId
     project.updatedAt = timestamp
     project.lastOpenedAt = timestamp
-    saveWorkspaceSchemas([projectPage.schema])
-    persist()
+    persist({ upsertSchemas: [projectPage.schema] })
     return pageId
   }
 
@@ -337,22 +374,22 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (!project) return undefined
     const moduleId = crypto.randomUUID()
     const timestamp = now()
+    const schema = createPublicModuleSchema({ id: moduleId, name })
     const publicModule: PublicModuleRecord = {
       id: moduleId,
       projectId,
-      schema: createPageSchema({ id: moduleId, name, width: 1200, height: 360 }),
-      version: 'v1',
+      schema,
+      versions: [],
+      version: MODULE_DRAFT_VERSION,
       referenceCount: 0,
       createdAt: timestamp,
       updatedAt: timestamp,
       thumbnailVariant: nextThumbnail(modules.value.length),
-      exposedParameters: ['标题', '显示数量'],
     }
     modules.value.unshift(publicModule)
     project.moduleIds.unshift(moduleId)
     project.updatedAt = timestamp
-    saveWorkspaceSchemas([publicModule.schema])
-    persist()
+    persist({ upsertModules: [publicModule] })
     return moduleId
   }
 
@@ -362,8 +399,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     page.schema.root.name = name
     page.updatedAt = now()
     touchProject(page.projectId, page.updatedAt)
-    saveWorkspaceSchemas([page.schema])
-    persist()
+    persist({ upsertSchemas: [page.schema] })
   }
 
   function renameModule(moduleId: string, name: string) {
@@ -372,8 +408,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     publicModule.schema.root.name = name
     publicModule.updatedAt = now()
     touchProject(publicModule.projectId, publicModule.updatedAt)
-    saveWorkspaceSchemas([publicModule.schema])
-    persist()
+    persist({ upsertModules: [publicModule] })
   }
 
   function savePageSchema(pageId: string, schema: PageSchema) {
@@ -383,18 +418,61 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     page.updatedAt = now()
     recomputeProjectReferences(page.projectId)
     touchProject(page.projectId, page.updatedAt)
-    saveWorkspaceSchemas([page.schema])
-    persist()
+    persist({ upsertSchemas: [page.schema] })
   }
 
-  function saveModuleSchema(moduleId: string, schema: PageSchema) {
+  function saveModuleSchema(moduleId: string, schema: PublicModuleSchema) {
     const publicModule = modules.value.find((candidate) => candidate.id === moduleId)
-    if (!publicModule || schema.id !== moduleId) return
-    publicModule.schema = deepClone(schema)
+    if (!publicModule || schema.moduleId !== moduleId) return
+    const result = parsePublicModuleSchema(schema)
+    if (result.success === false || result.data.version !== MODULE_DRAFT_VERSION) return
+    if (isSamePublicModuleContent(publicModule.schema, result.data)) return publicModule.schema
+
+    publicModule.schema = deepClone(result.data)
     publicModule.updatedAt = now()
     touchProject(publicModule.projectId, publicModule.updatedAt)
-    saveWorkspaceSchemas([publicModule.schema])
-    persist()
+    persist({ upsertModules: [publicModule] })
+    return publicModule.schema
+  }
+
+  function publishModuleSchema(moduleId: string, schema: PublicModuleSchema) {
+    const publicModule = modules.value.find((candidate) => candidate.id === moduleId)
+    if (!publicModule || schema.moduleId !== moduleId) return undefined
+
+    const result = parsePublicModuleSchema(schema)
+    if (result.success === false || result.data.version !== MODULE_DRAFT_VERSION) return undefined
+    const draft = deepClone(result.data)
+    const latestPublishedVersion =
+      publicModule.versions.find((version) => version.version === publicModule.version) ??
+      publicModule.versions.at(-1)
+    if (latestPublishedVersion && isSamePublicModuleContent(draft, latestPublishedVersion.schema)) {
+      return {
+        status: 'unchanged' as const,
+        version: latestPublishedVersion.version,
+      }
+    }
+
+    const nextVersion = getNextPublicModuleVersion(publicModule.versions)
+    const timestamp = now()
+    const publishedSchema: PublicModuleSchema = {
+      ...deepClone(draft),
+      version: nextVersion,
+    }
+
+    publicModule.schema = draft
+    publicModule.version = nextVersion
+    publicModule.versions.push({
+      version: nextVersion,
+      schema: publishedSchema,
+      publishedAt: timestamp,
+    })
+    publicModule.updatedAt = timestamp
+    touchProject(publicModule.projectId, timestamp)
+    persist({ upsertModules: [publicModule] })
+    return {
+      status: 'published' as const,
+      version: nextVersion,
+    }
   }
 
   function duplicatePage(pageId: string) {
@@ -416,8 +494,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     project.pageIds.unshift(id)
     project.updatedAt = timestamp
     recomputeProjectReferences(project.id)
-    saveWorkspaceSchemas([schema])
-    persist()
+    persist({ upsertSchemas: [schema] })
     return id
   }
 
@@ -428,21 +505,44 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const id = crypto.randomUUID()
     const timestamp = now()
     const schema = deepClone(source.schema)
-    schema.id = id
+    schema.moduleId = id
     schema.root.name = `${schema.root.name} 副本`
-    modules.value.unshift({
+    const initialVersion = source.versions.find((version) => version.version === source.version)
+    const publishedSchema: PublicModuleSchema | undefined = initialVersion
+      ? {
+          ...deepClone(initialVersion.schema),
+          moduleId: id,
+          version: 'v1',
+          root: {
+            ...deepClone(initialVersion.schema.root),
+            name: schema.root.name,
+          },
+        }
+      : undefined
+    const duplicatedModule: PublicModuleRecord = {
       ...deepClone(source),
       id,
       schema,
+      versions: publishedSchema
+        ? [
+            {
+              version: 'v1',
+              schema: publishedSchema,
+              publishedAt: timestamp,
+            },
+          ]
+        : [],
       referenceCount: 0,
-      version: 'v1',
+      version: publishedSchema ? 'v1' : MODULE_DRAFT_VERSION,
       createdAt: timestamp,
       updatedAt: timestamp,
+    }
+    modules.value.unshift({
+      ...duplicatedModule,
     })
     project.moduleIds.unshift(id)
     project.updatedAt = timestamp
-    saveWorkspaceSchemas([schema])
-    persist()
+    persist({ upsertModules: [duplicatedModule] })
     return id
   }
 
@@ -459,21 +559,28 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       project.updatedAt = now()
       recomputeProjectReferences(project.id)
     }
-    persist()
-    removeWorkspaceSchemas([pageId])
+    persist({ removeSchemaIds: [pageId] })
   }
 
   function removeModule(moduleId: string) {
     const publicModule = modules.value.find((candidate) => candidate.id === moduleId)
-    if (!publicModule) return
+    if (!publicModule) return { status: 'not-found' as const }
+    const references = getModuleReferences(moduleId)
+    if (references.length) {
+      return {
+        status: 'referenced' as const,
+        references,
+      }
+    }
+
     modules.value = modules.value.filter((candidate) => candidate.id !== moduleId)
     const project = getProject(publicModule.projectId)
     if (project) {
       project.moduleIds = project.moduleIds.filter((id) => id !== moduleId)
       project.updatedAt = now()
     }
-    persist()
-    removeWorkspaceSchemas([moduleId])
+    persist({ removeSchemaIds: [moduleId] })
+    return { status: 'removed' as const }
   }
 
   return {
@@ -490,6 +597,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     getPage,
     getProjectPages,
     getProjectModules,
+    getModuleReferences,
     addProject,
     renameProject,
     duplicateProject,
@@ -502,6 +610,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     renameModule,
     savePageSchema,
     saveModuleSchema,
+    publishModuleSchema,
     duplicatePage,
     duplicateModule,
     removePage,

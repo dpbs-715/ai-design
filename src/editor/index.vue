@@ -13,12 +13,16 @@ import { useResponsiveEditorLayout } from '@/editor/composables/useResponsiveEdi
 import { provideRenderTheme } from '@/theme/renderTheme.ts'
 import { useWorkspaceStore } from '@/workspace/store.ts'
 import { deepClone } from '@vunio/utils'
+import { toModuleEditorPage } from '@/schema/module.ts'
+import { providePublicModules } from '@/context/publicModules.ts'
 
 defineOptions({ name: 'ScreenEditor' })
 
 const route = useRoute()
 const editorStore = useEditorStore()
 const workspaceStore = useWorkspaceStore()
+const { modules } = storeToRefs(workspaceStore)
+providePublicModules(modules)
 
 const projectId = computed(() => String(route.params.projectId ?? ''))
 const pageRouteId = computed(() => String(route.params.pageId ?? ''))
@@ -44,7 +48,9 @@ watch(
   ([currentPage, currentModule]) => {
     const workspaceAsset = currentPage ?? currentModule
     if (workspaceAsset) {
-      loadEditorPage(deepClone(workspaceAsset.schema))
+      loadEditorPage(
+        deepClone(currentModule ? toModuleEditorPage(currentModule.schema) : workspaceAsset.schema),
+      )
       workspaceStore.recordProjectVisit(
         workspaceAsset.projectId,
         currentPage ? workspaceAsset.id : undefined,

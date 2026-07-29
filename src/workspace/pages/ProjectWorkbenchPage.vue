@@ -3,6 +3,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 import ProjectPageCard from '../components/ProjectPageCard.vue'
 import PublicModuleCard from '../components/PublicModuleCard.vue'
+import ModuleRemovalDialog from '../components/ModuleRemovalDialog.vue'
 import WorkspaceTopbar from '../components/WorkspaceTopbar.vue'
 import { useWorkspaceStore } from '../store.ts'
 import type { ProjectPageRecord, PublicModuleRecord } from '../types.ts'
@@ -59,6 +60,8 @@ const projectId = computed(() => String(route.params.projectId ?? ''))
 const project = computed(() => workspaceStore.getProject(projectId.value))
 const projectPages = computed(() => workspaceStore.getProjectPages(projectId.value))
 const projectModules = computed(() => workspaceStore.getProjectModules(projectId.value))
+const moduleRemovalVisible = ref(false)
+const moduleRemovalTarget = ref<PublicModuleRecord>()
 const currentSection = computed<WorkbenchSection>(() => {
   const section = String(route.meta.workbenchSection ?? 'pages')
   return navigation.some((item) => item.key === section) ? (section as WorkbenchSection) : 'pages'
@@ -136,21 +139,9 @@ async function removePage(page: ProjectPageRecord) {
   }
 }
 
-async function removeModule(publicModule: PublicModuleRecord) {
-  try {
-    await ElMessageBox.confirm(
-      `“${publicModule.schema.root.name}”当前被 ${publicModule.referenceCount} 个页面引用，删除前请确认引用关系。`,
-      '删除公共模块',
-      {
-        type: 'warning',
-        confirmButtonText: '仍然删除',
-        cancelButtonText: '取消',
-      },
-    )
-    workspaceStore.removeModule(publicModule.id)
-  } catch {
-    // Cancelled destructive action.
-  }
+function removeModule(publicModule: PublicModuleRecord) {
+  moduleRemovalTarget.value = publicModule
+  moduleRemovalVisible.value = true
 }
 
 function showReferences(publicModule: PublicModuleRecord) {
@@ -291,6 +282,12 @@ function showReferences(publicModule: PublicModuleRecord) {
     <h1>没有找到这个项目</h1>
     <RouterLink to="/">返回主面板</RouterLink>
   </div>
+
+  <ModuleRemovalDialog
+    v-model="moduleRemovalVisible"
+    :public-module="moduleRemovalTarget"
+    @removed="moduleRemovalTarget = undefined"
+  />
 </template>
 
 <style scoped lang="scss">

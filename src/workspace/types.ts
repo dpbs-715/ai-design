@@ -41,21 +41,13 @@ export interface ProjectPageRecord {
 export interface PublicModuleRecord {
   id: string
   projectId: string
-  schema: PageSchema
+  schema: PublicModuleSchema
+  versions: PublicModuleVersionRecord[]
   version: string
   referenceCount: number
   createdAt: string
   updatedAt: string
   thumbnailVariant: ThumbnailVariant
-  exposedParameters: string[]
-}
-
-export interface ProjectModuleInstanceProps {
-  moduleId: string
-  moduleVersion: string
-  availableVersion: string
-  title: string
-  displayCount: number
-  parameters: Record<string, unknown>
 }
 import type { PageSchema } from '@/schema/page.ts'
+import type { PublicModuleSchema, PublicModuleVersionRecord } from '@/schema/module.ts'

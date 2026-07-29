@@ -7,14 +7,18 @@ import { useUndoRedo } from '@/hooks/useUndoRedo.ts'
 import RenderThemeSection from '@/editor/panels/property/components/RenderThemeSection.vue'
 import BackgroundPositionPicker from '@/editor/panels/property/components/BackgroundPositionPicker.vue'
 import { markRaw } from 'vue'
+import { useRoute } from 'vue-router'
+import ModuleContractSection from './ModuleContractSection.vue'
 
 defineOptions({
   name: 'CanvasProperty',
 })
 
 const editorStore = useEditorStore()
+const route = useRoute()
 const { root } = storeToRefs(editorStore)
 const { dispatchCommand, startBatch, commitBatch } = useUndoRedo()
+const isModuleEditor = computed(() => route.name === 'ProjectModuleEditor')
 
 const { config } = useConfigs<CommonFormConfig>(
   [
@@ -31,6 +35,12 @@ const { config } = useConfigs<CommonFormConfig>(
       component: 'number',
       span: 12,
       props: { min: 1 },
+    },
+    {
+      label: '裁剪超出内容',
+      field: 'props.clipContent',
+      component: 'switch',
+      span: 24,
     },
     {
       label: '背景色',
@@ -108,6 +118,12 @@ config.forEach((formItem) => {
     },
   }
 })
+
+const canvasConfig = computed(() =>
+  isModuleEditor.value
+    ? config
+    : config.filter((formItem) => formItem.field !== 'props.clipContent'),
+)
 </script>
 
 <template>
@@ -117,22 +133,26 @@ config.forEach((formItem) => {
         ><Icon icon="fluent:slide-size-20-filled" width="18"
       /></span>
       <span class="canvas-copy">
-        <strong>画布</strong>
-        <small>页面基础设置</small>
+        <strong>{{ isModuleEditor ? '模块画布' : '画布' }}</strong>
+        <small>{{ isModuleEditor ? '模块边界与背景设置' : '页面基础设置' }}</small>
       </span>
     </header>
     <div class="content-heading">
       <h2>画布设置</h2>
-      <span>尺寸与背景</span>
+      <span>{{ isModuleEditor ? '边界、裁剪与背景' : '尺寸与背景' }}</span>
     </div>
     <div class="canvas-form">
       <CommonForm
         label-position="top"
         :command-dispatcher="dispatchCommand"
         :model-value="root"
-        :config="config"
+        :config="canvasConfig"
       />
+      <p v-if="isModuleEditor" class="module-canvas-hint">
+        模块边界只负责布局，默认透明且不裁剪；需要视觉容器时，请在模块内部添加容器物料。
+      </p>
     </div>
+    <ModuleContractSection v-if="isModuleEditor" />
     <RenderThemeSection />
   </div>
 </template>
@@ -172,6 +192,13 @@ config.forEach((formItem) => {
 
 .canvas-form {
   padding: 16px 14px;
+}
+
+.module-canvas-hint {
+  margin: 2px 0 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.6;
 }
 
 :deep(.el-input-number) {

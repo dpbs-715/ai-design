@@ -1,6 +1,7 @@
 import type { Component } from 'vue'
 import type { MaterialDefinition, MaterialSchema, MaterialTemplate } from '@/schema/material.ts'
 import type { PageRootSchema } from '@/schema/page.ts'
+import type { ModuleRootSchema } from '@/schema/module.ts'
 import { deepClone } from '@vunio/utils'
 import { commonMaterialEventOptions, createMaterialEventOptionGroups } from './events.ts'
 
@@ -90,14 +91,17 @@ export function isMaterialChildrenRenderer(type: string) {
   return materialMap.get(type)?.childrenRenderer !== 'material'
 }
 
-export function canMaterialTypeBeChild(parent: MaterialSchema | PageRootSchema, childType: string) {
+export function canMaterialTypeBeChild(
+  parent: MaterialSchema | PageRootSchema | ModuleRootSchema,
+  childType: string,
+) {
   const childRoles = materialMap.get(childType)?.capability?.roles ?? ['canvas-content']
   const acceptedRoles =
-    parent.type === 'page-root'
+    parent.type === 'page-root' || parent.type === 'module-root'
       ? ['canvas-content']
       : materialMap.get(parent.type)?.capability?.accepts
 
-  if (parent.type !== 'page-root') {
+  if (parent.type !== 'page-root' && parent.type !== 'module-root') {
     const parentCapability = materialMap.get(parent.type)?.capability
     if (parentCapability?.kind !== 'container') return false
   }
@@ -107,7 +111,7 @@ export function canMaterialTypeBeChild(parent: MaterialSchema | PageRootSchema, 
 }
 
 export function canMaterialAcceptChild(
-  parent: MaterialSchema | PageRootSchema,
+  parent: MaterialSchema | PageRootSchema | ModuleRootSchema,
   child: MaterialSchema,
 ) {
   return canMaterialTypeBeChild(parent, child.type)

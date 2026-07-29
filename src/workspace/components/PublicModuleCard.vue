@@ -5,16 +5,24 @@ import { formatWorkspaceTime } from '../time.ts'
 
 defineOptions({ name: 'PublicModuleCard' })
 
-defineProps<{
-  publicModule: PublicModuleRecord
-}>()
-
 defineEmits<{
   duplicate: []
   rename: []
   remove: []
   references: []
 }>()
+
+const props = defineProps<{
+  publicModule: PublicModuleRecord
+}>()
+
+const inputSummary = computed(() => {
+  const labels = props.publicModule.schema.contract.inputs.map((input) => input.label)
+  return labels.length ? labels.join(' · ') : '未声明输入'
+})
+const displayVersion = computed(() =>
+  props.publicModule.versions.length ? props.publicModule.version : '未发布',
+)
 </script>
 
 <template>
@@ -44,8 +52,8 @@ defineEmits<{
         <div>
           <h3>{{ publicModule.schema.root.name }}</h3>
           <p>
-            <span>{{ publicModule.version }}</span>
-            {{ publicModule.exposedParameters.join(' · ') }}
+            <span>{{ displayVersion }}</span>
+            {{ inputSummary }}
           </p>
         </div>
         <el-dropdown trigger="click" placement="bottom-end">
@@ -74,7 +82,7 @@ defineEmits<{
           编辑模块
           <Icon icon="fluent:arrow-right-20-regular" width="14" />
         </RouterLink>
-        <span>{{ publicModule.version }} 当前版本</span>
+        <span>{{ displayVersion }}{{ publicModule.versions.length ? ' 当前版本' : '' }}</span>
       </footer>
     </div>
   </article>

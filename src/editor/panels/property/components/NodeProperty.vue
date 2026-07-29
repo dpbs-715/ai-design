@@ -7,18 +7,21 @@ import DataSourceManager from '@/editor/toolbar/components/DataSourceManager.vue
 import DataSection from '@/editor/panels/property/components/DataSection.vue'
 import EventSection from '@/editor/panels/property/components/EventSection.vue'
 import EventWorkbench from '@/editor/panels/property/components/EventWorkbench.vue'
+import ModuleInputValueEditor from '@/editor/panels/property/components/ModuleInputValueEditor.vue'
 import NodeNameEditor from '@/editor/panels/property/components/NodeNameEditor.vue'
 import { useUndoRedo } from '@/hooks/useUndoRedo.ts'
 import { getMaterialIcon, getMaterialSetters } from '@/materials'
 import { isFormItemPlacement, type MaterialEvent } from '@/schema/material.ts'
+import { createModuleInstanceInputs, normalizeProjectModuleInstanceProps } from '@/schema/module.ts'
 import { useEditorStore } from '@/stores/editor.ts'
-import type { ProjectModuleInstanceProps } from '@/workspace/types.ts'
+import { useWorkspaceStore } from '@/workspace/store.ts'
 import { useRoute, useRouter } from 'vue-router'
 import {
   formatSchemaValidationIssue,
   parseMaterialSchema,
   parsePageSchema,
 } from '@/schema/validation.ts'
+import { markRaw } from 'vue'
 
 defineOptions({ name: 'NodeProperty' })
 
@@ -46,6 +49,7 @@ const sectionOptions: PropertySectionOption[] = [
 ]
 
 const editorStore = useEditorStore()
+const workspaceStore = useWorkspaceStore()
 const route = useRoute()
 const router = useRouter()
 const { selectedNode: selectedNodeRef } = storeToRefs(editorStore)
@@ -57,13 +61,31 @@ const componentIcon = computed(() => getMaterialIcon(selectedNode.value.type))
 const isProjectModuleInstance = computed(
   () => selectedNode.value.type === 'project-module-instance',
 )
-const projectModuleProps = computed(
-  () => selectedNode.value.props as unknown as ProjectModuleInstanceProps,
+const projectModuleProps = computed(() =>
+  normalizeProjectModuleInstanceProps(selectedNode.value.props),
+)
+const publicModule = computed(() =>
+  workspaceStore.modules.find((candidate) => candidate.id === projectModuleProps.value.moduleId),
+)
+const availableModuleVersion = computed(() => publicModule.value?.version)
+const selectedModuleVersion = computed(() => {
+  const publicModuleRecord = publicModule.value
+  if (!publicModuleRecord) return undefined
+  const version =
+    projectModuleProps.value.updatePolicy === 'latest'
+      ? publicModuleRecord.version
+      : projectModuleProps.value.version
+  return publicModuleRecord.versions.find((candidate) => candidate.version === version)
+})
+const effectiveModuleVersion = computed(
+  () => selectedModuleVersion.value?.version ?? projectModuleProps.value.version,
 )
 const hasProjectModuleUpdate = computed(
   () =>
     isProjectModuleInstance.value &&
-    projectModuleProps.value.moduleVersion !== projectModuleProps.value.availableVersion,
+    projectModuleProps.value.updatePolicy === 'manual' &&
+    Boolean(availableModuleVersion.value) &&
+    projectModuleProps.value.version !== availableModuleVersion.value,
 )
 
 function openProjectModuleEditor() {
@@ -74,13 +96,20 @@ function openProjectModuleEditor() {
 }
 
 function upgradeProjectModule() {
-  if (!hasProjectModuleUpdate.value) return
+  const latestVersion = publicModule.value?.versions.find(
+    (candidate) => candidate.version === availableModuleVersion.value,
+  )
+  if (!hasProjectModuleUpdate.value || !latestVersion) return
   const currentNode = selectedNode.value
   const result = editorStore.updateNode(currentNode.id, {
     ...currentNode,
     props: {
       ...currentNode.props,
-      moduleVersion: projectModuleProps.value.availableVersion,
+      moduleId: projectModuleProps.value.moduleId,
+      version: latestVersion.version,
+      updatePolicy: projectModuleProps.value.updatePolicy,
+      inputs: createModuleInstanceInputs(latestVersion.schema, projectModuleProps.value.inputs),
+      outputHandlers: projectModuleProps.value.outputHandlers,
     },
   })
   if (result.success === false) {
@@ -137,6 +166,9 @@ const layoutSetters = computed<CommonFormConfig[]>(() =>
 const [layoutConfig] = useConfigs<CommonFormConfig>(layoutSetters, false)
 
 function getSectionSetters(section: 'config' | 'data') {
+  if (isProjectModuleInstance.value) {
+    return section === 'config' ? getProjectModuleSetters() : []
+  }
   const setters = getMaterialSetters(selectedNode.value.type)
     .filter((setter) =>
       section === 'data' ? setter.section === 'data' : setter.section !== 'data',
@@ -147,6 +179,36 @@ function getSectionSetters(section: 'config' | 'data') {
       return config
     })
   return withBatchEvents(setters)
+}
+
+function getProjectModuleSetters(): CommonFormConfig[] {
+  const inputs = selectedModuleVersion.value?.schema.contract.inputs ?? []
+  const inputSetters: CommonFormConfig[] = inputs.map((input) => ({
+    label: input.label,
+    field: `props.inputs.${input.id}`,
+    component: markRaw(ModuleInputValueEditor),
+    span: 24,
+    props: {
+      input,
+      dataSources: editorStore.page.dataSources,
+    },
+  }))
+
+  return withBatchEvents([
+    {
+      label: '更新策略',
+      field: 'props.updatePolicy',
+      component: 'commonSelect',
+      span: 24,
+      props: {
+        options: [
+          { label: '手动升级', value: 'manual' },
+          { label: '始终使用最新版', value: 'latest' },
+        ],
+      },
+    },
+    ...inputSetters,
+  ])
 }
 
 const componentSetters = computed(() => getSectionSetters('config'))
@@ -351,10 +413,16 @@ watch(
             <div>
               <span>
                 <Icon icon="fluent:puzzle-piece-20-filled" width="15" />
-                {{ projectModuleProps.moduleVersion }}
+                {{ effectiveModuleVersion }}
               </span>
               <strong>
-                {{ hasProjectModuleUpdate ? '公共模块有新版本' : '已使用当前模块版本' }}
+                {{
+                  projectModuleProps.updatePolicy === 'latest'
+                    ? '自动跟随最新模块版本'
+                    : hasProjectModuleUpdate
+                      ? '公共模块有新版本'
+                      : '已使用当前模块版本'
+                }}
               </strong>
               <small>页面仅保存实例参数，不允许直接修改模块内部结构。</small>
             </div>
@@ -364,7 +432,7 @@ watch(
               type="primary"
               @click="upgradeProjectModule"
             >
-              升级到 {{ projectModuleProps.availableVersion }}
+              升级到 {{ availableModuleVersion }}
             </CommonButton>
             <CommonButton v-else size="small" type="normal" @click="openProjectModuleEditor">
               进入模块编辑

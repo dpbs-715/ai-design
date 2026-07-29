@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import type { MaterialSchema } from '@/schema/material.ts'
-import type { ProjectModuleInstanceProps } from '@/workspace/types.ts'
+import {
+  normalizeProjectModuleInstanceProps,
+  type PublicModuleVersionRecord,
+} from '@/schema/module.ts'
+import { injectDataSources, provideDataSources } from '@/context'
+import { injectPublicModules } from '@/context/publicModules.ts'
+import CanvasBackground from '@/components/CanvasBackground/index.vue'
+import ModuleContentNode from './ModuleContentNode.vue'
+import { moduleRenderPathKey, resolvePublicModuleContent } from './resolve.ts'
 
 defineOptions({ name: 'ProjectModuleInstance' })
 
@@ -8,134 +16,104 @@ const { schema } = defineProps<{
   schema: MaterialSchema
 }>()
 
-const instance = computed(() => schema.props as unknown as ProjectModuleInstanceProps)
-const visibleIndicators = computed(() =>
-  Array.from({ length: Math.min(Math.max(instance.value.displayCount, 1), 6) }),
+const publicModules = injectPublicModules()
+const pageDataSources = injectDataSources()
+const parentModulePath = inject(moduleRenderPathKey, [])
+const instance = computed(() => normalizeProjectModuleInstanceProps(schema.props))
+const publicModule = computed(() =>
+  publicModules.value.find((candidate) => candidate.id === instance.value.moduleId),
 )
+const hasModuleCycle = computed(() => parentModulePath.includes(instance.value.moduleId))
+const selectedVersion = computed<PublicModuleVersionRecord | undefined>(() => {
+  const module = publicModule.value
+  if (!module) return undefined
+  const version = instance.value.updatePolicy === 'latest' ? module.version : instance.value.version
+  return module.versions.find((candidate) => candidate.version === version)
+})
+const resolvedContent = computed(() => {
+  if (!selectedVersion.value || hasModuleCycle.value) return undefined
+  return resolvePublicModuleContent(
+    selectedVersion.value.schema,
+    schema.id,
+    instance.value.inputs,
+    pageDataSources.value,
+  )
+})
+const clipsContent = computed(() => resolvedContent.value?.root.props.clipContent === true)
+
+provide(moduleRenderPathKey, [...parentModulePath, instance.value.moduleId])
+provideDataSources(
+  computed(() => {
+    const moduleSources = resolvedContent.value?.dataSources ?? []
+    const moduleSourceIds = new Set(moduleSources.map((source) => source.id))
+    return [
+      ...pageDataSources.value.filter((source) => !moduleSourceIds.has(source.id)),
+      ...moduleSources,
+    ]
+  }),
+)
+
+const contentStyle = computed(() => {
+  const root = resolvedContent.value?.root
+  if (!root) return {}
+  const placement = schema.placement.type === 'absolute' ? schema.placement : undefined
+  const width = placement?.width ?? root.placement.width
+  const height = placement?.height ?? root.placement.height
+  return {
+    width: `${root.placement.width}px`,
+    height: `${root.placement.height}px`,
+    transform: `scale(${width / root.placement.width}, ${height / root.placement.height})`,
+    transformOrigin: 'top left',
+  }
+})
 </script>
 
 <template>
-  <div class="module-instance">
-    <header>
-      <span>
-        <Icon icon="fluent:puzzle-piece-20-filled" width="16" />
-        {{ instance.title }}
-      </span>
-      <small>{{ instance.moduleVersion }}</small>
-    </header>
-    <div class="indicator-grid">
-      <article v-for="(_, index) in visibleIndicators" :key="index">
-        <small>指标 {{ String(index + 1).padStart(2, '0') }}</small>
-        <strong>{{ 86 + index * 7 }}</strong>
-        <i></i>
-      </article>
+  <div class="module-instance" :class="{ 'is-clipped': clipsContent }">
+    <div v-if="resolvedContent" class="module-content" :style="contentStyle">
+      <CanvasBackground :background="resolvedContent.root.style.background" />
+      <ModuleContentNode v-for="node in resolvedContent.nodes" :key="node.id" :node="node" />
     </div>
-    <footer>
-      <span>公共模块实例</span>
-      <span>{{ instance.displayCount }} 项展示</span>
-    </footer>
+    <div v-else class="module-state">
+      <Icon icon="fluent:puzzle-piece-20-filled" width="20" />
+      <strong v-if="hasModuleCycle">检测到模块循环引用</strong>
+      <strong v-else-if="!publicModule">公共模块不存在</strong>
+      <strong v-else>模块版本 {{ instance.version }} 不可用</strong>
+    </div>
   </div>
 </template>
 
 <style scoped lang="scss">
 .module-instance {
-  display: flex;
+  position: relative;
   width: 100%;
   height: 100%;
-  min-width: 0;
-  flex-direction: column;
-  overflow: hidden;
-  border: 1px solid var(--render-theme-border, var(--border-color));
-  border-radius: 10px;
-  background: var(--render-theme-container-background, var(--surface-panel));
+  overflow: visible;
   color: var(--render-theme-text-primary, var(--text-primary));
 }
 
-header,
-footer {
-  display: flex;
-  flex: none;
-  align-items: center;
-  justify-content: space-between;
-}
-
-header {
-  height: 44px;
-  padding: 0 15px;
-  border-bottom: 1px dashed var(--render-theme-border, var(--border-color));
-
-  span {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    font-size: 13px;
-    font-weight: 600;
-  }
-
-  small {
-    padding: 3px 6px;
-    border-radius: 99px;
-    background: color-mix(
-      in srgb,
-      var(--render-theme-primary, var(--accent-color)) 14%,
-      transparent
-    );
-    color: var(--render-theme-primary, var(--accent-color));
-    font-size: 9px;
-  }
-}
-
-.indicator-grid {
-  display: grid;
-  min-height: 0;
-  flex: 1;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 9px;
-  padding: 12px;
-}
-
-article {
-  position: relative;
-  display: flex;
-  min-width: 0;
-  justify-content: center;
-  flex-direction: column;
-  padding: 10px;
+.module-instance.is-clipped {
   overflow: hidden;
-  border: 1px solid var(--render-theme-border, var(--border-color));
-  border-radius: 7px;
-  background: color-mix(
-    in srgb,
-    var(--render-theme-container-background, var(--surface-raised)) 76%,
-    transparent
-  );
+}
 
-  small {
-    color: var(--render-theme-text-muted, var(--text-muted));
-    font-size: 9px;
-  }
+.module-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.module-state {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-content: center;
+  justify-items: center;
+  gap: 8px;
+  color: var(--render-theme-text-muted, var(--text-muted));
 
   strong {
-    margin-top: 6px;
-    font-size: 18px;
-    font-weight: 650;
+    font-size: 11px;
+    font-weight: 500;
   }
-
-  i {
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    width: 42%;
-    height: 2px;
-    background: var(--render-theme-primary, var(--accent-color));
-  }
-}
-
-footer {
-  height: 32px;
-  padding: 0 15px;
-  border-top: 1px solid var(--render-theme-border, var(--border-color));
-  color: var(--render-theme-text-muted, var(--text-muted));
-  font-size: 8px;
 }
 </style>

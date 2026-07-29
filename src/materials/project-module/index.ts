@@ -1,5 +1,6 @@
 import type { MaterialDefinition, MaterialTemplate } from '@/schema/material.ts'
 import type { PublicModuleRecord } from '@/workspace/types.ts'
+import { createModuleInstanceInputs, projectModuleInstanceNodeSchema } from '@/schema/module.ts'
 import type { Component } from 'vue'
 import ProjectModuleInstance from './component.vue'
 import ProjectModulePreview from './preview.vue'
@@ -15,24 +16,8 @@ export const projectModuleMaterial: MaterialDefinition = {
     kind: 'leaf',
     roles: ['canvas-content'],
   },
-  supportsDataSource: true,
-  dataBindings: [{ label: '显示值', field: 'props.valueField' }],
-  setters: [
-    {
-      component: 'input',
-      label: '标题',
-      field: 'props.title',
-      span: 24,
-      props: { placeholder: '输入模块实例标题' },
-    },
-    {
-      component: 'number',
-      label: '显示数量',
-      field: 'props.displayCount',
-      span: 24,
-      props: { min: 1, max: 6, precision: 0 },
-    },
-  ],
+  validationSchema: projectModuleInstanceNodeSchema,
+  setters: [],
   schema: {
     type: 'project-module-instance',
     name: '公共模块实例',
@@ -45,12 +30,10 @@ export const projectModuleMaterial: MaterialDefinition = {
     },
     props: {
       moduleId: '',
-      moduleVersion: 'v1',
-      availableVersion: 'v1',
-      title: '公共模块',
-      displayCount: 3,
-      parameters: {},
-      valueField: 'value',
+      version: 'v1',
+      updatePolicy: 'manual',
+      inputs: {},
+      outputHandlers: {},
     },
     events: [],
   },
@@ -58,17 +41,29 @@ export const projectModuleMaterial: MaterialDefinition = {
 
 export function createProjectModuleTemplate(publicModule: PublicModuleRecord): MaterialTemplate {
   const moduleName = publicModule.schema.root.name
+  const version =
+    publicModule.versions.find((candidate) => candidate.version === publicModule.version) ??
+    publicModule.versions.at(-1)
+  if (!version) {
+    throw new Error(`Public module ${publicModule.id} has no published version`)
+  }
+  const moduleSchema = version.schema
   return {
     ...projectModuleMaterial.schema,
     name: moduleName,
-    placement: { ...projectModuleMaterial.schema.placement },
+    placement: {
+      type: 'absolute',
+      x: 0,
+      y: 0,
+      width: moduleSchema.root.placement.width,
+      height: moduleSchema.root.placement.height,
+    },
     props: {
-      ...projectModuleMaterial.schema.props,
       moduleId: publicModule.id,
-      moduleVersion: publicModule.version,
-      availableVersion: publicModule.version,
-      title: moduleName,
-      parameters: {},
+      version: publicModule.version,
+      updatePolicy: 'manual',
+      inputs: createModuleInstanceInputs(moduleSchema),
+      outputHandlers: {},
     },
   }
 }

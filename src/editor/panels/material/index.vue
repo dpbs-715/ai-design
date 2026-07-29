@@ -13,7 +13,11 @@ const workspaceStore = useWorkspaceStore()
 
 const projectId = computed(() => String(route.params.projectId ?? ''))
 const projectModules = computed(() =>
-  projectId.value ? workspaceStore.getProjectModules(projectId.value) : [],
+  projectId.value
+    ? workspaceStore
+        .getProjectModules(projectId.value)
+        .filter((publicModule) => publicModule.versions.length > 0)
+    : [],
 )
 const groups = computed(() => {
   const materialGroups = geyMaterialGroups()
@@ -76,8 +80,8 @@ watch(
           />
           <div v-if="!projectModules.length" class="project-modules-empty">
             <Icon icon="fluent:puzzle-piece-20-regular" width="24" />
-            <strong>暂无公共模块</strong>
-            <span>先在项目工作台创建模块，再拖入页面。</span>
+            <strong>暂无已发布模块</strong>
+            <span>先在模块编辑器发布一个版本，再拖入页面。</span>
           </div>
         </template>
         <MaterialItem v-else v-for="material in currentMaterial" :key="material.name" :material />
