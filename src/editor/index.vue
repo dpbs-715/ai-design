@@ -31,7 +31,6 @@ const moduleRecord = computed(() =>
 const editorAsset = computed(() => pageRecord.value ?? moduleRecord.value)
 const editorKind = computed(() => (moduleRecord.value ? '公共模块' : '页面'))
 const editorAssetName = computed(() => editorAsset.value?.schema.root.name)
-let pendingWorkspaceSave: ReturnType<typeof setTimeout> | undefined
 
 function loadEditorPage(page: unknown) {
   const result = editorStore.setPage(page)
@@ -43,7 +42,6 @@ function loadEditorPage(page: unknown) {
 watch(
   [pageRecord, moduleRecord],
   ([currentPage, currentModule]) => {
-    if (pendingWorkspaceSave) clearTimeout(pendingWorkspaceSave)
     const workspaceAsset = currentPage ?? currentModule
     if (workspaceAsset) {
       loadEditorPage(deepClone(workspaceAsset.schema))
@@ -56,34 +54,6 @@ watch(
   },
   { immediate: true },
 )
-
-watch(
-  () => editorStore.page,
-  (currentPage) => {
-    if (!editorAsset.value || currentPage.id !== editorAsset.value.id) return
-    if (pendingWorkspaceSave) clearTimeout(pendingWorkspaceSave)
-    pendingWorkspaceSave = setTimeout(() => {
-      if (pageRecord.value?.id === currentPage.id) {
-        workspaceStore.savePageSchema(currentPage.id, currentPage)
-      } else if (moduleRecord.value?.id === currentPage.id) {
-        workspaceStore.saveModuleSchema(currentPage.id, currentPage)
-      }
-      pendingWorkspaceSave = undefined
-    }, 300)
-  },
-  { deep: true },
-)
-
-onBeforeUnmount(() => {
-  if (pendingWorkspaceSave) {
-    clearTimeout(pendingWorkspaceSave)
-    if (pageRecord.value?.id === editorStore.page.id) {
-      workspaceStore.savePageSchema(editorStore.page.id, editorStore.page)
-    } else if (moduleRecord.value?.id === editorStore.page.id) {
-      workspaceStore.saveModuleSchema(editorStore.page.id, editorStore.page)
-    }
-  }
-})
 
 const { dataSources, theme } = storeToRefs(editorStore)
 

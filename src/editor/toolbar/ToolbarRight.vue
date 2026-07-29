@@ -6,6 +6,8 @@ import DataSourceManager from './components/DataSourceManager.vue'
 import { useRouter } from 'vue-router'
 import { formatSchemaValidationIssue, parsePageSchema } from '@/schema/validation.ts'
 import { useWorkspaceStore } from '@/workspace/store.ts'
+import { getEditorShortcutLabels } from '@/editor/shortcuts.ts'
+import { useEventListener } from '@vunio/hooks'
 
 defineOptions({ name: 'ToolbarRight' })
 
@@ -21,6 +23,7 @@ const router = useRouter()
 const editorStore = useEditorStore()
 const workspaceStore = useWorkspaceStore()
 const { page } = storeToRefs(editorStore)
+const shortcutLabels = getEditorShortcutLabels()
 
 const visible = ref(false)
 const jsonText = ref('')
@@ -119,7 +122,11 @@ function onPreview() {
   })
 }
 
-function onPublish() {
+interface SaveEditorSchemaOptions {
+  notify?: boolean
+}
+
+function saveEditorSchema({ notify = true }: SaveEditorSchemaOptions = {}) {
   const result = parsePageSchema(page.value)
   if (result.success === false) {
     ElMessage.error(formatSchemaValidationIssue(result.issues[0]))
@@ -127,13 +134,58 @@ function onPublish() {
   }
 
   const pageRecord = workspaceStore.getPage(result.data.id)
-  if (!pageRecord) {
-    ElMessage.error('当前页面不属于工作空间，无法发布')
+  if (pageRecord) {
+    workspaceStore.savePageSchema(pageRecord.id, result.data)
+    if (notify) ElMessage.success('页面已保存')
+    return { kind: 'page' as const, id: pageRecord.id }
+  }
+
+  const moduleRecord = workspaceStore.modules.find(
+    (publicModule) => publicModule.id === result.data.id,
+  )
+  if (moduleRecord) {
+    workspaceStore.saveModuleSchema(moduleRecord.id, result.data)
+    if (notify) ElMessage.success('公共模块已保存')
+    return { kind: 'module' as const, id: moduleRecord.id }
+  }
+
+  ElMessage.error('当前内容不属于工作空间，无法保存')
+}
+
+function hasOpenModal() {
+  return Array.from(document.querySelectorAll('[role="dialog"][aria-modal="true"]')).some(
+    (dialog) => dialog.getClientRects().length > 0,
+  )
+}
+
+function onSaveShortcut(event: KeyboardEvent) {
+  const primaryModifier = event.metaKey || event.ctrlKey
+  if (
+    event.key.toLowerCase() !== 's' ||
+    !primaryModifier ||
+    event.altKey ||
+    event.shiftKey ||
+    event.isComposing
+  ) {
     return
   }
 
-  workspaceStore.savePageSchema(pageRecord.id, result.data)
-  router.push({ name: 'Screen', query: { id: pageRecord.id } })
+  event.preventDefault()
+  if (event.repeat || hasOpenModal()) return
+  saveEditorSchema()
+}
+
+useEventListener('keydown', onSaveShortcut)
+
+function onPublish() {
+  const savedAsset = saveEditorSchema({ notify: false })
+  if (!savedAsset) return
+  if (savedAsset.kind !== 'page') {
+    ElMessage.error('公共模块无法单独发布')
+    return
+  }
+
+  router.push({ name: 'Screen', query: { id: savedAsset.id } })
 }
 
 type MoreAction = 'json' | 'import' | 'export'
@@ -179,6 +231,16 @@ function onMoreAction(action: MoreAction) {
 
     <el-divider direction="vertical" />
 
+    <button
+      type="button"
+      class="toolbar-action"
+      aria-label="保存"
+      :title="`保存 (${shortcutLabels.save})`"
+      @click="saveEditorSchema()"
+    >
+      <Icon icon="mdi:content-save-outline" width="16" />
+      <span>保存</span>
+    </button>
     <button type="button" class="toolbar-action" aria-label="预览" @click="onPreview">
       <Icon icon="mdi:eye-outline" width="16" />
       <span>预览</span>

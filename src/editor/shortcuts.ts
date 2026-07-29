@@ -1,4 +1,5 @@
 export interface EditorShortcutLabels {
+  save: string
   undo: string
   redo: string
   copy: string
@@ -19,6 +20,7 @@ export function getEditorShortcutLabels(): EditorShortcutLabels {
   const modifier = applePlatform ? '⌘' : 'Ctrl+'
 
   return {
+    save: `${modifier}S`,
     undo: `${modifier}Z`,
     redo: applePlatform ? '⌘⇧Z' : 'Ctrl+Y',
     copy: `${modifier}C`,
