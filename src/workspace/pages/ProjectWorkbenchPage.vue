@@ -202,10 +202,6 @@ function showReferences(publicModule: PublicModuleRecord) {
               <h1>{{ currentNav.label }}</h1>
               <p>{{ currentNav.description }}</p>
             </div>
-            <CommonButton v-if="currentSection === 'modules'" type="primary" @click="createModule">
-              <Icon icon="fluent:add-20-regular" width="16" />
-              新建模块
-            </CommonButton>
           </header>
 
           <template v-if="currentSection === 'pages'">
@@ -243,6 +239,11 @@ function showReferences(publicModule: PublicModuleRecord) {
             </div>
 
             <div v-if="projectModules.length" class="asset-grid">
+              <button type="button" class="asset-create-card module-create" @click="createModule">
+                <Icon icon="fluent:puzzle-piece-20-regular" width="24" />
+                <strong>新建公共模块</strong>
+                <span>复用一组稳定的局部设计</span>
+              </button>
               <PublicModuleCard
                 v-for="publicModule in projectModules"
                 :key="publicModule.id"
@@ -252,11 +253,6 @@ function showReferences(publicModule: PublicModuleRecord) {
                 @remove="removeModule(publicModule)"
                 @references="showReferences(publicModule)"
               />
-              <button type="button" class="asset-create-card module-create" @click="createModule">
-                <Icon icon="fluent:puzzle-piece-20-regular" width="24" />
-                <strong>新建公共模块</strong>
-                <span>复用一组稳定的局部设计</span>
-              </button>
             </div>
             <div v-else class="large-empty-state">
               <span><Icon icon="fluent:puzzle-piece-20-regular" width="28" /></span>
