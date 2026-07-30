@@ -301,22 +301,7 @@ defineExpose<DataTableMaterialExpose>({
   height: 100%;
 }
 
-.data-table-material :deep(.commonTable) {
-  background: transparent;
-}
-
-/*
- * Element Plus enables its border class for grouped headers even when border is false.
- * Keep the regular horizontal row separators while removing border-mode outer and
- * vertical lines requested by the material setting.
- */
-.data-table-material.is-borderless :deep(.el-table--border::before),
-.data-table-material.is-borderless :deep(.el-table--border::after),
-.data-table-material.is-borderless :deep(.el-table--border .el-table__inner-wrapper::after) {
-  display: none;
-}
-
-.data-table-material.is-borderless :deep(.el-table--border .el-table__cell) {
+.data-table-material.is-borderless :deep(.el-table--border tbody .el-table__cell) {
   border-right: 0;
 }
 </style>
