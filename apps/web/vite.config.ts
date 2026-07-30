@@ -17,10 +17,12 @@ export default defineConfig({
     // vueDevTools(),
     tailwindcss(),
     AutoImport({
+      dts: fileURLToPath(new URL('./auto-imports.d.ts', import.meta.url)),
       imports: ['vue'],
       resolvers: [ElementPlusResolver()],
     }),
     Components({
+      dts: fileURLToPath(new URL('./components.d.ts', import.meta.url)),
       resolvers: [
         ElementPlusResolver({
           importStyle: false,

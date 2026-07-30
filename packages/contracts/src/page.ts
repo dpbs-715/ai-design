@@ -3,9 +3,9 @@ import {
   jsonDataSchema,
   jsonObjectSchema,
   materialSchema,
-} from '@/schema/material.ts'
-import type { MaterialSchema } from '@/schema/material.ts'
-import type { RenderThemeConfig, ThemeColorValue } from '@/theme/renderTheme.ts'
+} from './material.js'
+import type { MaterialSchema } from './material.js'
+import type { RenderThemeConfig, ThemeColorValue } from './theme.js'
 import { z } from 'zod'
 
 export const PAGE_SCHEMA_VERSION = 1

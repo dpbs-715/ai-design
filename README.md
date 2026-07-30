@@ -1,5 +1,25 @@
 # ai-design
 
+基于 pnpm workspace 和 Turborepo 管理的 monorepo。
+
+## 项目结构
+
+- `apps/web`：Vue 3 可视化大屏编辑器。
+- `apps/api`：NestJS API。
+- `packages/contracts`：前后端共享的数据协议、Zod Schema 和纯 TypeScript 类型。
+
+共享代码统一放在 `packages/` 下，但只在确实被多个应用使用时抽取。前端组件、Vue
+上下文和编辑器逻辑仍留在 `apps/web`，避免把 `packages` 变成没有边界的通用目录。
+
+## 开发命令
+
+- `pnpm dev`：同时启动所有应用。
+- `pnpm dev:web`：只启动前端。
+- `pnpm dev:api`：只启动 API。
+- `pnpm type-check`：检查所有 workspace 的类型。
+- `pnpm build`：构建所有 workspace。
+- `pnpm lint`：检查所有提供 lint 脚本的 workspace。
+
 ## todo list
 画布的尺寸目前只支持px 后面尝试铺满容器 需要设计
 createComponent 自定义组件 方便ai创建组件

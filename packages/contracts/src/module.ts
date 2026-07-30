@@ -5,9 +5,9 @@ import {
   type DataSourceSchema,
   type PageRootSchema,
   type PageSchema,
-} from '@/schema/page.ts'
-import { extensibleObject, jsonDataSchema } from '@/schema/material.ts'
-import type { RenderThemeConfig } from '@/theme/renderTheme.ts'
+} from './page.js'
+import { extensibleObject, jsonDataSchema } from './material.js'
+import type { RenderThemeConfig } from './theme.js'
 import { z } from 'zod'
 
 export const MODULE_SCHEMA_VERSION = 1
@@ -156,10 +156,10 @@ export type ModuleExpression =
   | { kind: 'literal'; value: unknown }
   | { kind: 'path'; source: ModuleExpression; path: string }
   | {
-      kind: 'call'
-      operator: 'template' | 'clamp' | 'equals' | 'if' | 'add'
-      arguments: ModuleExpression[]
-    }
+  kind: 'call'
+  operator: 'template' | 'clamp' | 'equals' | 'if' | 'add'
+  arguments: ModuleExpression[]
+}
 
 export const moduleExpressionSchema = z.lazy(() =>
   z.discriminatedUnion('kind', [

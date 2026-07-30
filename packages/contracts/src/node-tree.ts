@@ -1,4 +1,4 @@
-import type { MaterialSchema } from '@/schema/material.ts'
+import type { MaterialSchema } from './material.js'
 
 export interface MaterialTreeIndex {
   nodes: MaterialSchema[]

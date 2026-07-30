@@ -1,4 +1,3 @@
-import type { Component } from 'vue'
 import { z } from 'zod'
 
 export const jsonValueSchema = z.json()
@@ -167,9 +166,9 @@ export interface MaterialDataQuery {
   debounce?: number
 }
 
-// `strictNullChecks` is disabled at project level, so Zod's inferred object keys become
-// optional in TypeScript. Keep the parsed domain contract explicit until strict mode is enabled.
-interface MaterialSchemaCore {
+// Keep the recursive domain model explicit so consumers get a stable contract independent of
+// Zod's internal inferred representation.
+export interface MaterialSchemaCore {
   type: string
   name: string
   id: string
@@ -189,57 +188,6 @@ export type MaterialSchema = MaterialSchemaCore
 
 export type MaterialTemplate = Omit<MaterialSchemaCore, 'id' | 'children'> & {
   children?: MaterialTemplate[]
-}
-
-export interface MaterialSetter {
-  field: string
-  label: string
-  component: string
-  section?: 'config' | 'data'
-  [key: string]: any
-}
-
-export interface EventOption {
-  label: string
-  value: string
-  payloadType?: string
-}
-
-export interface MaterialPreviewDefinition {
-  component: Component
-  props?: Record<string, unknown>
-}
-
-export interface MaterialDataBinding {
-  label: string
-  field: string
-}
-
-export interface MaterialCapability {
-  kind: 'leaf' | 'container'
-  roles: string[]
-  accepts?: string[]
-}
-
-export interface MaterialDefinition {
-  //region 物料元数据
-  name: string
-  group: string
-  icon?: string
-  preview: MaterialPreviewDefinition
-  //endregion
-
-  capability?: MaterialCapability
-  editorComponent?: Component
-  childrenRenderer?: 'renderer' | 'material'
-  validationSchema?: z.ZodType
-  setters: MaterialSetter[]
-
-  customEventOptions?: EventOption[]
-  supportsDataSource?: boolean
-  dataBindings?: MaterialDataBinding[]
-
-  schema: MaterialTemplate
 }
 
 export function isAbsolutePlacement(placement: MaterialPlacement): placement is AbsolutePlacement {
