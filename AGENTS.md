@@ -8,6 +8,8 @@ This pnpm and Turborepo monorepo contains two applications and shared packages:
 - `apps/api/`: the NestJS API.
 - `packages/contracts/`: framework-independent Zod schemas, data contracts, and TypeScript types
   that can be consumed by both applications.
+- `infra/`: local development infrastructure such as Docker Compose services and their
+  environment templates.
 
 The web application remains organized primarily by feature:
 
@@ -30,6 +32,8 @@ Use pnpm; `pnpm-lock.yaml` is authoritative.
 - `pnpm dev`: start all development servers through Turborepo.
 - `pnpm dev:web`: start only the Vite development server.
 - `pnpm dev:api`: start only the NestJS development server.
+- `pnpm infra:up`: start local development infrastructure.
+- `pnpm infra:down`: stop local development infrastructure without deleting persisted data.
 - `pnpm type-check`: type-check all workspaces.
 - `pnpm lint`: run lint tasks exposed by workspaces; web lint commands may fix files.
 - `pnpm format`: run formatting tasks exposed by workspaces.
