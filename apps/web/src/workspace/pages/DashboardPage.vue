@@ -9,12 +9,14 @@ import WorkspaceTopbar from '../components/WorkspaceTopbar.vue'
 import { useWorkspaceStore } from '../store.ts'
 import { compareWorkspaceTimeDescending } from '../time.ts'
 import { useWorkspaceResponsive } from '../useWorkspaceResponsive.ts'
-import type { BusinessSystem, DesignProject } from '../types.ts'
+import type { BusinessSystem, DesignProject } from '@ai-design/contracts/workspace'
+import { useAuthStore } from '@/auth/store.ts'
 
 defineOptions({ name: 'WorkspaceDashboard' })
 
 const workspaceStore = useWorkspaceStore()
-const { systems, projects, selectedSystemId } = storeToRefs(workspaceStore)
+const authStore = useAuthStore()
+const { systems, projects, selectedSystemId, status, errorMessage } = storeToRefs(workspaceStore)
 const sidebarCollapsed = ref(false)
 const drawerOpen = ref(false)
 const searchOpen = ref(false)
@@ -96,6 +98,23 @@ watch([isCompact, isMobile], ([compact, mobile]) => {
   if (!mobile) drawerOpen.value = false
 })
 
+async function retryWorkspace() {
+  if (!authStore.user) return
+  try {
+    await workspaceStore.initialize(authStore.user.id, true)
+  } catch {
+    // The store exposes the latest error message in the retry state.
+  }
+}
+
+async function toggleProjectFavorite(projectId: string) {
+  try {
+    await workspaceStore.toggleProjectFavorite(projectId)
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '项目收藏状态更新失败')
+  }
+}
+
 async function createProject() {
   try {
     const { value } = await ElMessageBox.prompt('项目将创建在当前业务系统中。', '新建设计项目', {
@@ -105,9 +124,9 @@ async function createProject() {
       inputPattern: /\S+/,
       inputErrorMessage: '请输入项目名称',
     })
-    workspaceStore.addProject(value.trim())
-  } catch {
-    // Closing the prompt keeps the current dashboard state unchanged.
+    await workspaceStore.addProject(value.trim())
+  } catch (error) {
+    if (error instanceof Error) ElMessage.error(error.message)
   }
 }
 
@@ -120,21 +139,16 @@ async function renameProject(project: DesignProject) {
       inputPattern: /\S+/,
       inputErrorMessage: '项目名称不能为空',
     })
-    workspaceStore.renameProject(project.id, value.trim())
-  } catch {
-    // Cancelling leaves the project unchanged.
+    await workspaceStore.renameProject(project.id, value.trim())
+  } catch (error) {
+    if (error instanceof Error) ElMessage.error(error.message)
   }
-}
-
-function duplicateProject(project: DesignProject) {
-  workspaceStore.duplicateProject(project.id)
-  ElMessage.success(`已复制“${project.name}”`)
 }
 
 async function removeProject(project: DesignProject) {
   try {
     await ElMessageBox.confirm(
-      `将同时删除项目内的 ${project.pageIds.length} 个页面和 ${project.moduleIds.length} 个公共模块。`,
+      `将同时删除项目内的 ${project.pageCount} 个页面和 ${project.moduleCount} 个公共模块。`,
       `删除“${project.name}”`,
       {
         type: 'warning',
@@ -142,9 +156,9 @@ async function removeProject(project: DesignProject) {
         cancelButtonText: '取消',
       },
     )
-    workspaceStore.removeProject(project.id)
-  } catch {
-    // Cancelled destructive action.
+    await workspaceStore.removeProject(project.id)
+  } catch (error) {
+    if (error instanceof Error) ElMessage.error(error.message)
   }
 }
 
@@ -174,7 +188,7 @@ function editSystem(system: BusinessSystem) {
   systemDialogVisible.value = true
 }
 
-function saveSystem(close: () => void) {
+async function saveSystem(close: () => void) {
   const systemDetails = {
     name: systemDraft.value.name.trim(),
     description: systemDraft.value.description.trim(),
@@ -184,15 +198,16 @@ function saveSystem(close: () => void) {
     return
   }
 
-  const saved =
-    systemEditorMode.value === 'create'
-      ? workspaceStore.addSystem(systemDetails.name, systemDetails.description)
-      : workspaceStore.updateSystem(editingSystemId.value, systemDetails)
-  if (!saved) {
-    ElMessage.warning('系统名称已存在')
-    return
+  try {
+    if (systemEditorMode.value === 'create') {
+      await workspaceStore.addSystem(systemDetails.name, systemDetails.description)
+    } else {
+      await workspaceStore.updateSystem(editingSystemId.value, systemDetails)
+    }
+    close()
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '业务系统保存失败')
   }
-  close()
 }
 
 async function removeSystem(system: BusinessSystem) {
@@ -202,8 +217,8 @@ async function removeSystem(system: BusinessSystem) {
   }
 
   const systemProjects = projects.value.filter((project) => project.systemId === system.id)
-  const pageCount = systemProjects.reduce((count, project) => count + project.pageIds.length, 0)
-  const moduleCount = systemProjects.reduce((count, project) => count + project.moduleIds.length, 0)
+  const pageCount = systemProjects.reduce((count, project) => count + project.pageCount, 0)
+  const moduleCount = systemProjects.reduce((count, project) => count + project.moduleCount, 0)
   try {
     await ElMessageBox.confirm(
       `将同时删除 ${systemProjects.length} 个项目、${pageCount} 个页面和 ${moduleCount} 个公共模块。`,
@@ -214,15 +229,22 @@ async function removeSystem(system: BusinessSystem) {
         cancelButtonText: '取消',
       },
     )
-    workspaceStore.removeSystem(system.id)
-  } catch {
-    // Cancelled destructive action.
+    await workspaceStore.removeSystem(system.id)
+  } catch (error) {
+    if (error instanceof Error) ElMessage.error(error.message)
   }
 }
 </script>
 
 <template>
-  <div class="dashboard-shell">
+  <div v-if="status === 'error'" class="workspace-load-state">
+    <span><Icon icon="fluent:cloud-off-20-regular" width="28" /></span>
+    <h1>工作区暂时无法加载</h1>
+    <p>{{ errorMessage }}</p>
+    <CommonButton type="primary" @click="retryWorkspace">重新加载</CommonButton>
+  </div>
+
+  <div v-else class="dashboard-shell">
     <WorkspaceTopbar>
       <div class="topbar-note">
         <button
@@ -321,11 +343,9 @@ async function removeSystem(system: BusinessSystem) {
               v-for="project in visibleProjects"
               :key="project.id"
               :project="project"
-              @open="workspaceStore.recordProjectVisit(project.id)"
               @rename="renameProject(project)"
-              @duplicate="duplicateProject(project)"
               @remove="removeProject(project)"
-              @toggle-favorite="workspaceStore.toggleProjectFavorite(project.id)"
+              @toggle-favorite="toggleProjectFavorite(project.id)"
             />
           </div>
 
@@ -398,6 +418,39 @@ async function removeSystem(system: BusinessSystem) {
 </template>
 
 <style scoped lang="scss">
+.workspace-load-state {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  background: var(--surface-workbench);
+  color: var(--text-muted);
+  text-align: center;
+
+  > span {
+    display: grid;
+    width: 58px;
+    height: 58px;
+    place-items: center;
+    border: 1px solid var(--border-color);
+    border-radius: 15px;
+    background: var(--surface-panel);
+    color: var(--accent-color);
+  }
+
+  h1 {
+    margin: 18px 0 0;
+    color: var(--text-primary);
+    font-size: 16px;
+  }
+
+  p {
+    margin: 8px 0 18px;
+    font-size: 11px;
+  }
+}
+
 .dashboard-shell {
   display: flex;
   height: 100%;

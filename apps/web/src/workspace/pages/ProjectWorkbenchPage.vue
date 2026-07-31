@@ -6,11 +6,11 @@ import PublicModuleCard from '../components/PublicModuleCard.vue'
 import ModuleRemovalDialog from '../components/ModuleRemovalDialog.vue'
 import WorkspaceTopbar from '../components/WorkspaceTopbar.vue'
 import { useWorkspaceStore } from '../store.ts'
-import type { ProjectPageRecord, PublicModuleRecord } from '../types.ts'
+import type { ProjectPageRecord, PublicModuleRecord } from '@ai-design/contracts/workspace'
 
 defineOptions({ name: 'ProjectWorkbench' })
 
-type WorkbenchSection = 'pages' | 'modules' | 'data-sources' | 'assets' | 'settings'
+type WorkbenchSection = 'pages' | 'modules'
 
 interface WorkbenchNavItem {
   key: WorkbenchSection
@@ -32,24 +32,6 @@ const navigation: WorkbenchNavItem[] = [
     icon: 'fluent:puzzle-piece-20-regular',
     description: '管理可跨页面引用的局部设计',
   },
-  {
-    key: 'data-sources',
-    label: '数据源',
-    icon: 'fluent:database-20-regular',
-    description: '项目级数据连接',
-  },
-  {
-    key: 'assets',
-    label: '素材',
-    icon: 'fluent:image-multiple-20-regular',
-    description: '项目图片与图形资产',
-  },
-  {
-    key: 'settings',
-    label: '项目设置',
-    icon: 'fluent:settings-20-regular',
-    description: '成员、发布和基础信息',
-  },
 ]
 
 const route = useRoute()
@@ -70,18 +52,20 @@ const currentNav = computed(() => navigation.find((item) => item.key === current
 
 watch(
   projectId,
-  (value) => {
-    if (value) workspaceStore.recordProjectVisit(value)
+  async (value) => {
+    if (!value) return
+    try {
+      await workspaceStore.loadProjectAssets(value)
+      await workspaceStore.recordProjectVisit(value)
+    } catch (error) {
+      ElMessage.error(error instanceof Error ? error.message : '项目资源加载失败')
+    }
   },
   { immediate: true },
 )
 
 function sectionPath(section: WorkbenchSection) {
   return `/projects/${projectId.value}/${section}`
-}
-
-function returnToPages() {
-  void router.push(sectionPath('pages'))
 }
 
 async function promptForName(title: string, placeholder: string, initialValue = '') {
@@ -103,27 +87,59 @@ async function promptForName(title: string, placeholder: string, initialValue = 
 async function createPage() {
   const name = await promptForName('新建页面', '例如：生产运营总览')
   if (!name) return
-  const pageId = workspaceStore.addPage(projectId.value, name)
-  if (!pageId) return
-  await router.push(`/projects/${projectId.value}/pages/${pageId}/editor`)
+  try {
+    const pageId = await workspaceStore.addPage(projectId.value, name)
+    await router.push(`/projects/${projectId.value}/pages/${pageId}/editor`)
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '页面创建失败')
+  }
 }
 
 async function createModule() {
   const name = await promptForName('新建公共模块', '例如：核心指标条')
   if (!name) return
-  const moduleId = workspaceStore.addModule(projectId.value, name)
-  if (!moduleId) return
-  await router.push(`/projects/${projectId.value}/modules/${moduleId}/editor`)
+  try {
+    const moduleId = await workspaceStore.addModule(projectId.value, name)
+    await router.push(`/projects/${projectId.value}/modules/${moduleId}/editor`)
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '公共模块创建失败')
+  }
 }
 
 async function renamePage(page: ProjectPageRecord) {
   const name = await promptForName('重命名页面', '页面名称', page.schema.root.name)
-  if (name) workspaceStore.renamePage(page.id, name)
+  if (!name) return
+  try {
+    await workspaceStore.renamePage(page.id, name)
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '页面重命名失败')
+  }
 }
 
 async function renameModule(publicModule: PublicModuleRecord) {
   const name = await promptForName('重命名公共模块', '模块名称', publicModule.schema.root.name)
-  if (name) workspaceStore.renameModule(publicModule.id, name)
+  if (!name) return
+  try {
+    await workspaceStore.renameModule(publicModule.id, name)
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '公共模块重命名失败')
+  }
+}
+
+async function duplicatePage(page: ProjectPageRecord) {
+  try {
+    await workspaceStore.duplicatePage(page.id)
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '页面复制失败')
+  }
+}
+
+async function duplicateModule(publicModule: PublicModuleRecord) {
+  try {
+    await workspaceStore.duplicateModule(publicModule.id)
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '公共模块复制失败')
+  }
 }
 
 async function removePage(page: ProjectPageRecord) {
@@ -133,9 +149,9 @@ async function removePage(page: ProjectPageRecord) {
       confirmButtonText: '删除',
       cancelButtonText: '取消',
     })
-    workspaceStore.removePage(page.id)
-  } catch {
-    // Cancelled destructive action.
+    await workspaceStore.removePage(page.id)
+  } catch (error) {
+    if (error instanceof Error) ElMessage.error(error.message)
   }
 }
 
@@ -170,7 +186,7 @@ function showReferences(publicModule: PublicModuleRecord) {
           <span class="project-monogram">{{ project.name.slice(0, 1) }}</span>
           <div>
             <strong>{{ project.name }}</strong>
-            <small>{{ project.pageIds.length }} 页面 · {{ project.moduleIds.length }} 模块</small>
+            <small>{{ project.pageCount }} 页面 · {{ project.moduleCount }} 模块</small>
           </div>
         </div>
 
@@ -183,8 +199,8 @@ function showReferences(publicModule: PublicModuleRecord) {
           >
             <Icon :icon="item.icon" width="18" />
             <span>{{ item.label }}</span>
-            <small v-if="item.key === 'pages'">{{ project.pageIds.length }}</small>
-            <small v-else-if="item.key === 'modules'">{{ project.moduleIds.length }}</small>
+            <small v-if="item.key === 'pages'">{{ project.pageCount }}</small>
+            <small v-else-if="item.key === 'modules'">{{ project.moduleCount }}</small>
           </RouterLink>
         </nav>
 
@@ -216,7 +232,7 @@ function showReferences(publicModule: PublicModuleRecord) {
                 :key="page.id"
                 :page="page"
                 @rename="renamePage(page)"
-                @duplicate="workspaceStore.duplicatePage(page.id)"
+                @duplicate="duplicatePage(page)"
                 @remove="removePage(page)"
               />
             </div>
@@ -235,7 +251,6 @@ function showReferences(publicModule: PublicModuleRecord) {
                 <strong>公共模块保持独立结构</strong>
                 <span>页面引用模块版本并保存自己的实例参数，更新结构时不会覆盖绑定。</span>
               </div>
-              <span class="skeleton-tag">版本骨架已启用</span>
             </div>
 
             <div v-if="projectModules.length" class="asset-grid">
@@ -249,7 +264,7 @@ function showReferences(publicModule: PublicModuleRecord) {
                 :key="publicModule.id"
                 :public-module="publicModule"
                 @rename="renameModule(publicModule)"
-                @duplicate="workspaceStore.duplicateModule(publicModule.id)"
+                @duplicate="duplicateModule(publicModule)"
                 @remove="removeModule(publicModule)"
                 @references="showReferences(publicModule)"
               />
@@ -261,13 +276,6 @@ function showReferences(publicModule: PublicModuleRecord) {
               <CommonButton type="primary" @click="createModule">新建公共模块</CommonButton>
             </div>
           </template>
-
-          <div v-else class="large-empty-state">
-            <span><Icon :icon="currentNav.icon" width="28" /></span>
-            <h2>{{ currentNav.label }}入口已保留</h2>
-            <p>本阶段聚焦页面和公共模块，这里将承接后续的项目级能力。</p>
-            <CommonButton type="normal" @click="returnToPages"> 返回页面管理 </CommonButton>
-          </div>
         </div>
       </main>
     </div>
@@ -566,15 +574,6 @@ function showReferences(publicModule: PublicModuleRecord) {
     color: var(--text-muted);
     font-size: 9px;
   }
-}
-
-.skeleton-tag {
-  padding: 4px 7px;
-  border: 1px solid color-mix(in srgb, var(--accent-color) 26%, transparent);
-  border-radius: 99px;
-  color: var(--accent-color);
-  font-size: 8px;
-  white-space: nowrap;
 }
 
 .large-empty-state,

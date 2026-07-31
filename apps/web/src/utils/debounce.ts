@@ -19,15 +19,19 @@ export function debounce<T extends AnyFunction>(
   const { leading = false, trailing = true } = options
 
   let timer: ReturnType<typeof setTimeout> | undefined
-  let lastArgs: Parameters<T> | undefined
-  let lastThis: ThisParameterType<T>
+  let pendingCall:
+    | {
+        thisArg: ThisParameterType<T>
+        args: Parameters<T>
+      }
+    | undefined
   let result: ReturnType<T> | undefined
 
   const invoke = () => {
-    if (!lastArgs) return result
+    if (!pendingCall) return result
 
-    result = fn.apply(lastThis, lastArgs)
-    lastArgs = undefined
+    result = fn.apply(pendingCall.thisArg, pendingCall.args)
+    pendingCall = undefined
 
     return result
   }
@@ -35,8 +39,7 @@ export function debounce<T extends AnyFunction>(
   const debounced = function (this: ThisParameterType<T>, ...args: Parameters<T>) {
     const shouldInvokeLeading = leading && !timer
 
-    lastArgs = args
-    lastThis = this
+    pendingCall = { thisArg: this, args }
 
     if (timer) {
       clearTimeout(timer)
@@ -45,10 +48,10 @@ export function debounce<T extends AnyFunction>(
     timer = setTimeout(() => {
       timer = undefined
 
-      if (trailing && lastArgs) {
+      if (trailing && pendingCall) {
         invoke()
       } else {
-        lastArgs = undefined
+        pendingCall = undefined
       }
     }, wait)
 
@@ -65,7 +68,7 @@ export function debounce<T extends AnyFunction>(
     }
 
     timer = undefined
-    lastArgs = undefined
+    pendingCall = undefined
   }
 
   debounced.flush = () => {

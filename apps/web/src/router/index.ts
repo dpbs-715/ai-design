@@ -8,6 +8,7 @@ import ScreenPreview from '@/pages/preview/index.vue'
 import Screen from '@/pages/screen/index.vue'
 import DashboardPage from '@/workspace/pages/DashboardPage.vue'
 import ProjectWorkbenchPage from '@/workspace/pages/ProjectWorkbenchPage.vue'
+import { useWorkspaceStore } from '@/workspace/store.ts'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -38,12 +39,6 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
-      path: '/editor',
-      component: ScreenEditor,
-      name: 'ScreenEditor',
-      meta: { requiresAuth: true },
-    },
-    {
       path: '/projects/:projectId/pages',
       component: ProjectWorkbenchPage,
       name: 'ProjectPages',
@@ -54,24 +49,6 @@ const router = createRouter({
       component: ProjectWorkbenchPage,
       name: 'ProjectModules',
       meta: { requiresAuth: true, workbenchSection: 'modules' },
-    },
-    {
-      path: '/projects/:projectId/data-sources',
-      component: ProjectWorkbenchPage,
-      name: 'ProjectDataSources',
-      meta: { requiresAuth: true, workbenchSection: 'data-sources' },
-    },
-    {
-      path: '/projects/:projectId/assets',
-      component: ProjectWorkbenchPage,
-      name: 'ProjectAssets',
-      meta: { requiresAuth: true, workbenchSection: 'assets' },
-    },
-    {
-      path: '/projects/:projectId/settings',
-      component: ProjectWorkbenchPage,
-      name: 'ProjectSettings',
-      meta: { requiresAuth: true, workbenchSection: 'settings' },
     },
     {
       path: '/projects/:projectId/pages/:pageId/editor',
@@ -95,6 +72,7 @@ const router = createRouter({
       path: '/screen',
       component: Screen,
       name: 'Screen',
+      meta: { requiresAuth: true },
     },
   ],
 })
@@ -116,6 +94,15 @@ router.beforeEach(async (to) => {
     return {
       name: 'Login',
       query: { redirect: to.fullPath },
+    }
+  }
+
+  if (requiresAuthentication && authStore.user) {
+    const workspaceStore = useWorkspaceStore()
+    try {
+      await workspaceStore.initialize(authStore.user.id)
+    } catch {
+      if (to.name !== 'Dashboard') return { name: 'Dashboard' }
     }
   }
 

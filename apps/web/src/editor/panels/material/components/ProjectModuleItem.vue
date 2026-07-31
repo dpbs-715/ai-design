@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { finishMaterialDrag, startMaterialDrag } from '@/editor/canvas/materialDrag.ts'
 import { createProjectModuleTemplate } from '@/materials/project-module'
-import type { PublicModuleRecord } from '@/workspace/types.ts'
+import type { PublicModuleRecord } from '@ai-design/contracts/workspace'
 
 defineOptions({ name: 'ProjectModuleItem' })
 

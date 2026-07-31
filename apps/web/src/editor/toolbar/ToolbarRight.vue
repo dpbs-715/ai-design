@@ -21,7 +21,7 @@ import {
 } from '@/schema/module.ts'
 import type { PageSchema } from '@/schema/page.ts'
 import ModuleRemovalDialog from '@/workspace/components/ModuleRemovalDialog.vue'
-import type { PublicModuleRecord } from '@/workspace/types.ts'
+import type { PublicModuleRecord } from '@ai-design/contracts/workspace'
 
 defineOptions({ name: 'ToolbarRight' })
 
@@ -117,7 +117,7 @@ const saveButtonTitle = computed(() =>
     ? '当前模块没有未保存修改，点击可查看状态'
     : `保存 (${shortcutLabels.save})`,
 )
-const publishButtonTitle = computed(() => moduleSyncState.value?.title ?? '发布页面')
+const publishButtonTitle = computed(() => moduleSyncState.value?.title ?? '')
 const saveButtonLabel = computed(() =>
   moduleSyncState.value && moduleSyncState.value.kind !== 'unsaved' ? '已保存' : '保存',
 )
@@ -264,7 +264,7 @@ interface SaveEditorSchemaOptions {
   notify?: boolean
 }
 
-function saveEditorSchema({ notify = true }: SaveEditorSchemaOptions = {}) {
+async function saveEditorSchema({ notify = true }: SaveEditorSchemaOptions = {}) {
   const result = parsePageSchema(page.value)
   if (result.success === false) {
     ElMessage.error(formatSchemaValidationIssue(result.issues[0]))
@@ -273,9 +273,14 @@ function saveEditorSchema({ notify = true }: SaveEditorSchemaOptions = {}) {
 
   const pageRecord = workspaceStore.getPage(result.data.id)
   if (pageRecord) {
-    workspaceStore.savePageSchema(pageRecord.id, result.data)
-    if (notify) ElMessage.success('页面已保存')
-    return { kind: 'page' as const, id: pageRecord.id }
+    try {
+      await workspaceStore.savePageSchema(pageRecord.id, result.data)
+      if (notify) ElMessage.success('页面已保存')
+      return { kind: 'page' as const, id: pageRecord.id }
+    } catch (error) {
+      ElMessage.error(error instanceof Error ? error.message : '页面保存失败')
+      return
+    }
   }
 
   const moduleRecord = workspaceStore.modules.find(
@@ -294,9 +299,14 @@ function saveEditorSchema({ notify = true }: SaveEditorSchemaOptions = {}) {
       ElMessage.error(formatSchemaValidationIssue(moduleResult.issues[0]))
       return
     }
-    workspaceStore.saveModuleSchema(moduleRecord.id, moduleResult.data)
-    if (notify) ElMessage.success('模块草稿已保存')
-    return { kind: 'module' as const, id: moduleRecord.id }
+    try {
+      await workspaceStore.saveModuleSchema(moduleRecord.id, moduleResult.data)
+      if (notify) ElMessage.success('模块草稿已保存')
+      return { kind: 'module' as const, id: moduleRecord.id }
+    } catch (error) {
+      ElMessage.error(error instanceof Error ? error.message : '模块草稿保存失败')
+      return
+    }
   }
 
   ElMessage.error('当前内容不属于工作空间，无法保存')
@@ -322,30 +332,15 @@ function onSaveShortcut(event: KeyboardEvent) {
 
   event.preventDefault()
   if (event.repeat || hasOpenModal()) return
-  saveEditorSchema()
+  void saveEditorSchema()
 }
 
 useEventListener('keydown', onSaveShortcut)
 
-function onPublish() {
-  const result = parsePageSchema(page.value)
-  if (result.success === false) {
-    ElMessage.error(formatSchemaValidationIssue(result.issues[0]))
-    return
-  }
-
-  const pageRecord = workspaceStore.getPage(result.data.id)
-  if (pageRecord) {
-    workspaceStore.savePageSchema(pageRecord.id, result.data)
-    router.push({ name: 'Screen', query: { id: pageRecord.id } })
-    return
-  }
-
-  const moduleRecord = workspaceStore.modules.find(
-    (publicModule) => publicModule.id === result.data.id,
-  )
+async function onPublish() {
+  const moduleRecord = currentModuleRecord.value
   if (!moduleRecord) {
-    ElMessage.error('当前内容不属于工作空间，无法发布')
+    ElMessage.error('当前公共模块不存在，无法发布')
     return
   }
 
@@ -359,11 +354,15 @@ function onPublish() {
     return
   }
 
-  const publishResult = workspaceStore.publishModuleSchema(moduleRecord.id, moduleRecord.schema)
-  if (publishResult?.status === 'published') {
-    ElMessage.success(`公共模块已发布为 ${publishResult.version}`)
-  } else if (publishResult?.status === 'unchanged') {
-    ElMessage.info(`当前内容已是 ${publishResult.version}，无需重复发布`)
+  try {
+    const publishResult = await workspaceStore.publishModuleSchema(moduleRecord.id)
+    if (publishResult?.status === 'published') {
+      ElMessage.success(`公共模块已发布为 ${publishResult.version}`)
+    } else if (publishResult?.status === 'unchanged') {
+      ElMessage.info(`当前内容已是 ${publishResult.version}，无需重复发布`)
+    }
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '公共模块发布失败')
   }
 }
 
@@ -451,6 +450,7 @@ function onMoreAction(action: MoreAction) {
       <span>预览</span>
     </button>
     <button
+      v-if="currentModuleRecord"
       type="button"
       class="toolbar-action publish-button"
       :class="{ 'is-explained-disabled': isModulePublishUnavailable }"

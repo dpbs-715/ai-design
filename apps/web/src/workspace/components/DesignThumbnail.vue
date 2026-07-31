@@ -1,12 +1,26 @@
 <script setup lang="ts">
-import type { ThumbnailVariant } from '../types.ts'
+type ThumbnailVariant = 'operations' | 'park' | 'energy' | 'equipment' | 'logistics' | 'overview'
 
 defineOptions({ name: 'DesignThumbnail' })
 
-const { variant = 'overview', compact = false } = defineProps<{
-  variant?: ThumbnailVariant
+const variants: ThumbnailVariant[] = [
+  'operations',
+  'park',
+  'energy',
+  'equipment',
+  'logistics',
+  'overview',
+]
+
+const { seed = '', compact = false } = defineProps<{
+  seed?: string
   compact?: boolean
 }>()
+
+const variant = computed(() => {
+  const hash = [...seed].reduce((value, character) => value + character.codePointAt(0)!, 0)
+  return variants[hash % variants.length] ?? 'overview'
+})
 </script>
 
 <template>

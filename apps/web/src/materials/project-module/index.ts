@@ -1,5 +1,5 @@
 import type { MaterialDefinition, MaterialTemplate } from '@/schema/material.ts'
-import type { PublicModuleRecord } from '@/workspace/types.ts'
+import type { PublicModuleRecord } from '@ai-design/contracts/workspace'
 import { createModuleInstanceInputs, projectModuleInstanceNodeSchema } from '@/schema/module.ts'
 import type { Component } from 'vue'
 import ProjectModuleInstance from './component.vue'

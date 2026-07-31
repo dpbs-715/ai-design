@@ -8,11 +8,8 @@ import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import tailwindcss from '@tailwindcss/vite'
 import { vunioUIResolver } from '@vunio/ui/resolver'
 
-// import vueDevTools from 'vite-plugin-vue-devtools'
-
 const environmentDirectory = fileURLToPath(new URL('../../env', import.meta.url))
 
-// https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const environment = loadEnv(mode, environmentDirectory, 'VITE_')
 
@@ -20,7 +17,6 @@ export default defineConfig(({ mode }) => {
     envDir: environmentDirectory,
     plugins: [
       vue(),
-      // vueDevTools(),
       tailwindcss(),
       AutoImport({
         dts: fileURLToPath(new URL('./auto-imports.d.ts', import.meta.url)),

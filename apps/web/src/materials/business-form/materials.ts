@@ -17,7 +17,6 @@ import {
 } from './schema.ts'
 import { createThemeColorReference } from '@/theme/renderTheme.ts'
 import {
-  DEFAULT_MOCK_OPTIONS_SOURCE_ID,
   DEFAULT_STATIC_FORM_SOURCE_ID,
   DEFAULT_STATIC_OPTIONS_SOURCE_ID,
 } from '@/dataSources/defaults.ts'
@@ -438,7 +437,7 @@ export const formRadioGroupMaterial: MaterialDefinition = {
     type: 'form-radio-group',
     name: '单选框组',
     placement: { type: 'form-item', span: 12 },
-    dataId: DEFAULT_MOCK_OPTIONS_SOURCE_ID,
+    dataId: DEFAULT_STATIC_OPTIONS_SOURCE_ID,
     props: {
       field: 'status',
       label: '状态',
@@ -494,7 +493,7 @@ export const formCheckboxGroupMaterial: MaterialDefinition = {
     type: 'form-checkbox-group',
     name: '复选框组',
     placement: { type: 'form-item', span: 12 },
-    dataId: DEFAULT_MOCK_OPTIONS_SOURCE_ID,
+    dataId: DEFAULT_STATIC_OPTIONS_SOURCE_ID,
     props: {
       field: 'tags',
       label: '标签',

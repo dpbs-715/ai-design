@@ -1,7 +1,7 @@
 import type { Component } from 'vue'
 import type { MaterialDefinition } from '@/schema/material.ts'
 import { createThemeColorReference } from '@/theme/renderTheme.ts'
-import { DEFAULT_MOCK_OPTIONS_SOURCE_ID } from '@/dataSources/defaults.ts'
+import { DEFAULT_STATIC_OPTIONS_SOURCE_ID } from '@/dataSources/defaults.ts'
 import DataTableMaterial from './component.vue'
 import DataTablePreview from './preview.vue'
 import { tableNodeSchema } from './schema.ts'
@@ -201,7 +201,7 @@ export const dataTableMaterial: MaterialDefinition = {
         showOverflowTooltip: true,
       },
     },
-    dataId: DEFAULT_MOCK_OPTIONS_SOURCE_ID,
+    dataId: DEFAULT_STATIC_OPTIONS_SOURCE_ID,
     events: [],
   },
 }

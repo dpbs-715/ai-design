@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { DesignProject } from '../types.ts'
+import type { DesignProject } from '@ai-design/contracts/workspace'
 import DesignThumbnail from './DesignThumbnail.vue'
 import { formatWorkspaceTime } from '../time.ts'
 
@@ -10,8 +10,6 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  duplicate: []
-  open: []
   remove: []
   rename: []
   'toggle-favorite': []
@@ -19,7 +17,6 @@ const emit = defineEmits<{
 
 function handleCommand(command: string | number | object) {
   if (command === 'rename') emit('rename')
-  if (command === 'duplicate') emit('duplicate')
   if (command === 'remove') emit('remove')
 }
 </script>
@@ -30,16 +27,15 @@ function handleCommand(command: string | number | object) {
       class="project-stack"
       :to="`/projects/${project.id}/pages`"
       :aria-label="`进入项目 ${project.name}`"
-      @click="$emit('open')"
     >
       <span class="stack-sheet sheet-back"></span>
       <span class="stack-sheet sheet-middle"></span>
       <span class="stack-sheet sheet-near"></span>
       <span class="stack-sheet sheet-main">
-        <DesignThumbnail :variant="project.thumbnailVariant" />
+        <DesignThumbnail :seed="project.id" />
         <span class="preview-label">
           <Icon icon="fluent:window-multiple-20-regular" width="13" />
-          {{ project.pageIds.length }} 个页面
+          {{ project.pageCount }} 个页面
         </span>
       </span>
     </RouterLink>
@@ -70,7 +66,6 @@ function handleCommand(command: string | number | object) {
             </button>
             <template #dropdown>
               <el-dropdown-item command="rename">重命名项目</el-dropdown-item>
-              <el-dropdown-item command="duplicate">复制项目</el-dropdown-item>
               <el-dropdown-item command="remove" divided>删除项目</el-dropdown-item>
             </template>
           </el-dropdown>
@@ -78,15 +73,15 @@ function handleCommand(command: string | number | object) {
       </div>
 
       <div class="project-meta">
-        <span>{{ project.pageIds.length }} 页面</span>
+        <span>{{ project.pageCount }} 页面</span>
         <i></i>
-        <span>{{ project.moduleIds.length }} 模块</span>
+        <span>{{ project.moduleCount }} 模块</span>
         <i></i>
         <span>{{ formatWorkspaceTime(project.updatedAt) }}</span>
       </div>
 
       <div class="project-actions">
-        <RouterLink class="enter-link" :to="`/projects/${project.id}/pages`" @click="$emit('open')">
+        <RouterLink class="enter-link" :to="`/projects/${project.id}/pages`">
           进入项目
           <Icon icon="fluent:arrow-right-20-regular" width="15" />
         </RouterLink>
@@ -94,7 +89,6 @@ function handleCommand(command: string | number | object) {
           v-if="project.lastEditedPageId"
           class="continue-link"
           :to="`/projects/${project.id}/pages/${project.lastEditedPageId}/editor`"
-          @click="$emit('open')"
         >
           继续编辑
         </RouterLink>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ProjectPageRecord } from '../types.ts'
+import type { ProjectPageRecord } from '@ai-design/contracts/workspace'
 import DesignThumbnail from './DesignThumbnail.vue'
 import { formatWorkspaceTime } from '../time.ts'
 
@@ -23,7 +23,7 @@ defineEmits<{
       :to="`/projects/${page.projectId}/pages/${page.id}/editor`"
       :aria-label="`编辑页面 ${page.schema.root.name}`"
     >
-      <DesignThumbnail :variant="page.thumbnailVariant" compact />
+      <DesignThumbnail :seed="page.id" compact />
       <span class="asset-kind">页面</span>
       <span class="edit-overlay">
         <Icon icon="fluent:edit-20-filled" width="17" />
@@ -61,7 +61,12 @@ defineEmits<{
         <RouterLink :to="`/projects/${page.projectId}/pages/${page.id}/editor`">
           编辑页面
         </RouterLink>
-        <RouterLink :to="{ name: 'ScreenPreview' }">
+        <RouterLink
+          :to="{
+            name: 'Screen',
+            query: { id: page.id, projectId: page.projectId },
+          }"
+        >
           <Icon icon="fluent:eye-20-regular" width="14" />
           预览
         </RouterLink>

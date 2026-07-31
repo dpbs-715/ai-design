@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { BusinessSystem } from '../types.ts'
+import type { BusinessSystem } from '@ai-design/contracts/workspace'
 
 defineOptions({ name: 'SystemSidebar' })
 

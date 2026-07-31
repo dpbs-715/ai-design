@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PublicModuleRecord } from '../types.ts'
+import type { PublicModuleRecord } from '@ai-design/contracts/workspace'
 import DesignThumbnail from './DesignThumbnail.vue'
 import { formatWorkspaceTime } from '../time.ts'
 
@@ -33,7 +33,7 @@ const displayVersion = computed(() =>
         :to="`/projects/${publicModule.projectId}/modules/${publicModule.id}/editor`"
         :aria-label="`编辑公共模块 ${publicModule.schema.root.name}`"
       >
-        <DesignThumbnail :variant="publicModule.thumbnailVariant" compact />
+        <DesignThumbnail :seed="publicModule.id" compact />
         <span class="module-crop crop-top"></span>
         <span class="module-crop crop-bottom"></span>
         <span class="module-badge">

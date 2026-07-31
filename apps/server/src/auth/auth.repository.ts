@@ -80,6 +80,14 @@ export class AuthRepository {
         [workspace.id, user.id],
       )
 
+      await client.query(
+        `
+          INSERT INTO business_systems (workspace_id, name, description, icon)
+          VALUES ($1, '默认系统', '用于组织可视化设计项目', 'fluent:apps-list-detail-20-regular')
+        `,
+        [workspace.id],
+      )
+
       return this.toAuthUser(user)
     })
   }

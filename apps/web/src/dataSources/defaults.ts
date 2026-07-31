@@ -1,11 +1,7 @@
 import type { DataSourceSchema } from '@/schema/page.ts'
 
 export const DEFAULT_STATIC_OPTIONS_SOURCE_ID = 'default-static-options'
-export const DEFAULT_MOCK_OPTIONS_SOURCE_ID = 'default-mock-options'
-export const DEFAULT_MOCK_OPTIONS_URL = '/api/form-options'
 export const DEFAULT_STATIC_FORM_SOURCE_ID = 'default-static-form'
-export const DEFAULT_MOCK_FORM_SOURCE_ID = 'default-mock-form'
-export const DEFAULT_MOCK_FORM_URL = '/api/form-record'
 
 export function createDefaultDataSources(): DataSourceSchema[] {
   return [
@@ -35,15 +31,6 @@ export function createDefaultDataSources(): DataSourceSchema[] {
       ],
     },
     {
-      type: 'api',
-      id: DEFAULT_MOCK_OPTIONS_SOURCE_ID,
-      name: 'Mock 月份列表',
-      url: DEFAULT_MOCK_OPTIONS_URL,
-      method: 'get',
-      params: {},
-      data: [],
-    },
-    {
       type: 'static',
       id: DEFAULT_STATIC_FORM_SOURCE_ID,
       name: '静态表单对象',
@@ -56,17 +43,6 @@ export function createDefaultDataSources(): DataSourceSchema[] {
         date: '2026-07-27',
         color: '#409eff',
       },
-    },
-    {
-      type: 'api',
-      id: DEFAULT_MOCK_FORM_SOURCE_ID,
-      name: 'Mock 表单查询',
-      url: DEFAULT_MOCK_FORM_URL,
-      method: 'get',
-      params: {
-        recordId: 'form-002',
-      },
-      data: {},
     },
   ]
 }

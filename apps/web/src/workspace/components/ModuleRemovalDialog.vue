@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useWorkspaceStore } from '@/workspace/store.ts'
-import type { PublicModuleRecord } from '@/workspace/types.ts'
+import type { PublicModuleRecord } from '@ai-design/contracts/workspace'
+import { ElMessage } from 'element-plus'
 
 defineOptions({ name: 'ModuleRemovalDialog' })
 
@@ -23,12 +24,16 @@ function close() {
   visible.value = false
 }
 
-function removeModule() {
+async function removeModule() {
   if (!publicModule || isReferenced.value) return
-  const result = workspaceStore.removeModule(publicModule.id)
-  if (result.status !== 'removed') return
-  close()
-  emit('removed', publicModule)
+  try {
+    const result = await workspaceStore.removeModule(publicModule.id)
+    if (result.status !== 'removed') return
+    close()
+    emit('removed', publicModule)
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '公共模块删除失败')
+  }
 }
 </script>
 

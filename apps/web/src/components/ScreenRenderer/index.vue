@@ -25,8 +25,6 @@ const renderTheme = provideRenderTheme(() => runtimePage.value.theme)
 const context = createRuntimeContext(runtimePage)
 provideRuntimeContext(context)
 
-window.$context = context
-
 const root = computed(() => runtimePage.value.root)
 const dataSources = computed(() => runtimePage.value.dataSources)
 

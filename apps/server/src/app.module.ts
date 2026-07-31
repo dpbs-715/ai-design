@@ -8,6 +8,7 @@ import { validateEnvironment } from './config/environment.js'
 import { DatabaseModule } from './database/database.module.js'
 import { HealthModule } from './health/health.module.js'
 import { RedisModule } from './redis/redis.module.js'
+import { WorkspaceModule } from './workspace/workspace.module.js'
 
 const serverRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -22,6 +23,7 @@ const serverRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
     DatabaseModule,
     RedisModule,
     AuthModule,
+    WorkspaceModule,
     HealthModule,
   ],
 })
