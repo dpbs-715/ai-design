@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { setUnauthorizedHandler } from '@/api/client.ts'
 import AuthLayout from '@/auth/AuthLayout.vue'
 import LoginPage from '@/auth/pages/LoginPage.vue'
 import RegisterPage from '@/auth/pages/RegisterPage.vue'
@@ -75,6 +76,15 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
   ],
+})
+
+setUnauthorizedHandler(() => {
+  const authStore = useAuthStore()
+  authStore.clearSession()
+  const currentRoute = router.currentRoute.value
+  if (currentRoute.matched.some((record) => record.meta.requiresAuth)) {
+    void router.push({ name: 'Login', query: { redirect: currentRoute.fullPath } })
+  }
 })
 
 router.beforeEach(async (to) => {

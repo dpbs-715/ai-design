@@ -8,6 +8,7 @@ import { defineStore } from 'pinia'
 
 import { AuthApiError } from './api.ts'
 import * as authApi from './api.ts'
+import { useWorkspaceStore } from '@/workspace/store.ts'
 
 export type AuthStatus = 'unknown' | 'authenticated' | 'anonymous' | 'unavailable'
 
@@ -64,11 +65,19 @@ export const useAuthStore = defineStore('auth', () => {
     return authApi.sendEmailVerificationCode(request)
   }
 
-  async function logout() {
-    await authApi.logout()
+  function clearSession() {
     user.value = undefined
     status.value = 'anonymous'
     sessionError.value = ''
+  }
+
+  async function logout() {
+    try {
+      await authApi.logout()
+    } finally {
+      clearSession()
+      useWorkspaceStore().reset()
+    }
   }
 
   return {
@@ -79,6 +88,7 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     register,
     sendVerificationCode,
+    clearSession,
     logout,
   }
 })

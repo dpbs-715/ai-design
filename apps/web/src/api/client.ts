@@ -54,9 +54,23 @@ export const externalClient = axios.create({
   timeout: 30_000,
 })
 
-apiClient.interceptors.response.use(undefined, (error: unknown) =>
-  Promise.reject(toApiError(error, '无法连接服务端，请确认服务已启动')),
-)
+let unauthorizedHandler: (() => void) | undefined
+
+/** 注册会话失效回调（非 /auth 接口返回 401 时触发，如会话过期后跳转登录页） */
+export function setUnauthorizedHandler(handler: () => void) {
+  unauthorizedHandler = handler
+}
+
+apiClient.interceptors.response.use(undefined, (error: unknown) => {
+  if (
+    axios.isAxiosError(error) &&
+    error.response?.status === 401 &&
+    !error.config?.url?.startsWith('/auth/')
+  ) {
+    unauthorizedHandler?.()
+  }
+  return Promise.reject(toApiError(error, '无法连接服务端，请确认服务已启动'))
+})
 
 externalClient.interceptors.response.use(undefined, (error: unknown) =>
   Promise.reject(toApiError(error, '无法连接数据源，请检查请求地址')),
