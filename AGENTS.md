@@ -10,6 +10,9 @@ This pnpm and Turborepo monorepo contains two applications and shared packages:
   that can be consumed by both applications.
 - `infra/`: local development infrastructure such as Docker Compose services and their
   environment templates.
+- `infra/postgres/migrations/`: authoritative ordered SQL history for the database schema. When a
+  task depends on tables, columns, constraints, or indexes, read these migrations in filename order
+  instead of inferring the structure from application types or old documentation.
 
 The web application remains organized primarily by feature:
 
