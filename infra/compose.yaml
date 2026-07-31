@@ -12,11 +12,50 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ai_design_password}
     volumes:
       - postgres-data:/var/lib/postgresql
+      - ./postgres:/opt/ai-design/postgres:ro
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
       interval: 5s
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:${REDIS_VERSION:-8-alpine}
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:${REDIS_PORT:-6379}:6379'
+    environment:
+      REDIS_USERNAME: ${REDIS_USERNAME:-ai_design}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-ai_design_redis_password}
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        REDIS_PASSWORD_HASH="$$(printf '%s' "$$REDIS_PASSWORD" | sha256sum | cut -d ' ' -f 1)"
+        printf 'user default off\nuser %s on #%s ~ai-design:* resetchannels +@all -@admin -@dangerous +info\n' \
+          "$$REDIS_USERNAME" "$$REDIS_PASSWORD_HASH" > /data/users.acl
+        chown redis:redis /data/users.acl
+        exec setpriv \
+          --reuid=redis \
+          --regid=redis \
+          --init-groups \
+          --no-new-privs \
+          redis-server \
+          --appendonly yes \
+          --appendfsync everysec \
+          --aclfile /data/users.acl
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'REDISCLI_AUTH="$${REDIS_PASSWORD}" redis-cli --user "$${REDIS_USERNAME}" ping',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 volumes:
   postgres-data:
+  redis-data:

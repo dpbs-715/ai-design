@@ -11,6 +11,7 @@
     "infra:down": "docker compose -f infra/compose.yaml down",
     "infra:status": "docker compose -f infra/compose.yaml ps",
     "infra:logs": "docker compose -f infra/compose.yaml logs -f",
+    "db:migrate": "docker compose -f infra/compose.yaml exec -T postgres sh /opt/ai-design/postgres/migrate.sh",
     "build": "turbo run build",
     "type-check": "turbo run type-check",
     "lint": "turbo run lint",
