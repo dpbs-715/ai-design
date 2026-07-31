@@ -479,11 +479,11 @@ export class WorkspaceRepository {
       `
         SELECT
           modules.id AS module_id,
-          count(DISTINCT references.owner_page_id)::integer AS reference_count
+          count(DISTINCT refs.owner_page_id)::integer AS reference_count
         FROM public_modules AS modules
-        LEFT JOIN module_references AS references
-          ON references.referenced_module_id = modules.id
-          AND references.owner_page_id IS NOT NULL
+        LEFT JOIN module_references AS refs
+          ON refs.referenced_module_id = modules.id
+          AND refs.owner_page_id IS NOT NULL
         WHERE modules.project_id = $1
         GROUP BY modules.id
         ORDER BY modules.id
