@@ -79,10 +79,16 @@ export const workspaceBootstrapResponseSchema = z.object({
   projects: z.array(designProjectSchema),
 })
 
+export const DEFAULT_BUSINESS_SYSTEM_SEED = {
+  name: '默认系统',
+  description: '用于组织可视化设计项目',
+  icon: 'fluent:apps-list-detail-20-regular',
+} as const
+
 export const createBusinessSystemRequestSchema = z.object({
-  name: z.string().trim().min(1).max(64),
-  description: z.string().trim().max(500),
-  icon: z.string().trim().min(1).max(128),
+  name: z.string().trim().min(1, '请输入系统名称').max(64, '系统名称不能超过 64 个字符'),
+  description: z.string().trim().max(500, '系统描述不能超过 500 个字符'),
+  icon: z.string().trim().min(1, '请选择系统图标').max(128, '系统图标标识过长'),
 })
 
 export const updateBusinessSystemRequestSchema = createBusinessSystemRequestSchema
@@ -91,15 +97,13 @@ export const updateBusinessSystemRequestSchema = createBusinessSystemRequestSche
 
 export const createProjectRequestSchema = z.object({
   systemId: idSchema,
-  name: z.string().trim().min(1).max(128),
-  description: z.string().trim().max(1_000),
+  name: z.string().trim().min(1, '请输入项目名称').max(128, '项目名称不能超过 128 个字符'),
+  description: z.string().trim().max(1_000, '项目描述不能超过 1000 个字符'),
 })
 
-export const updateProjectRequestSchema = z
-  .object({
-    name: z.string().trim().min(1).max(128).optional(),
-    description: z.string().trim().max(1_000).optional(),
-  })
+export const updateProjectRequestSchema = createProjectRequestSchema
+  .omit({ systemId: true })
+  .partial()
   .refine((value) => Object.keys(value).length > 0, '至少需要提供一个修改字段')
 
 export const updateProjectPreferenceRequestSchema = z
@@ -110,33 +114,41 @@ export const updateProjectPreferenceRequestSchema = z
   })
   .refine((value) => Object.keys(value).length > 0, '至少需要提供一个偏好字段')
 
-const createPageRequestShapeSchema = z.object({
-  schema: pageSchema.refine((schema) => idSchema.safeParse(schema.id).success, {
+const pageDraftSchema = pageSchema
+  .refine((schema) => idSchema.safeParse(schema.id).success, {
     path: ['id'],
     message: '页面 ID 必须是 UUID',
-  }),
+  })
+  .refine((schema) => schema.root.name.trim().length > 0, {
+    path: ['root', 'name'],
+    message: '页面名称不能为空',
+  })
+
+const publicModuleDraftSchema = publicModuleSchema
+  .refine((schema) => idSchema.safeParse(schema.moduleId).success, {
+    path: ['moduleId'],
+    message: '模块 ID 必须是 UUID',
+  })
+  .refine((schema) => schema.root.name.trim().length > 0, {
+    path: ['root', 'name'],
+    message: '模块名称不能为空',
+  })
+
+const createPageRequestShapeSchema = z.object({
+  schema: pageDraftSchema,
 })
 
 const savePageRequestShapeSchema = z.object({
-  schema: pageSchema.refine((schema) => idSchema.safeParse(schema.id).success, {
-    path: ['id'],
-    message: '页面 ID 必须是 UUID',
-  }),
+  schema: pageDraftSchema,
   expectedRevision: z.number().int().positive(),
 })
 
 const createPublicModuleRequestShapeSchema = z.object({
-  schema: publicModuleSchema.refine((schema) => idSchema.safeParse(schema.moduleId).success, {
-    path: ['moduleId'],
-    message: '模块 ID 必须是 UUID',
-  }),
+  schema: publicModuleDraftSchema,
 })
 
 const savePublicModuleRequestShapeSchema = z.object({
-  schema: publicModuleSchema.refine((schema) => idSchema.safeParse(schema.moduleId).success, {
-    path: ['moduleId'],
-    message: '模块 ID 必须是 UUID',
-  }),
+  schema: publicModuleDraftSchema,
   expectedRevision: z.number().int().positive(),
 })
 
