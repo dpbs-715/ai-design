@@ -112,9 +112,16 @@ export class WorkspaceService {
     input: CreateProjectRequest,
   ): Promise<DesignProject> {
     await this.requireWorkspaceAccess(userId, workspaceId, 'write')
-    const project = await this.repository.createProject(workspaceId, userId, input)
-    if (!project) throw new BadRequestException('目标业务系统不存在')
-    return project
+    try {
+      const project = await this.repository.createProject(workspaceId, userId, input)
+      if (!project) throw new BadRequestException('目标业务系统不存在')
+      return project
+    } catch (error) {
+      if (this.postgresCode(error) === '23503') {
+        throw new BadRequestException('目标业务系统不存在')
+      }
+      throw error
+    }
   }
 
   async updateProject(
@@ -247,11 +254,9 @@ export class WorkspaceService {
       throw new BadRequestException('新建公共模块必须使用草稿版本')
     }
     try {
-      const publicModule = await this.repository.createModule(
-        projectId,
-        input.schema,
-        this.collectReferences(input.schema),
-      )
+      const references = this.collectReferences(input.schema)
+      this.rejectSelfReference(input.schema.moduleId, references)
+      const publicModule = await this.repository.createModule(projectId, input.schema, references)
       if (!publicModule) throw new NotFoundException('项目不存在')
       return this.publicModuleMutationResponse(userId, access.workspaceId, projectId, publicModule)
     } catch (error) {
@@ -273,12 +278,14 @@ export class WorkspaceService {
       throw new BadRequestException('模块草稿必须使用 draft 版本')
     }
     try {
+      const references = this.collectReferences(input.schema)
+      this.rejectSelfReference(moduleId, references)
       const publicModule = await this.repository.saveModule(
         projectId,
         moduleId,
         input.schema,
         input.expectedRevision,
-        this.collectReferences(input.schema),
+        references,
       )
       if (publicModule === 'conflict') {
         throw new ConflictException('模块已被其他操作更新，请重新加载')
@@ -357,6 +364,7 @@ export class WorkspaceService {
         statusCode: 409,
         message: '公共模块仍被页面或其他模块引用',
         pageIds: references.pageIds,
+        moduleIds: references.moduleIds,
       })
     }
     try {
@@ -466,6 +474,12 @@ export class WorkspaceService {
     return references
   }
 
+  private rejectSelfReference(moduleId: string, references: ModuleReferenceInput[]) {
+    if (references.some((reference) => reference.moduleId === moduleId)) {
+      throw new BadRequestException('公共模块不能引用自身')
+    }
+  }
+
   private rethrowConstraint(error: unknown, message: string): never {
     if (this.postgresCode(error) === '23505') throw new ConflictException(message)
     throw error
@@ -474,7 +488,10 @@ export class WorkspaceService {
   private rethrowAssetConstraint(error: unknown): never {
     const code = this.postgresCode(error)
     if (code === '23503') {
-      throw new BadRequestException('Schema 引用了不存在或不属于当前项目的公共模块版本')
+      if (this.postgresConstraint(error)?.startsWith('module_references_target_')) {
+        throw new BadRequestException('Schema 引用了不存在或不属于当前项目的公共模块版本')
+      }
+      throw new NotFoundException('项目不存在')
     }
     if (code === '23505') throw new ConflictException('资源 ID 已存在')
     throw error
@@ -483,6 +500,12 @@ export class WorkspaceService {
   private postgresCode(error: unknown): string | undefined {
     return typeof error === 'object' && error !== null && 'code' in error
       ? String(error.code)
+      : undefined
+  }
+
+  private postgresConstraint(error: unknown): string | undefined {
+    return typeof error === 'object' && error !== null && 'constraint' in error
+      ? String(error.constraint)
       : undefined
   }
 }

@@ -517,9 +517,19 @@ export class WorkspaceRepository {
       await client.query('UPDATE projects SET updated_at = now() WHERE id = $1', [projectId])
       await client.query(
         `
-          UPDATE user_project_preferences
+          INSERT INTO user_project_preferences (
+            workspace_id,
+            user_id,
+            project_id,
+            last_edited_page_id,
+            last_opened_at,
+            updated_at
+          )
+          SELECT projects.workspace_id, $2, $1, $3, now(), now()
+          FROM projects
+          WHERE projects.id = $1
+          ON CONFLICT (workspace_id, user_id, project_id) DO UPDATE
           SET last_edited_page_id = $3, last_opened_at = now(), updated_at = now()
-          WHERE project_id = $1 AND user_id = $2
         `,
         [projectId, userId, schema.id],
       )
@@ -682,6 +692,7 @@ export class WorkspaceRepository {
             project_id = $1
             AND referenced_module_id = $2
             AND update_policy = 'latest'
+            AND (owner_page_id IS NOT NULL OR owner_module_id IS NOT NULL)
         `,
         [projectId, moduleId, versionNo],
       )
@@ -702,14 +713,23 @@ export class WorkspaceRepository {
 
   async getModuleReferenceState(
     moduleId: string,
-  ): Promise<{ pageIds: string[]; referenceCount: number }> {
-    const [pages, count] = await Promise.all([
+  ): Promise<{ pageIds: string[]; moduleIds: string[]; referenceCount: number }> {
+    const [pages, modules, count] = await Promise.all([
       this.database.query<{ page_id: string }>(
         `
         SELECT DISTINCT owner_page_id AS page_id
         FROM module_references
         WHERE referenced_module_id = $1 AND owner_page_id IS NOT NULL
         ORDER BY owner_page_id
+      `,
+        [moduleId],
+      ),
+      this.database.query<{ module_id: string }>(
+        `
+        SELECT DISTINCT owner_module_id AS module_id
+        FROM module_references
+        WHERE referenced_module_id = $1 AND owner_module_id IS NOT NULL
+        ORDER BY owner_module_id
       `,
         [moduleId],
       ),
@@ -724,6 +744,7 @@ export class WorkspaceRepository {
     ])
     return {
       pageIds: pages.rows.map((row) => row.page_id),
+      moduleIds: modules.rows.map((row) => row.module_id),
       referenceCount: count.rows[0]?.count ?? 0,
     }
   }

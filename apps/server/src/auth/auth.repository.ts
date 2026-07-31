@@ -1,4 +1,5 @@
 import type { AuthUser } from '@ai-design/contracts/auth'
+import { DEFAULT_BUSINESS_SYSTEM_SEED } from '@ai-design/contracts/workspace'
 import { Injectable } from '@nestjs/common'
 
 import { DatabaseService } from '../database/database.service.js'
@@ -83,9 +84,14 @@ export class AuthRepository {
       await client.query(
         `
           INSERT INTO business_systems (workspace_id, name, description, icon)
-          VALUES ($1, '默认系统', '用于组织可视化设计项目', 'fluent:apps-list-detail-20-regular')
+          VALUES ($1, $2, $3, $4)
         `,
-        [workspace.id],
+        [
+          workspace.id,
+          DEFAULT_BUSINESS_SYSTEM_SEED.name,
+          DEFAULT_BUSINESS_SYSTEM_SEED.description,
+          DEFAULT_BUSINESS_SYSTEM_SEED.icon,
+        ],
       )
 
       return this.toAuthUser(user)
