@@ -1,12 +1,50 @@
 <script setup lang="ts">
+import { useAuthStore } from '@/auth/store.ts'
 import EditorAccentControl from '@/editor/theme/EditorAccentControl.vue'
 import EditorThemeControl from '@/editor/theme/EditorThemeControl.vue'
+import { ElMessage } from 'element-plus'
+import { storeToRefs } from 'pinia'
+import { useRouter } from 'vue-router'
 
 defineOptions({ name: 'WorkspaceTopbar' })
 
 defineProps<{
   compactBrand?: boolean
 }>()
+
+const router = useRouter()
+const authStore = useAuthStore()
+const { user } = storeToRefs(authStore)
+
+const initials = computed(() => {
+  const displayName = user.value?.displayName.trim()
+  if (!displayName) return 'AI'
+
+  const segments = displayName.split(/\s+/).filter(Boolean)
+  if (segments.length > 1) {
+    return segments
+      .slice(0, 2)
+      .map((segment) => segment[0])
+      .join('')
+      .toLocaleUpperCase()
+  }
+
+  return [...displayName].slice(0, 2).join('').toLocaleUpperCase()
+})
+
+async function handleAccountCommand(command: string | number | object) {
+  if (command !== 'logout') return
+
+  try {
+    await authStore.logout()
+    ElMessage.success('已安全退出')
+    await router.replace({ name: 'Login' })
+  } catch (error) {
+    ElMessage.warning(
+      error instanceof Error ? `${error.message}，当前仍保持登录` : '退出失败，当前仍保持登录',
+    )
+  }
+}
 </script>
 
 <template>
@@ -31,22 +69,25 @@ defineProps<{
         <EditorAccentControl />
       </div>
 
-      <el-dropdown trigger="click" placement="bottom-end">
+      <el-dropdown trigger="click" placement="bottom-end" @command="handleAccountCommand">
         <button type="button" class="account-trigger" aria-label="打开账户菜单">
           <span class="account-copy">
-            <strong>林墨</strong>
-            <small>设计管理员</small>
+            <strong>{{ user?.displayName ?? '设计用户' }}</strong>
+            <small>{{ user?.email ?? '个人工作区' }}</small>
           </span>
-          <span class="avatar">LM</span>
+          <span class="avatar">
+            <img v-if="user?.avatarUrl" :src="user.avatarUrl" alt="" />
+            <template v-else>{{ initials }}</template>
+          </span>
         </button>
         <template #dropdown>
           <el-dropdown-item>
             <Icon icon="fluent:person-20-regular" width="16" />
             账户设置
           </el-dropdown-item>
-          <el-dropdown-item>
-            <Icon icon="fluent:question-circle-20-regular" width="16" />
-            使用帮助
+          <el-dropdown-item command="logout" divided>
+            <Icon icon="fluent:sign-out-20-regular" width="16" />
+            退出登录
           </el-dropdown-item>
         </template>
       </el-dropdown>
@@ -168,6 +209,13 @@ defineProps<{
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
+  overflow: hidden;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
 }
 
 :deep(.el-dropdown-menu__item) {

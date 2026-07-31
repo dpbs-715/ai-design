@@ -5,11 +5,12 @@
 This pnpm and Turborepo monorepo contains two applications and shared packages:
 
 - `apps/web/`: the Vue 3 and TypeScript visual-screen editor.
-- `apps/api/`: the NestJS API.
+- `apps/server/`: the NestJS server.
 - `packages/contracts/`: framework-independent Zod schemas, data contracts, and TypeScript types
   that can be consumed by both applications.
-- `infra/`: local development infrastructure such as Docker Compose services and their
-  environment templates.
+- `env/`: shared runtime environment template. Copy `env/.env.example` to the Git-ignored
+  `env/.env`; both host applications and local infrastructure read this single file.
+- `infra/`: local development infrastructure such as Docker Compose services.
 - `infra/postgres/migrations/`: authoritative ordered SQL history for the database schema. When a
   task depends on tables, columns, constraints, or indexes, read these migrations in filename order
   instead of inferring the structure from application types or old documentation.
@@ -34,7 +35,7 @@ Use pnpm; `pnpm-lock.yaml` is authoritative.
 - `pnpm install`: install the locked dependency graph.
 - `pnpm dev`: start all development servers through Turborepo.
 - `pnpm dev:web`: start only the Vite development server.
-- `pnpm dev:api`: start only the NestJS development server.
+- `pnpm dev:server`: start only the NestJS development server.
 - `pnpm infra:up`: start local development infrastructure.
 - `pnpm infra:down`: stop local development infrastructure without deleting persisted data.
 - `pnpm type-check`: type-check all workspaces.

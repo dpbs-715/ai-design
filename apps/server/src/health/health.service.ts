@@ -1,7 +1,7 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common'
 
-import { DatabaseService } from '../database/database.service'
-import { RedisService } from '../redis/redis.service'
+import { DatabaseService } from '../database/database.service.js'
+import { RedisService } from '../redis/redis.service.js'
 
 type DependencyStatus = 'up' | 'down'
 

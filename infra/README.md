@@ -5,14 +5,18 @@ directly on the host through pnpm; Docker Compose only manages infrastructure se
 
 ## PostgreSQL and Redis
 
-Optionally copy the environment template before starting the service:
+Create the shared local environment file before starting the service:
 
 ```bash
-cp infra/.env.example infra/.env
+cp env/.env.example env/.env
 ```
 
-The Compose file also provides development defaults, so PostgreSQL and Redis can be started without
-a local `.env` file:
+Host applications and Docker Compose both read `env/.env`, keeping database, Redis, and SMTP
+configuration in one place:
+
+`TRUST_PROXY_HOPS` must match the number of trusted reverse-proxy hops in front of the server.
+Keep the default `0` when clients can connect to the server directly. Set it to `1` only when the
+server is reachable exclusively through one trusted reverse proxy, including a trusted Vite proxy.
 
 ```bash
 pnpm infra:up
@@ -37,12 +41,12 @@ redis://ai_design:ai_design_redis_password@localhost:6379
 ```
 
 The Redis ACL user can access keys under the `ai-design:*` prefix. Override
-`REDIS_USERNAME` and `REDIS_PASSWORD` in `infra/.env`; use a long random password without
+`REDIS_USERNAME` and `REDIS_PASSWORD` in `env/.env`; use a long random password without
 whitespace in shared environments.
 
 `pnpm infra:down` removes the containers and network but preserves the PostgreSQL and Redis named
 volumes. To deliberately delete all local infrastructure data, run:
 
 ```bash
-docker compose -f infra/compose.yaml down --volumes
+docker compose --env-file env/.env -f infra/compose.yaml down --volumes
 ```

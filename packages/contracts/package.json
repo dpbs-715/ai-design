@@ -11,6 +11,10 @@
       "types": "./src/index.ts",
       "default": "./dist/index.js"
     },
+    "./auth": {
+      "types": "./src/auth.ts",
+      "default": "./dist/auth.js"
+    },
     "./material": {
       "types": "./src/material.ts",
       "default": "./dist/material.js"

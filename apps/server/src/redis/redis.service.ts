@@ -2,7 +2,15 @@ import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { createClient } from 'redis'
 
-import type { EnvironmentVariables } from '../config/environment'
+import type { EnvironmentVariables } from '../config/environment.js'
+
+const INCREMENT_FIXED_WINDOW_COUNTER_SCRIPT = `
+local count = redis.call('INCR', KEYS[1])
+if count == 1 then
+  redis.call('EXPIRE', KEYS[1], ARGV[1])
+end
+return count
+`
 
 @Injectable()
 export class RedisService implements OnModuleDestroy {
@@ -22,7 +30,7 @@ export class RedisService implements OnModuleDestroy {
       username: config.get('REDIS_USERNAME', { infer: true }),
       password: config.get('REDIS_PASSWORD', { infer: true }),
       keyPrefix: 'ai-design:',
-      name: 'ai-design-api',
+      name: 'ai-design-server',
       disableOfflineQueue: true,
     })
 
@@ -31,13 +39,30 @@ export class RedisService implements OnModuleDestroy {
     })
   }
 
-  getClient(): ReturnType<typeof createClient> {
-    return this.client
+  async withClient<Result>(
+    operation: (client: ReturnType<typeof createClient>) => Promise<Result>,
+  ): Promise<Result> {
+    await this.ensureConnected()
+    return operation(this.client)
   }
 
   async ping(): Promise<void> {
-    await this.ensureConnected()
-    await this.client.ping()
+    await this.withClient((client) => client.ping()).then(() => undefined)
+  }
+
+  async incrementFixedWindowCounter(key: string, ttlSeconds: number): Promise<number> {
+    const count = await this.withClient((client) =>
+      client.eval(INCREMENT_FIXED_WINDOW_COUNTER_SCRIPT, {
+        keys: [key],
+        arguments: [String(ttlSeconds)],
+      }),
+    )
+
+    if (typeof count !== 'number') {
+      throw new Error('Redis fixed-window counter returned an invalid result')
+    }
+
+    return count
   }
 
   async onModuleDestroy(): Promise<void> {
@@ -47,11 +72,15 @@ export class RedisService implements OnModuleDestroy {
   }
 
   private async ensureConnected(): Promise<void> {
-    if (this.client.isOpen) {
+    if (this.client.isReady) {
       return
     }
 
     if (!this.connectPromise) {
+      if (this.client.isOpen) {
+        throw new Error('Redis client is reconnecting')
+      }
+
       const connection = this.client.connect().then(() => undefined)
       this.connectPromise = connection
 

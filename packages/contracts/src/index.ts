@@ -1,3 +1,4 @@
+export * from './auth.js'
 export * from './material.js'
 export * from './module.js'
 export * from './node-tree.js'

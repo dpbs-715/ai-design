@@ -1,9 +1,9 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { Pool } from 'pg'
-import type { QueryConfigValues, QueryResult, QueryResultRow } from 'pg'
+import type { PoolClient, QueryConfigValues, QueryResult, QueryResultRow } from 'pg'
 
-import type { EnvironmentVariables } from '../config/environment'
+import type { EnvironmentVariables } from '../config/environment.js'
 
 @Injectable()
 export class DatabaseService implements OnModuleDestroy {
@@ -35,6 +35,24 @@ export class DatabaseService implements OnModuleDestroy {
 
   async ping(): Promise<void> {
     await this.pool.query('SELECT 1')
+  }
+
+  async withTransaction<Result>(
+    operation: (client: PoolClient) => Promise<Result>,
+  ): Promise<Result> {
+    const client = await this.pool.connect()
+
+    try {
+      await client.query('BEGIN')
+      const result = await operation(client)
+      await client.query('COMMIT')
+      return result
+    } catch (error) {
+      await client.query('ROLLBACK')
+      throw error
+    } finally {
+      client.release()
+    }
   }
 
   async onModuleDestroy(): Promise<void> {

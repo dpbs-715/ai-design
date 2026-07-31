@@ -5,7 +5,7 @@
 ## 项目结构
 
 - `apps/web`：Vue 3 可视化大屏编辑器。
-- `apps/api`：NestJS API。
+- `apps/server`：NestJS 服务端。
 - `packages/contracts`：前后端共享的数据协议、Zod Schema 和纯 TypeScript 类型。
 - `infra`：本地开发所需的 PostgreSQL 等基础设施配置。
 
@@ -16,7 +16,7 @@
 
 - `pnpm dev`：同时启动所有应用。
 - `pnpm dev:web`：只启动前端。
-- `pnpm dev:api`：只启动 API。
+- `pnpm dev:server`：只启动服务端。
 - `pnpm infra:up`：启动本地基础设施。
 - `pnpm infra:down`：停止本地基础设施。
 - `pnpm type-check`：检查所有 workspace 的类型。
@@ -24,6 +24,7 @@
 - `pnpm lint`：检查所有提供 lint 脚本的 workspace。
 
 ## todo list
+
 画布的尺寸目前只支持px 后面尝试铺满容器 需要设计
 createComponent 自定义组件 方便ai创建组件
 tab物料？ 需要设计物料
