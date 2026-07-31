@@ -1,13 +1,14 @@
+import { DEFAULT_BUSINESS_SYSTEM_SEED } from '@ai-design/contracts/workspace'
 import type {
   BusinessSystem,
   DesignProject,
   ProjectPageRecord,
   PublicModuleRecord,
-  WorkspaceSummary,
 } from '@ai-design/contracts/workspace'
 import { deepClone } from '@vunio/utils'
 import { defineStore } from 'pinia'
 
+import { ApiError } from '@/api/client.ts'
 import { createPublicModuleSchema } from '@/schema/createModule.ts'
 import { createPageSchema } from '@/schema/createPage.ts'
 import { isSamePublicModuleContent, MODULE_DRAFT_VERSION } from '@/schema/module.ts'
@@ -18,8 +19,6 @@ import * as workspaceApi from './api.ts'
 import { compareWorkspaceTimeDescending } from './time.ts'
 
 export type WorkspaceStatus = 'idle' | 'loading' | 'ready' | 'error'
-
-const DEFAULT_SYSTEM_ICON = 'fluent:apps-list-detail-20-regular'
 
 interface ProjectAssetLoad {
   token: symbol
@@ -41,7 +40,6 @@ function referencedModuleIds(schema: PageSchema) {
 }
 
 export const useWorkspaceStore = defineStore('workspace', () => {
-  const workspaces = ref<WorkspaceSummary[]>([])
   const currentWorkspaceId = ref('')
   const systems = ref<BusinessSystem[]>([])
   const projects = ref<DesignProject[]>([])
@@ -55,6 +53,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   let initializedForUserId = ''
   let initialization: Promise<void> | undefined
   let initializationToken: symbol | undefined
+  // 本地页面/模块变更的单调版本号，用于识别加载期间快照是否已过期
+  let assetMutationEpoch = 0
+
+  function noteLocalAssetMutation() {
+    assetMutationEpoch += 1
+  }
 
   async function initialize(userId: string, force = false) {
     if (!force && status.value === 'ready' && initializedForUserId === userId) return
@@ -72,17 +76,20 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         const workspace = nextWorkspaces[0]
         if (!workspace) {
           if (initializationToken !== token || initializedForUserId !== userId) return
-          workspaces.value = nextWorkspaces
           currentWorkspaceId.value = ''
           systems.value = []
           projects.value = []
+          pages.value = []
+          modules.value = []
+          selectedSystemId.value = ''
+          loadedProjectIds.clear()
+          projectAssetLoads.clear()
           status.value = 'ready'
           return
         }
 
         const bootstrap = await workspaceApi.getWorkspaceBootstrap(workspace.id)
         if (initializationToken !== token || initializedForUserId !== userId) return
-        workspaces.value = nextWorkspaces
         currentWorkspaceId.value = bootstrap.workspace.id
         systems.value = bootstrap.systems
         projects.value = bootstrap.projects
@@ -108,7 +115,6 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   function reset() {
-    workspaces.value = []
     currentWorkspaceId.value = ''
     systems.value = []
     projects.value = []
@@ -128,14 +134,21 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (systems.value.some((system) => system.id === systemId)) selectedSystemId.value = systemId
   }
 
-  async function loadProjectAssets(projectId: string, force = false) {
+  async function loadProjectAssets(projectId: string, force = false): Promise<void> {
     if (!force && loadedProjectIds.has(projectId)) return
     const pendingLoad = projectAssetLoads.get(projectId)
     if (!force && pendingLoad) return pendingLoad.promise
 
     const token = Symbol()
+    const epochAtStart = assetMutationEpoch
+    let discarded = false
     const request = workspaceApi.getProjectAssets(projectId).then((assets) => {
       if (projectAssetLoads.get(projectId)?.token !== token) return
+      // 拉取期间本地已有更新的变更（如新建页面），直接合并会覆盖掉它们，丢弃快照
+      if (assetMutationEpoch !== epochAtStart) {
+        discarded = true
+        return
+      }
       pages.value = [...pages.value.filter((page) => page.projectId !== projectId), ...assets.pages]
       modules.value = [
         ...modules.value.filter((publicModule) => publicModule.projectId !== projectId),
@@ -149,6 +162,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     } finally {
       if (projectAssetLoads.get(projectId)?.token === token) projectAssetLoads.delete(projectId)
     }
+    if (discarded) await loadProjectAssets(projectId, true)
   }
 
   function getProject(projectId: string) {
@@ -181,8 +195,20 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   function replaceProject(project: DesignProject) {
     const index = projects.value.findIndex((candidate) => candidate.id === project.id)
-    if (index >= 0) projects.value[index] = project
-    else projects.value.unshift(project)
+    if (index >= 0) {
+      // 并发操作的响应可能乱序到达，丢弃比本地更旧的快照
+      if (project.updatedAt < projects.value[index]!.updatedAt) return
+      projects.value[index] = project
+    } else {
+      projects.value.unshift(project)
+    }
+  }
+
+  async function reloadAfterConflict(error: unknown, projectId: string) {
+    // 乐观锁冲突说明服务端数据已领先本地，强制刷新资产以便用户基于最新版本重试
+    if (error instanceof ApiError && error.status === 409) {
+      await loadProjectAssets(projectId, true).catch(() => undefined)
+    }
   }
 
   function applyModuleReferenceCounts(
@@ -201,7 +227,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const system = await workspaceApi.createSystem(currentWorkspaceId.value, {
       name,
       description,
-      icon: DEFAULT_SYSTEM_ICON,
+      icon: DEFAULT_BUSINESS_SYSTEM_SEED.icon,
     })
     systems.value.push(system)
     selectedSystemId.value = system.id
@@ -284,6 +310,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       schema: createPageSchema({ id, name }),
     })
     const { page } = response
+    noteLocalAssetMutation()
     pages.value.unshift(page)
     replaceProject(response.project)
     applyModuleReferenceCounts(response.moduleReferenceCounts)
@@ -296,6 +323,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       schema: createPublicModuleSchema({ id, name }),
     })
     const publicModule = response.publicModule
+    noteLocalAssetMutation()
     modules.value.unshift(publicModule)
     replaceProject(response.project)
     return publicModule.id
@@ -320,16 +348,22 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   async function savePageSchema(pageId: string, schema: PageSchema) {
     const page = getPage(pageId)
     if (!page || schema.id !== pageId) return
-    const response = await workspaceApi.savePage(page.projectId, pageId, {
-      schema,
-      expectedRevision: page.revision,
-    })
-    const saved = response.page
-    const index = pages.value.findIndex((candidate) => candidate.id === pageId)
-    pages.value[index] = saved
-    replaceProject(response.project)
-    applyModuleReferenceCounts(response.moduleReferenceCounts)
-    return saved.schema
+    try {
+      const response = await workspaceApi.savePage(page.projectId, pageId, {
+        schema,
+        expectedRevision: page.revision,
+      })
+      noteLocalAssetMutation()
+      const saved = response.page
+      const index = pages.value.findIndex((candidate) => candidate.id === pageId)
+      pages.value[index] = saved
+      replaceProject(response.project)
+      applyModuleReferenceCounts(response.moduleReferenceCounts)
+      return saved.schema
+    } catch (error) {
+      await reloadAfterConflict(error, page.projectId)
+      throw error
+    }
   }
 
   async function saveModuleSchema(moduleId: string, schema: PublicModuleSchema) {
@@ -339,34 +373,46 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (!result.success || result.data.version !== MODULE_DRAFT_VERSION) return
     if (isSamePublicModuleContent(publicModule.schema, result.data)) return publicModule.schema
 
-    const response = await workspaceApi.saveModule(publicModule.projectId, moduleId, {
-      schema: result.data,
-      expectedRevision: publicModule.revision,
-    })
-    const saved = response.publicModule
-    const index = modules.value.findIndex((candidate) => candidate.id === moduleId)
-    modules.value[index] = saved
-    replaceProject(response.project)
-    return saved.schema
+    try {
+      const response = await workspaceApi.saveModule(publicModule.projectId, moduleId, {
+        schema: result.data,
+        expectedRevision: publicModule.revision,
+      })
+      noteLocalAssetMutation()
+      const saved = response.publicModule
+      const index = modules.value.findIndex((candidate) => candidate.id === moduleId)
+      modules.value[index] = saved
+      replaceProject(response.project)
+      return saved.schema
+    } catch (error) {
+      await reloadAfterConflict(error, publicModule.projectId)
+      throw error
+    }
   }
 
   async function publishModuleSchema(moduleId: string) {
     const publicModule = modules.value.find((candidate) => candidate.id === moduleId)
     if (!publicModule) return
     const previousVersion = publicModule.version
-    const response = await workspaceApi.publishModule(
-      publicModule.projectId,
-      moduleId,
-      publicModule.revision,
-    )
-    const published = response.publicModule
-    const index = modules.value.findIndex((candidate) => candidate.id === moduleId)
-    modules.value[index] = published
-    replaceProject(response.project)
-    return {
-      status:
-        published.version === previousVersion ? ('unchanged' as const) : ('published' as const),
-      version: published.version,
+    try {
+      const response = await workspaceApi.publishModule(
+        publicModule.projectId,
+        moduleId,
+        publicModule.revision,
+      )
+      noteLocalAssetMutation()
+      const published = response.publicModule
+      const index = modules.value.findIndex((candidate) => candidate.id === moduleId)
+      modules.value[index] = published
+      replaceProject(response.project)
+      return {
+        status:
+          published.version === previousVersion ? ('unchanged' as const) : ('published' as const),
+        version: published.version,
+      }
+    } catch (error) {
+      await reloadAfterConflict(error, publicModule.projectId)
+      throw error
     }
   }
 
@@ -375,6 +421,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (!page) return
     const response = await workspaceApi.duplicatePage(page.projectId, pageId)
     const duplicated = response.page
+    noteLocalAssetMutation()
     pages.value.unshift(duplicated)
     replaceProject(response.project)
     applyModuleReferenceCounts(response.moduleReferenceCounts)
@@ -386,6 +433,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (!publicModule) return
     const response = await workspaceApi.duplicateModule(publicModule.projectId, moduleId)
     const duplicated = response.publicModule
+    noteLocalAssetMutation()
     modules.value.unshift(duplicated)
     replaceProject(response.project)
     return duplicated.id
@@ -395,6 +443,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const page = getPage(pageId)
     if (!page) return
     const response = await workspaceApi.deletePage(page.projectId, pageId)
+    noteLocalAssetMutation()
     pages.value = pages.value.filter((candidate) => candidate.id !== pageId)
     replaceProject(response.project)
     applyModuleReferenceCounts(response.moduleReferenceCounts)
@@ -407,13 +456,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (references.length) return { status: 'referenced' as const, references }
 
     const project = await workspaceApi.deleteModule(publicModule.projectId, moduleId)
+    noteLocalAssetMutation()
     modules.value = modules.value.filter((candidate) => candidate.id !== moduleId)
     replaceProject(project)
     return { status: 'removed' as const }
   }
 
   return {
-    workspaces,
     currentWorkspaceId,
     systems,
     projects,

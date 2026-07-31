@@ -44,6 +44,7 @@ const jsonText = ref('')
 
 const dataSourceVisible = ref(false)
 const moduleRemovalVisible = ref(false)
+const savePending = ref(false)
 
 const currentModuleRecord = computed(() =>
   workspaceStore.modules.find((publicModule) => publicModule.id === page.value.id),
@@ -265,51 +266,57 @@ interface SaveEditorSchemaOptions {
 }
 
 async function saveEditorSchema({ notify = true }: SaveEditorSchemaOptions = {}) {
-  const result = parsePageSchema(page.value)
-  if (result.success === false) {
-    ElMessage.error(formatSchemaValidationIssue(result.issues[0]))
-    return
-  }
-
-  const pageRecord = workspaceStore.getPage(result.data.id)
-  if (pageRecord) {
-    try {
-      await workspaceStore.savePageSchema(pageRecord.id, result.data)
-      if (notify) ElMessage.success('页面已保存')
-      return { kind: 'page' as const, id: pageRecord.id }
-    } catch (error) {
-      ElMessage.error(error instanceof Error ? error.message : '页面保存失败')
+  if (savePending.value) return
+  savePending.value = true
+  try {
+    const result = parsePageSchema(page.value)
+    if (result.success === false) {
+      ElMessage.error(formatSchemaValidationIssue(result.issues[0]))
       return
     }
-  }
 
-  const moduleRecord = workspaceStore.modules.find(
-    (publicModule) => publicModule.id === result.data.id,
-  )
-  if (moduleRecord) {
-    if (moduleSyncState.value?.kind !== 'unsaved') {
-      if (notify) ElMessage.info('当前模块没有未保存修改')
-      return { kind: 'module' as const, id: moduleRecord.id }
+    const pageRecord = workspaceStore.getPage(result.data.id)
+    if (pageRecord) {
+      try {
+        await workspaceStore.savePageSchema(pageRecord.id, result.data)
+        if (notify) ElMessage.success('页面已保存')
+        return { kind: 'page' as const, id: pageRecord.id }
+      } catch (error) {
+        ElMessage.error(error instanceof Error ? error.message : '页面保存失败')
+        return
+      }
     }
 
-    const moduleResult = parsePublicModuleSchema(
-      fromModuleEditorPage(result.data, moduleRecord.schema),
+    const moduleRecord = workspaceStore.modules.find(
+      (publicModule) => publicModule.id === result.data.id,
     )
-    if (moduleResult.success === false) {
-      ElMessage.error(formatSchemaValidationIssue(moduleResult.issues[0]))
-      return
-    }
-    try {
-      await workspaceStore.saveModuleSchema(moduleRecord.id, moduleResult.data)
-      if (notify) ElMessage.success('模块草稿已保存')
-      return { kind: 'module' as const, id: moduleRecord.id }
-    } catch (error) {
-      ElMessage.error(error instanceof Error ? error.message : '模块草稿保存失败')
-      return
-    }
-  }
+    if (moduleRecord) {
+      if (moduleSyncState.value?.kind !== 'unsaved') {
+        if (notify) ElMessage.info('当前模块没有未保存修改')
+        return { kind: 'module' as const, id: moduleRecord.id }
+      }
 
-  ElMessage.error('当前内容不属于工作空间，无法保存')
+      const moduleResult = parsePublicModuleSchema(
+        fromModuleEditorPage(result.data, moduleRecord.schema),
+      )
+      if (moduleResult.success === false) {
+        ElMessage.error(formatSchemaValidationIssue(moduleResult.issues[0]))
+        return
+      }
+      try {
+        await workspaceStore.saveModuleSchema(moduleRecord.id, moduleResult.data)
+        if (notify) ElMessage.success('模块草稿已保存')
+        return { kind: 'module' as const, id: moduleRecord.id }
+      } catch (error) {
+        ElMessage.error(error instanceof Error ? error.message : '模块草稿保存失败')
+        return
+      }
+    }
+
+    ElMessage.error('当前内容不属于工作空间，无法保存')
+  } finally {
+    savePending.value = false
+  }
 }
 
 function hasOpenModal() {
