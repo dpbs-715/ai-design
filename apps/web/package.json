@@ -21,6 +21,7 @@
     "@vunio/hooks": "^1.7.1",
     "@vunio/ui": "^1.7.1",
     "@vunio/utils": "^1.7.1",
+    "axios": "^1.19.0",
     "dayjs": "^1.11.21",
     "echarts": "^6.1.0",
     "element-plus": "^2.14.2",

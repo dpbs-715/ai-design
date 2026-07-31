@@ -1,3 +1,4 @@
+import axios, { type AxiosRequestConfig } from 'axios'
 import type { ZodType } from 'zod'
 
 interface ApiErrorPayload {
@@ -24,55 +25,54 @@ function errorMessage(payload: ApiErrorPayload | undefined, fallback: string) {
   return payload?.message ?? fallback
 }
 
-async function parseJson(response: Response): Promise<unknown> {
-  if (!response.headers.get('content-type')?.includes('application/json')) return undefined
-  try {
-    return await response.json()
-  } catch {
-    return undefined
+function toApiError(error: unknown, networkMessage: string): ApiError {
+  if (error instanceof ApiError) return error
+  if (axios.isAxiosError(error)) {
+    if (!error.response) {
+      const message = error.code === 'ECONNABORTED' ? '请求超时，请稍后重试' : networkMessage
+      return new ApiError(0, message)
+    }
+    const payload = error.response.data as ApiErrorPayload | undefined
+    return new ApiError(
+      error.response.status,
+      errorMessage(payload, '请求处理失败，请稍后重试'),
+      payload,
+    )
   }
+  return new ApiError(0, error instanceof Error ? error.message : networkMessage)
 }
 
-async function fetchApi(path: string, options?: RequestInit) {
-  const headers = new Headers(options?.headers)
-  if (typeof options?.body === 'string' && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json')
-  }
+/** 后端 API 实例：统一 /api 前缀、携带登录凭证、30s 超时 */
+export const apiClient = axios.create({
+  baseURL: '/api',
+  withCredentials: true,
+  timeout: 30_000,
+})
 
-  try {
-    return await fetch(`/api${path}`, {
-      ...options,
-      credentials: 'include',
-      headers,
-    })
-  } catch {
-    throw new ApiError(0, '无法连接服务端，请确认服务已启动')
-  }
-}
+/** 数据源等外部地址实例：无前缀、不携带凭证 */
+export const externalClient = axios.create({
+  timeout: 30_000,
+})
+
+apiClient.interceptors.response.use(undefined, (error: unknown) =>
+  Promise.reject(toApiError(error, '无法连接服务端，请确认服务已启动')),
+)
+
+externalClient.interceptors.response.use(undefined, (error: unknown) =>
+  Promise.reject(toApiError(error, '无法连接数据源，请检查请求地址')),
+)
 
 export async function apiRequest<ResponseBody>(
   path: string,
   schema: ZodType<ResponseBody>,
-  options?: RequestInit,
+  config?: AxiosRequestConfig,
 ): Promise<ResponseBody> {
-  const response = await fetchApi(path, options)
-  const payload = await parseJson(response)
-  if (!response.ok) {
-    throw new ApiError(
-      response.status,
-      errorMessage(payload as ApiErrorPayload | undefined, '请求处理失败，请稍后重试'),
-      payload as ApiErrorPayload | undefined,
-    )
-  }
-
-  const result = schema.safeParse(payload)
+  const response = await apiClient.request<unknown>({ ...config, url: path })
+  const result = schema.safeParse(response.data)
   if (!result.success) throw new ApiError(response.status, '服务端返回了无法识别的数据')
   return result.data
 }
 
-export async function apiNoContent(path: string, options?: RequestInit): Promise<void> {
-  const response = await fetchApi(path, options)
-  if (response.ok) return
-  const payload = (await parseJson(response)) as ApiErrorPayload | undefined
-  throw new ApiError(response.status, errorMessage(payload, '请求处理失败，请稍后重试'), payload)
+export async function apiNoContent(path: string, config?: AxiosRequestConfig): Promise<void> {
+  await apiClient.request({ ...config, url: path })
 }

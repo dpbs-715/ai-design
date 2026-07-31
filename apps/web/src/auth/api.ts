@@ -18,21 +18,21 @@ export function sendEmailVerificationCode(
 ): Promise<SendEmailVerificationCodeResponse> {
   return apiRequest('/auth/email-verification-codes', sendEmailVerificationCodeResponseSchema, {
     method: 'POST',
-    body: JSON.stringify(body),
+    data: body,
   })
 }
 
 export function register(body: RegisterRequest): Promise<AuthResponse> {
   return apiRequest('/auth/register', authResponseSchema, {
     method: 'POST',
-    body: JSON.stringify(body),
+    data: body,
   })
 }
 
 export function login(body: LoginRequest): Promise<AuthResponse> {
   return apiRequest('/auth/login', authResponseSchema, {
     method: 'POST',
-    body: JSON.stringify(body),
+    data: body,
   })
 }
 

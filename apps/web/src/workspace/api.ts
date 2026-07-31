@@ -34,7 +34,7 @@ export function getWorkspaceBootstrap(workspaceId: string) {
 export function createSystem(workspaceId: string, body: CreateBusinessSystemRequest) {
   return apiRequest(`/workspaces/${workspaceId}/systems`, businessSystemSchema, {
     method: 'POST',
-    body: JSON.stringify(body),
+    data: body,
   })
 }
 
@@ -45,7 +45,7 @@ export function updateSystem(
 ) {
   return apiRequest(`/workspaces/${workspaceId}/systems/${systemId}`, businessSystemSchema, {
     method: 'PATCH',
-    body: JSON.stringify(body),
+    data: body,
   })
 }
 
@@ -56,14 +56,14 @@ export function deleteSystem(workspaceId: string, systemId: string) {
 export function createProject(workspaceId: string, body: CreateProjectRequest) {
   return apiRequest(`/workspaces/${workspaceId}/projects`, designProjectSchema, {
     method: 'POST',
-    body: JSON.stringify(body),
+    data: body,
   })
 }
 
 export function updateProject(projectId: string, body: UpdateProjectRequest) {
   return apiRequest(`/projects/${projectId}`, designProjectSchema, {
     method: 'PATCH',
-    body: JSON.stringify(body),
+    data: body,
   })
 }
 
@@ -74,7 +74,7 @@ export function deleteProject(projectId: string) {
 export function updateProjectPreference(projectId: string, body: UpdateProjectPreferenceRequest) {
   return apiRequest(`/projects/${projectId}/preference`, designProjectSchema, {
     method: 'PUT',
-    body: JSON.stringify(body),
+    data: body,
   })
 }
 
@@ -85,14 +85,14 @@ export function getProjectAssets(projectId: string) {
 export function createPage(projectId: string, body: CreatePageRequest) {
   return apiRequest(`/projects/${projectId}/pages`, pageMutationResponseSchema, {
     method: 'POST',
-    body: JSON.stringify(body),
+    data: body,
   })
 }
 
 export function savePage(projectId: string, pageId: string, body: SavePageRequest) {
   return apiRequest(`/projects/${projectId}/pages/${pageId}`, pageMutationResponseSchema, {
     method: 'PUT',
-    body: JSON.stringify(body),
+    data: body,
   })
 }
 
@@ -115,7 +115,7 @@ export function deletePage(projectId: string, pageId: string) {
 export function createModule(projectId: string, body: CreatePublicModuleRequest) {
   return apiRequest(`/projects/${projectId}/modules`, publicModuleMutationResponseSchema, {
     method: 'POST',
-    body: JSON.stringify(body),
+    data: body,
   })
 }
 
@@ -125,7 +125,7 @@ export function saveModule(projectId: string, moduleId: string, body: SavePublic
     publicModuleMutationResponseSchema,
     {
       method: 'PUT',
-      body: JSON.stringify(body),
+      data: body,
     },
   )
 }
@@ -136,7 +136,7 @@ export function publishModule(projectId: string, moduleId: string, expectedRevis
     publicModuleMutationResponseSchema,
     {
       method: 'POST',
-      body: JSON.stringify({ expectedRevision }),
+      data: { expectedRevision },
     },
   )
 }

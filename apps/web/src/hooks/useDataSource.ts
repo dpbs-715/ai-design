@@ -1,5 +1,5 @@
 import { injectDataSources } from '@/context'
-import axios from 'axios'
+import { externalClient } from '@/api/client.ts'
 import type { ApiDataSourceSchema } from '@/schema/page.ts'
 import { asyncCache, getByKeyOrPath } from '@vunio/utils'
 import { toValue, type MaybeRefOrGetter } from 'vue'
@@ -44,7 +44,7 @@ export function useDataSource(
     if (currentSource.type === 'api') {
       const query = resolvedQuery.value
       if (!query.ready) {
-        data.value = []
+        data.value = undefined
         loading.value = false
         return
       }
@@ -78,7 +78,7 @@ export function useDataSource(
     clearTimeout(pollingTimer)
     clearTimeout(reloadTimer)
     if (source.value?.type === 'api' && !resolvedQuery.value.ready) {
-      data.value = []
+      data.value = undefined
       loading.value = false
       error.value = undefined
       return
@@ -124,7 +124,7 @@ export async function fetchDataBase(source: ApiDataSourceSchema, data?: Record<s
     method: source.method,
     [paramsKey]: queryParams,
   }
-  const res = await axios.request(config)
+  const res = await externalClient.request(config)
   if (source.responsePath) {
     return getByKeyOrPath(res.data, source.responsePath)
   } else {
