@@ -4,6 +4,7 @@ export const EMAIL_VERIFICATION_CODE_LENGTH = 6
 export const EMAIL_VERIFICATION_CODE_TTL_SECONDS = 10 * 60
 export const EMAIL_VERIFICATION_RETRY_AFTER_SECONDS = 60
 export const SESSION_TTL_SECONDS = 7 * 24 * 60 * 60
+export const ACCOUNT_DISABLED_ERROR_CODE = 'ACCOUNT_DISABLED'
 
 export const emailSchema = z
   .string()

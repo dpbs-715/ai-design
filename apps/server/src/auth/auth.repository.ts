@@ -147,35 +147,11 @@ export class AuthRepository {
   }
 
   async recordSuccessfulLogin(userId: string): Promise<void> {
-    await this.database.withTransaction(async (client) => {
-      await client.query(
-        `
-          UPDATE user_password_credentials
-          SET failed_attempts = 0, locked_until = NULL, updated_at = now()
-          WHERE user_id = $1
-        `,
-        [userId],
-      )
-      await client.query(
-        `
-          UPDATE users
-          SET last_login_at = now(), updated_at = now()
-          WHERE id = $1
-        `,
-        [userId],
-      )
-    })
-  }
-
-  async recordFailedLogin(userId: string): Promise<void> {
     await this.database.query(
       `
-        UPDATE user_password_credentials
-        SET
-          failed_attempts = failed_attempts + 1,
-          locked_until = NULL,
-          updated_at = now()
-        WHERE user_id = $1
+        UPDATE users
+        SET last_login_at = now(), updated_at = now()
+        WHERE id = $1
       `,
       [userId],
     )

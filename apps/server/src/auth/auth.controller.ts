@@ -75,8 +75,8 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(SessionAuthGuard)
-  getCurrentUser(@Req() request: AuthenticatedRequest): Promise<AuthResponse> {
-    return this.auth.getCurrentUser(request.auth.userId)
+  getCurrentUser(@Req() request: AuthenticatedRequest): AuthResponse {
+    return { user: request.auth.user }
   }
 
   @Post('logout')

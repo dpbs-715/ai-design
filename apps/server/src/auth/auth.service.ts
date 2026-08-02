@@ -76,7 +76,6 @@ export class AuthService {
     }
 
     if (!passwordMatches) {
-      await this.repository.recordFailedLogin(account.id)
       throw new UnauthorizedException('邮箱或密码不正确')
     }
 
@@ -84,7 +83,7 @@ export class AuthService {
       throw new ForbiddenException('账户已被停用')
     }
 
-    await this.loginThrottle.resetAccountClient(request.email, clientIdentifier)
+    await this.loginThrottle.resetAfterSuccessfulLogin(request.email, clientIdentifier)
     await this.repository.recordSuccessfulLogin(account.id)
     const sessionToken = await this.sessions.create(account.id)
 
@@ -92,20 +91,6 @@ export class AuthService {
       user: this.toAuthUser(account),
       sessionToken,
     }
-  }
-
-  async getCurrentUser(userId: string): Promise<AuthResponse> {
-    const user = await this.repository.findUserById(userId)
-
-    if (!user) {
-      throw new UnauthorizedException('登录状态已失效')
-    }
-
-    if (user.status === 'disabled') {
-      throw new ForbiddenException('账户已被停用')
-    }
-
-    return { user }
   }
 
   private toAuthUser(user: AuthUser): AuthUser {
