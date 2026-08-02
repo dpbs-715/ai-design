@@ -19,7 +19,6 @@ import { createPageSchema } from '@/schema/createPage.ts'
 import { isSamePublicModuleContent, MODULE_DRAFT_VERSION } from '@/schema/module.ts'
 import type { PublicModuleSchema } from '@/schema/module.ts'
 import type { PageSchema } from '@/schema/page.ts'
-import { parsePublicModuleSchema } from '@/schema/validation.ts'
 import * as workspaceApi from './api.ts'
 import { compareWorkspaceTimeDescending } from './time.ts'
 
@@ -469,6 +468,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   async function saveModuleSchema(moduleId: string, schema: PublicModuleSchema) {
     const publicModule = modules.value.find((candidate) => candidate.id === moduleId)
     if (!publicModule || schema.moduleId !== moduleId) return
+    const { parsePublicModuleSchema } = await import('@/schema/validation.ts')
     const result = parsePublicModuleSchema(schema)
     if (!result.success || result.data.version !== MODULE_DRAFT_VERSION) return
     if (isSamePublicModuleContent(publicModule.schema, result.data)) return publicModule.schema

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import '@/icons/registerEditorIcons.ts'
 import ToolbarLeft from '@/editor/toolbar/ToolbarLeft.vue'
 import ToolbarRight from '@/editor/toolbar/ToolbarRight.vue'
 import { useEditorStore } from '@/stores/editor.ts'

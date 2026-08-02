@@ -1,14 +1,20 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { setUnauthorizedHandler } from '@/api/client.ts'
-import AuthLayout from '@/auth/AuthLayout.vue'
-import LoginPage from '@/auth/pages/LoginPage.vue'
-import RegisterPage from '@/auth/pages/RegisterPage.vue'
 import { useAuthStore } from '@/auth/store.ts'
-import ScreenEditor from '@/editor/index.vue'
-import Screen from '@/pages/screen/index.vue'
-import DashboardPage from '@/workspace/pages/DashboardPage.vue'
-import ProjectWorkbenchPage from '@/workspace/pages/ProjectWorkbenchPage.vue'
 import { useWorkspaceStore } from '@/workspace/store.ts'
+import {
+  beginRouteNavigation,
+  failRouteNavigation,
+  finishRouteNavigation,
+} from './navigationState.ts'
+
+const AuthLayout = () => import('@/auth/AuthLayout.vue')
+const LoginPage = () => import('@/auth/pages/LoginPage.vue')
+const RegisterPage = () => import('@/auth/pages/RegisterPage.vue')
+const DashboardPage = () => import('@/workspace/pages/DashboardPage.vue')
+const ProjectWorkbenchPage = () => import('@/workspace/pages/ProjectWorkbenchPage.vue')
+const ScreenEditor = () => import('@/editor/index.vue')
+const Screen = () => import('@/pages/screen/index.vue')
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -75,6 +81,19 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
   ],
+})
+
+router.beforeEach((to) => {
+  beginRouteNavigation(to)
+})
+
+router.afterEach((to) => {
+  finishRouteNavigation(to)
+})
+
+router.onError((error, to) => {
+  console.error('Route navigation failed', error)
+  failRouteNavigation(to)
 })
 
 setUnauthorizedHandler(() => {

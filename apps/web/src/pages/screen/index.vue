@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import '@/icons/registerEditorIcons.ts'
 import ScreenRenderer from '@/components/ScreenRenderer/index.vue'
 import { useWorkspaceStore } from '@/workspace/store.ts'
 import type { PageSchema } from '@/schema/page.ts'
