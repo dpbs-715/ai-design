@@ -5,7 +5,6 @@ import LoginPage from '@/auth/pages/LoginPage.vue'
 import RegisterPage from '@/auth/pages/RegisterPage.vue'
 import { useAuthStore } from '@/auth/store.ts'
 import ScreenEditor from '@/editor/index.vue'
-import ScreenPreview from '@/pages/preview/index.vue'
 import Screen from '@/pages/screen/index.vue'
 import DashboardPage from '@/workspace/pages/DashboardPage.vue'
 import ProjectWorkbenchPage from '@/workspace/pages/ProjectWorkbenchPage.vue'
@@ -65,7 +64,7 @@ const router = createRouter({
     },
     {
       path: '/preview',
-      component: ScreenPreview,
+      component: Screen,
       name: 'ScreenPreview',
       meta: { requiresAuth: true },
     },

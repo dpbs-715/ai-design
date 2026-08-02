@@ -4,7 +4,9 @@ import {
   pageMutationResponseSchema,
   pageDeletionResponseSchema,
   projectAssetsResponseSchema,
+  publicModuleVersionListSchema,
   publicModuleMutationResponseSchema,
+  trashResponseSchema,
   workspaceBootstrapResponseSchema,
   workspaceSummarySchema,
 } from '@ai-design/contracts/workspace'
@@ -18,6 +20,7 @@ import type {
   UpdateBusinessSystemRequest,
   UpdateProjectPreferenceRequest,
   UpdateProjectRequest,
+  TrashResourceType,
 } from '@ai-design/contracts/workspace'
 import { z } from 'zod'
 
@@ -80,6 +83,37 @@ export function updateProjectPreference(projectId: string, body: UpdateProjectPr
 
 export function getProjectAssets(projectId: string) {
   return apiRequest(`/projects/${projectId}/assets`, projectAssetsResponseSchema)
+}
+
+export function listModuleVersions(projectId: string) {
+  return apiRequest(
+    `/projects/${projectId}/module-versions`,
+    z.array(publicModuleVersionListSchema),
+  )
+}
+
+export function getTrash(workspaceId: string) {
+  return apiRequest(`/workspaces/${workspaceId}/trash`, trashResponseSchema)
+}
+
+export function restoreTrashItem(
+  workspaceId: string,
+  resourceType: TrashResourceType,
+  resourceId: string,
+) {
+  return apiNoContent(`/workspaces/${workspaceId}/trash/${resourceType}/${resourceId}/restore`, {
+    method: 'POST',
+  })
+}
+
+export function permanentlyDeleteTrashItem(
+  workspaceId: string,
+  resourceType: TrashResourceType,
+  resourceId: string,
+) {
+  return apiNoContent(`/workspaces/${workspaceId}/trash/${resourceType}/${resourceId}`, {
+    method: 'DELETE',
+  })
 }
 
 export function createPage(projectId: string, body: CreatePageRequest) {

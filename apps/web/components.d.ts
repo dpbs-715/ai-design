@@ -37,6 +37,7 @@ declare module 'vue' {
     RollingNumber: typeof import('./src/components/RollingNumber/index.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SchemaLoadingState: typeof import('./src/components/SchemaLoadingState.vue')['default']
     ScreenNode: typeof import('./src/components/ScreenRenderer/ScreenNode.vue')['default']
     ScreenRenderer: typeof import('./src/components/ScreenRenderer/index.vue')['default']
     ThemeColorPicker: typeof import('./src/components/ThemeColorPicker/index.vue')['default']

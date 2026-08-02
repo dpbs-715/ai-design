@@ -16,6 +16,7 @@ import { deepClone } from '@vunio/utils'
 import { toModuleEditorPage } from '@/schema/module.ts'
 import { providePublicModules } from '@/context/publicModules.ts'
 import { ElMessage } from 'element-plus'
+import SchemaLoadingState from '@/components/SchemaLoadingState.vue'
 
 defineOptions({ name: 'ScreenEditor' })
 
@@ -70,6 +71,7 @@ watch(
 
     try {
       await workspaceStore.loadProjectAssets(currentProjectId)
+      await workspaceStore.loadProjectModuleVersions(currentProjectId)
       if (sequence !== loadSequence) return
 
       const currentPage = pageRecord.value
@@ -138,26 +140,18 @@ const { isNarrowWorkspace, materialWidth, layerWidth, propertyWidth } = useRespo
       />
     </main>
   </div>
+  <SchemaLoadingState
+    v-else-if="editorStatus === 'loading'"
+    title="正在加载编辑内容"
+    description="正在校验 Schema 并初始化编辑器"
+  />
   <main v-else class="editor-state">
-    <Icon
-      :icon="
-        editorStatus === 'loading'
-          ? 'fluent:spinner-ios-20-regular'
-          : 'fluent:document-dismiss-20-regular'
-      "
-      width="28"
-    />
+    <Icon icon="fluent:document-dismiss-20-regular" width="28" />
     <h1>
-      {{
-        editorStatus === 'loading'
-          ? '正在加载编辑内容'
-          : editorStatus === 'missing'
-            ? '没有找到这个编辑内容'
-            : '编辑内容加载失败'
-      }}
+      {{ editorStatus === 'missing' ? '没有找到这个编辑内容' : '编辑内容加载失败' }}
     </h1>
     <p v-if="editorErrorMessage">{{ editorErrorMessage }}</p>
-    <RouterLink v-if="editorStatus !== 'loading'" :to="workbenchPath">返回项目</RouterLink>
+    <RouterLink :to="workbenchPath">返回项目</RouterLink>
   </main>
 </template>
 

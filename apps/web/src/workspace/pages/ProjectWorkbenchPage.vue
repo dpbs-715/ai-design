@@ -144,11 +144,15 @@ async function duplicateModule(publicModule: PublicModuleRecord) {
 
 async function removePage(page: ProjectPageRecord) {
   try {
-    await ElMessageBox.confirm(`删除后将无法在项目中打开“${page.schema.root.name}”。`, '删除页面', {
-      type: 'warning',
-      confirmButtonText: '删除',
-      cancelButtonText: '取消',
-    })
+    await ElMessageBox.confirm(
+      `“${page.schema.root.name}”将移入垃圾桶，并可在保留期内恢复。`,
+      '删除页面',
+      {
+        type: 'warning',
+        confirmButtonText: '移入垃圾桶',
+        cancelButtonText: '取消',
+      },
+    )
     await workspaceStore.removePage(page.id)
   } catch (error) {
     if (error instanceof Error) ElMessage.error(error.message)

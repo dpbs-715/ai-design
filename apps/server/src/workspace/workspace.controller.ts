@@ -6,6 +6,7 @@ import {
   publishPublicModuleRequestSchema,
   savePageRequestSchema,
   savePublicModuleRequestSchema,
+  trashResourceTypeSchema,
   updateBusinessSystemRequestSchema,
   updateProjectPreferenceRequestSchema,
   updateProjectRequestSchema,
@@ -21,12 +22,15 @@ import type {
   PageDeletionResponse,
   ProjectAssetsResponse,
   PublicModuleMutationResponse,
+  PublicModuleVersionList,
   PublishPublicModuleRequest,
   SavePageRequest,
   SavePublicModuleRequest,
   UpdateBusinessSystemRequest,
   UpdateProjectPreferenceRequest,
   UpdateProjectRequest,
+  TrashResourceType,
+  TrashResponse,
   WorkspaceBootstrapResponse,
   WorkspaceSummary,
 } from '@ai-design/contracts/workspace'
@@ -49,12 +53,22 @@ import {
 import type { AuthenticatedRequest } from '../auth/authenticated-request.js'
 import { SessionAuthGuard } from '../auth/session-auth.guard.js'
 import { ZodValidationPipe } from '../common/zod-validation.pipe.js'
+import { PageService } from './page.service.js'
+import { ProjectService } from './project.service.js'
+import { PublicModuleService } from './public-module.service.js'
+import { TrashService } from './trash.service.js'
 import { WorkspaceService } from './workspace.service.js'
 
 @Controller()
 @UseGuards(SessionAuthGuard)
 export class WorkspaceController {
-  constructor(private readonly workspaces: WorkspaceService) {}
+  constructor(
+    private readonly workspaces: WorkspaceService,
+    private readonly projects: ProjectService,
+    private readonly pages: PageService,
+    private readonly modules: PublicModuleService,
+    private readonly trash: TrashService,
+  ) {}
 
   @Get('workspaces')
   listWorkspaces(@Req() request: AuthenticatedRequest): Promise<WorkspaceSummary[]> {
@@ -106,7 +120,7 @@ export class WorkspaceController {
     @Param('workspaceId', ParseUUIDPipe) workspaceId: string,
     @Body(new ZodValidationPipe(createProjectRequestSchema)) input: CreateProjectRequest,
   ): Promise<DesignProject> {
-    return this.workspaces.createProject(request.auth.userId, workspaceId, input)
+    return this.projects.createProject(request.auth.userId, workspaceId, input)
   }
 
   @Patch('projects/:projectId')
@@ -115,7 +129,7 @@ export class WorkspaceController {
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Body(new ZodValidationPipe(updateProjectRequestSchema)) input: UpdateProjectRequest,
   ): Promise<DesignProject> {
-    return this.workspaces.updateProject(request.auth.userId, projectId, input)
+    return this.projects.updateProject(request.auth.userId, projectId, input)
   }
 
   @Delete('projects/:projectId')
@@ -124,7 +138,7 @@ export class WorkspaceController {
     @Req() request: AuthenticatedRequest,
     @Param('projectId', ParseUUIDPipe) projectId: string,
   ): Promise<void> {
-    return this.workspaces.deleteProject(request.auth.userId, projectId)
+    return this.projects.deleteProject(request.auth.userId, projectId)
   }
 
   @Put('projects/:projectId/preference')
@@ -134,7 +148,7 @@ export class WorkspaceController {
     @Body(new ZodValidationPipe(updateProjectPreferenceRequestSchema))
     input: UpdateProjectPreferenceRequest,
   ): Promise<DesignProject> {
-    return this.workspaces.updateProjectPreference(request.auth.userId, projectId, input)
+    return this.projects.updateProjectPreference(request.auth.userId, projectId, input)
   }
 
   @Get('projects/:projectId/assets')
@@ -142,7 +156,47 @@ export class WorkspaceController {
     @Req() request: AuthenticatedRequest,
     @Param('projectId', ParseUUIDPipe) projectId: string,
   ): Promise<ProjectAssetsResponse> {
-    return this.workspaces.getProjectAssets(request.auth.userId, projectId)
+    return this.projects.getProjectAssets(request.auth.userId, projectId)
+  }
+
+  @Get('projects/:projectId/module-versions')
+  listModuleVersions(
+    @Req() request: AuthenticatedRequest,
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+  ): Promise<PublicModuleVersionList[]> {
+    return this.modules.listModuleVersions(request.auth.userId, projectId)
+  }
+
+  @Get('workspaces/:workspaceId/trash')
+  listTrash(
+    @Req() request: AuthenticatedRequest,
+    @Param('workspaceId', ParseUUIDPipe) workspaceId: string,
+  ): Promise<TrashResponse> {
+    return this.trash.listItems(request.auth.userId, workspaceId)
+  }
+
+  @Post('workspaces/:workspaceId/trash/:resourceType/:resourceId/restore')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  restoreTrashItem(
+    @Req() request: AuthenticatedRequest,
+    @Param('workspaceId', ParseUUIDPipe) workspaceId: string,
+    @Param('resourceType', new ZodValidationPipe(trashResourceTypeSchema))
+    resourceType: TrashResourceType,
+    @Param('resourceId', ParseUUIDPipe) resourceId: string,
+  ): Promise<void> {
+    return this.trash.restore(request.auth.userId, workspaceId, resourceType, resourceId)
+  }
+
+  @Delete('workspaces/:workspaceId/trash/:resourceType/:resourceId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  permanentlyDeleteTrashItem(
+    @Req() request: AuthenticatedRequest,
+    @Param('workspaceId', ParseUUIDPipe) workspaceId: string,
+    @Param('resourceType', new ZodValidationPipe(trashResourceTypeSchema))
+    resourceType: TrashResourceType,
+    @Param('resourceId', ParseUUIDPipe) resourceId: string,
+  ): Promise<void> {
+    return this.trash.permanentlyDelete(request.auth.userId, workspaceId, resourceType, resourceId)
   }
 
   @Post('projects/:projectId/pages')
@@ -151,7 +205,7 @@ export class WorkspaceController {
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Body(new ZodValidationPipe(createPageRequestSchema)) input: CreatePageRequest,
   ): Promise<PageMutationResponse> {
-    return this.workspaces.createPage(request.auth.userId, projectId, input)
+    return this.pages.createPage(request.auth.userId, projectId, input)
   }
 
   @Put('projects/:projectId/pages/:pageId')
@@ -161,7 +215,7 @@ export class WorkspaceController {
     @Param('pageId', ParseUUIDPipe) pageId: string,
     @Body(new ZodValidationPipe(savePageRequestSchema)) input: SavePageRequest,
   ): Promise<PageMutationResponse> {
-    return this.workspaces.savePage(request.auth.userId, projectId, pageId, input)
+    return this.pages.savePage(request.auth.userId, projectId, pageId, input)
   }
 
   @Post('projects/:projectId/pages/:pageId/duplicate')
@@ -170,7 +224,7 @@ export class WorkspaceController {
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Param('pageId', ParseUUIDPipe) pageId: string,
   ): Promise<PageMutationResponse> {
-    return this.workspaces.duplicatePage(request.auth.userId, projectId, pageId)
+    return this.pages.duplicatePage(request.auth.userId, projectId, pageId)
   }
 
   @Delete('projects/:projectId/pages/:pageId')
@@ -179,7 +233,7 @@ export class WorkspaceController {
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Param('pageId', ParseUUIDPipe) pageId: string,
   ): Promise<PageDeletionResponse> {
-    return this.workspaces.deletePage(request.auth.userId, projectId, pageId)
+    return this.pages.deletePage(request.auth.userId, projectId, pageId)
   }
 
   @Post('projects/:projectId/modules')
@@ -189,7 +243,7 @@ export class WorkspaceController {
     @Body(new ZodValidationPipe(createPublicModuleRequestSchema))
     input: CreatePublicModuleRequest,
   ): Promise<PublicModuleMutationResponse> {
-    return this.workspaces.createModule(request.auth.userId, projectId, input)
+    return this.modules.createModule(request.auth.userId, projectId, input)
   }
 
   @Put('projects/:projectId/modules/:moduleId')
@@ -200,7 +254,7 @@ export class WorkspaceController {
     @Body(new ZodValidationPipe(savePublicModuleRequestSchema))
     input: SavePublicModuleRequest,
   ): Promise<PublicModuleMutationResponse> {
-    return this.workspaces.saveModule(request.auth.userId, projectId, moduleId, input)
+    return this.modules.saveModule(request.auth.userId, projectId, moduleId, input)
   }
 
   @Post('projects/:projectId/modules/:moduleId/publish')
@@ -211,7 +265,7 @@ export class WorkspaceController {
     @Body(new ZodValidationPipe(publishPublicModuleRequestSchema))
     input: PublishPublicModuleRequest,
   ): Promise<PublicModuleMutationResponse> {
-    return this.workspaces.publishModule(
+    return this.modules.publishModule(
       request.auth.userId,
       projectId,
       moduleId,
@@ -225,7 +279,7 @@ export class WorkspaceController {
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Param('moduleId', ParseUUIDPipe) moduleId: string,
   ): Promise<PublicModuleMutationResponse> {
-    return this.workspaces.duplicateModule(request.auth.userId, projectId, moduleId)
+    return this.modules.duplicateModule(request.auth.userId, projectId, moduleId)
   }
 
   @Delete('projects/:projectId/modules/:moduleId')
@@ -234,6 +288,6 @@ export class WorkspaceController {
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Param('moduleId', ParseUUIDPipe) moduleId: string,
   ): Promise<DesignProject> {
-    return this.workspaces.deleteModule(request.auth.userId, projectId, moduleId)
+    return this.modules.deleteModule(request.auth.userId, projectId, moduleId)
   }
 }

@@ -1,7 +1,9 @@
 import axios, { type AxiosRequestConfig } from 'axios'
+import { ACCOUNT_DISABLED_ERROR_CODE } from '@ai-design/contracts/auth'
 import type { ZodType } from 'zod'
 
 interface ApiErrorPayload {
+  code?: string
   message?: string | string[]
   issues?: Array<{ message?: string }>
   [key: string]: unknown
@@ -62,11 +64,15 @@ export function setUnauthorizedHandler(handler: () => void) {
 }
 
 apiClient.interceptors.response.use(undefined, (error: unknown) => {
-  if (
+  const payload = axios.isAxiosError(error)
+    ? (error.response?.data as ApiErrorPayload | undefined)
+    : undefined
+  const sessionExpired =
     axios.isAxiosError(error) &&
-    error.response?.status === 401 &&
-    !error.config?.url?.startsWith('/auth/')
-  ) {
+    (error.response?.status === 401 ||
+      (error.response?.status === 403 && payload?.code === ACCOUNT_DISABLED_ERROR_CODE))
+
+  if (sessionExpired && !error.config?.url?.startsWith('/auth/')) {
     unauthorizedHandler?.()
   }
   return Promise.reject(toApiError(error, '无法连接服务端，请确认服务已启动'))

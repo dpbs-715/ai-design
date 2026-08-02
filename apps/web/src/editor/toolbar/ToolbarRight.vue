@@ -2,6 +2,7 @@
 import { useEditorStore } from '@/stores/editor.ts'
 import { storeToRefs } from 'pinia'
 import { ElMessage } from 'element-plus'
+import { createPreviewSession, discardPreviewSession } from '@/runtime/previewSession.ts'
 import DataSourceManager from './components/DataSourceManager.vue'
 import { useRouter } from 'vue-router'
 import {
@@ -256,9 +257,37 @@ function onPreview() {
     return
   }
 
-  router.push({
+  const pageRecord = workspaceStore.getPage(result.data.id)
+  const moduleRecord = getCurrentModuleRecord()
+  const previewAsset = pageRecord ?? moduleRecord
+  if (!previewAsset) {
+    ElMessage.error('当前内容不属于工作空间，无法预览')
+    return
+  }
+
+  let previewToken: string
+  try {
+    previewToken = createPreviewSession(previewAsset.id, previewAsset.projectId, result.data)
+  } catch {
+    ElMessage.error('当前内容过大，浏览器无法创建临时预览')
+    return
+  }
+
+  const previewRoute = router.resolve({
     name: 'ScreenPreview',
+    query: {
+      id: previewAsset.id,
+      projectId: previewAsset.projectId,
+      previewToken,
+    },
   })
+  const previewWindow = window.open(previewRoute.href, '_blank')
+  discardPreviewSession(previewToken)
+  if (!previewWindow) {
+    ElMessage.warning('浏览器拦截了预览窗口，请允许弹出窗口后重试')
+    return
+  }
+  previewWindow.opener = null
 }
 
 interface SaveEditorSchemaOptions {

@@ -1,7 +1,9 @@
 export interface EnvironmentVariables {
   NODE_ENV: 'development' | 'test' | 'production'
   PORT: number
+  JSON_BODY_LIMIT_BYTES: number
   TRUST_PROXY_HOPS: number
+  TRASH_RETENTION_DAYS: number
   WEB_ORIGIN: string
   POSTGRES_HOST: string
   POSTGRES_PORT: number
@@ -21,7 +23,9 @@ export interface EnvironmentVariables {
 }
 
 const DEFAULT_SERVER_PORT = 3000
+const DEFAULT_JSON_BODY_LIMIT_BYTES = 2 * 1024 * 1024
 const DEFAULT_TRUST_PROXY_HOPS = 0
+const DEFAULT_TRASH_RETENTION_DAYS = 30
 const DEFAULT_WEB_ORIGIN = 'http://localhost:5173'
 const DEFAULT_POSTGRES_HOST = '127.0.0.1'
 const DEFAULT_REDIS_HOST = '127.0.0.1'
@@ -89,6 +93,20 @@ function readNonNegativeInteger(
   return parsedValue
 }
 
+function readPositiveInteger(
+  environment: Record<string, unknown>,
+  name: keyof EnvironmentVariables,
+  defaultValue: number,
+): number {
+  const value = readNonNegativeInteger(environment, name, defaultValue)
+
+  if (value === 0) {
+    throw new Error(`Environment variable ${name} must be a positive integer`)
+  }
+
+  return value
+}
+
 export function validateEnvironment(environment: Record<string, unknown>): EnvironmentVariables {
   const nodeEnvironment = environment.NODE_ENV ?? 'development'
 
@@ -101,10 +119,20 @@ export function validateEnvironment(environment: Record<string, unknown>): Envir
   return {
     NODE_ENV: nodeEnvironment as EnvironmentVariables['NODE_ENV'],
     PORT: readPort(environment, 'PORT', DEFAULT_SERVER_PORT),
+    JSON_BODY_LIMIT_BYTES: readPositiveInteger(
+      environment,
+      'JSON_BODY_LIMIT_BYTES',
+      DEFAULT_JSON_BODY_LIMIT_BYTES,
+    ),
     TRUST_PROXY_HOPS: readNonNegativeInteger(
       environment,
       'TRUST_PROXY_HOPS',
       DEFAULT_TRUST_PROXY_HOPS,
+    ),
+    TRASH_RETENTION_DAYS: readPositiveInteger(
+      environment,
+      'TRASH_RETENTION_DAYS',
+      DEFAULT_TRASH_RETENTION_DAYS,
     ),
     WEB_ORIGIN:
       typeof environment.WEB_ORIGIN === 'string' ? environment.WEB_ORIGIN : DEFAULT_WEB_ORIGIN,

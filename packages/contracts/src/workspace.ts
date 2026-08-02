@@ -193,6 +193,35 @@ export const storedPublicModuleVersionSchema = withDomainOutput<StoredPublicModu
 export const publicModuleRecordSchema = withDomainOutput<PublicModuleRecord>(
   publicModuleRecordShapeSchema,
 )
+export const publicModuleVersionListSchema = z.object({
+  moduleId: idSchema,
+  revision: z.number().int().positive(),
+  publishedVersionId: idSchema.nullable(),
+  versions: z.array(storedPublicModuleVersionSchema),
+})
+export const moduleDeletionBlockersSchema = z.object({
+  activePageIds: z.array(idSchema),
+  trashedPageIds: z.array(idSchema),
+  historicalPageIds: z.array(idSchema),
+  activeModuleIds: z.array(idSchema),
+  trashedModuleIds: z.array(idSchema),
+  historicalModuleIds: z.array(idSchema),
+  referenceCount: z.number().int().nonnegative(),
+})
+export const trashResourceTypeSchema = z.enum(['project', 'page', 'public-module'])
+export const trashItemSchema = z.object({
+  type: trashResourceTypeSchema,
+  id: idSchema,
+  name: z.string(),
+  projectId: idSchema.nullable(),
+  projectName: z.string().nullable(),
+  deletedAt: timestampSchema,
+  expiresAt: timestampSchema,
+})
+export const trashResponseSchema = z.object({
+  retentionDays: z.number().int().positive(),
+  items: z.array(trashItemSchema),
+})
 export const projectAssetsResponseSchema = z.object({
   pages: z.array(projectPageRecordSchema),
   modules: z.array(publicModuleRecordSchema),
@@ -221,6 +250,11 @@ export type ProjectAssetsResponse = z.infer<typeof projectAssetsResponseSchema>
 export type PageMutationResponse = z.infer<typeof pageMutationResponseSchema>
 export type PageDeletionResponse = z.infer<typeof pageDeletionResponseSchema>
 export type PublicModuleMutationResponse = z.infer<typeof publicModuleMutationResponseSchema>
+export type PublicModuleVersionList = z.infer<typeof publicModuleVersionListSchema>
+export type ModuleDeletionBlockers = z.infer<typeof moduleDeletionBlockersSchema>
+export type TrashResourceType = z.infer<typeof trashResourceTypeSchema>
+export type TrashItem = z.infer<typeof trashItemSchema>
+export type TrashResponse = z.infer<typeof trashResponseSchema>
 export type CreateBusinessSystemRequest = z.infer<typeof createBusinessSystemRequestSchema>
 export type UpdateBusinessSystemRequest = z.infer<typeof updateBusinessSystemRequestSchema>
 export type CreateProjectRequest = z.infer<typeof createProjectRequestSchema>

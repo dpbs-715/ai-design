@@ -1,9 +1,14 @@
-import { DEFAULT_BUSINESS_SYSTEM_SEED } from '@ai-design/contracts/workspace'
+import {
+  DEFAULT_BUSINESS_SYSTEM_SEED,
+  moduleDeletionBlockersSchema,
+} from '@ai-design/contracts/workspace'
 import type {
   BusinessSystem,
   DesignProject,
   ProjectPageRecord,
   PublicModuleRecord,
+  PublicModuleVersionList,
+  TrashItem,
 } from '@ai-design/contracts/workspace'
 import { deepClone } from '@vunio/utils'
 import { defineStore } from 'pinia'
@@ -19,8 +24,14 @@ import * as workspaceApi from './api.ts'
 import { compareWorkspaceTimeDescending } from './time.ts'
 
 export type WorkspaceStatus = 'idle' | 'loading' | 'ready' | 'error'
+export type ModuleReferenceBlockerKind = 'trash' | 'history' | 'module' | 'unknown'
 
 interface ProjectAssetLoad {
+  token: symbol
+  promise: Promise<void>
+}
+
+interface ModuleVersionLoad {
   token: symbol
   promise: Promise<void>
 }
@@ -45,11 +56,15 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const projects = ref<DesignProject[]>([])
   const pages = ref<ProjectPageRecord[]>([])
   const modules = ref<PublicModuleRecord[]>([])
+  const trashItems = ref<TrashItem[]>([])
+  const trashRetentionDays = ref<number>()
   const selectedSystemId = ref('')
   const status = ref<WorkspaceStatus>('idle')
   const errorMessage = ref('')
   const loadedProjectIds = new Set<string>()
   const projectAssetLoads = new Map<string, ProjectAssetLoad>()
+  const loadedModuleVersionProjectIds = new Set<string>()
+  const moduleVersionLoads = new Map<string, ModuleVersionLoad>()
   let initializedForUserId = ''
   let initialization: Promise<void> | undefined
   let initializationToken: symbol | undefined
@@ -120,11 +135,15 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     projects.value = []
     pages.value = []
     modules.value = []
+    trashItems.value = []
+    trashRetentionDays.value = undefined
     selectedSystemId.value = ''
     status.value = 'idle'
     errorMessage.value = ''
     loadedProjectIds.clear()
     projectAssetLoads.clear()
+    loadedModuleVersionProjectIds.clear()
+    moduleVersionLoads.clear()
     initializedForUserId = ''
     initialization = undefined
     initializationToken = undefined
@@ -152,7 +171,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       pages.value = [...pages.value.filter((page) => page.projectId !== projectId), ...assets.pages]
       modules.value = [
         ...modules.value.filter((publicModule) => publicModule.projectId !== projectId),
-        ...assets.modules,
+        ...assets.modules.map(mergeModuleVersions),
       ]
       loadedProjectIds.add(projectId)
     })
@@ -163,6 +182,70 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       if (projectAssetLoads.get(projectId)?.token === token) projectAssetLoads.delete(projectId)
     }
     if (discarded) await loadProjectAssets(projectId, true)
+  }
+
+  function replaceProjectModuleVersions(
+    projectId: string,
+    versionLists: PublicModuleVersionList[],
+  ): boolean {
+    const projectModules = modules.value.filter(
+      (publicModule) => publicModule.projectId === projectId,
+    )
+    if (projectModules.length !== versionLists.length) return false
+
+    const versionsByModuleId = new Map(
+      versionLists.map((versionList) => [versionList.moduleId, versionList]),
+    )
+    const hasMatchingMetadata = projectModules.every((publicModule) => {
+      const versionList = versionsByModuleId.get(publicModule.id)
+      return (
+        versionList?.revision === publicModule.revision &&
+        versionList.publishedVersionId === publicModule.publishedVersionId
+      )
+    })
+    if (!hasMatchingMetadata) return false
+
+    modules.value = modules.value.map((publicModule) =>
+      publicModule.projectId === projectId
+        ? {
+            ...publicModule,
+            versions: versionsByModuleId.get(publicModule.id)!.versions,
+          }
+        : publicModule,
+    )
+    return true
+  }
+
+  async function loadProjectModuleVersions(projectId: string, force = false): Promise<void> {
+    if (!force && loadedModuleVersionProjectIds.has(projectId)) return
+    const pendingLoad = moduleVersionLoads.get(projectId)
+    if (!force && pendingLoad) return pendingLoad.promise
+
+    const token = Symbol()
+    const isCurrentRequest = () => moduleVersionLoads.get(projectId)?.token === token
+    const request = (async () => {
+      let versionLists = await workspaceApi.listModuleVersions(projectId)
+      if (!isCurrentRequest()) return
+
+      if (!replaceProjectModuleVersions(projectId, versionLists)) {
+        await loadProjectAssets(projectId, true)
+        if (!isCurrentRequest()) return
+        versionLists = await workspaceApi.listModuleVersions(projectId)
+        if (!isCurrentRequest()) return
+        if (!replaceProjectModuleVersions(projectId, versionLists)) {
+          throw new Error('模块在加载期间发生变化，请重新打开后重试')
+        }
+      }
+      loadedModuleVersionProjectIds.add(projectId)
+    })()
+    moduleVersionLoads.set(projectId, { token, promise: request })
+    try {
+      await request
+    } finally {
+      if (moduleVersionLoads.get(projectId)?.token === token) {
+        moduleVersionLoads.delete(projectId)
+      }
+    }
   }
 
   function getProject(projectId: string) {
@@ -201,6 +284,19 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       projects.value[index] = project
     } else {
       projects.value.unshift(project)
+    }
+  }
+
+  function mergeModuleVersions(publicModule: PublicModuleRecord): PublicModuleRecord {
+    const current = modules.value.find((candidate) => candidate.id === publicModule.id)
+    if (!current) return publicModule
+    const versions = new Map(current.versions.map((version) => [version.id, version]))
+    publicModule.versions.forEach((version) => versions.set(version.id, version))
+    return {
+      ...publicModule,
+      versions: [...versions.values()].sort((left, right) =>
+        left.version.localeCompare(right.version, undefined, { numeric: true }),
+      ),
     }
   }
 
@@ -258,6 +354,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     projectIds.forEach((projectId) => {
       loadedProjectIds.delete(projectId)
       projectAssetLoads.delete(projectId)
+      loadedModuleVersionProjectIds.delete(projectId)
+      moduleVersionLoads.delete(projectId)
     })
     if (selectedSystemId.value === systemId) selectedSystemId.value = systems.value[0]?.id ?? ''
     return true
@@ -284,6 +382,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     modules.value = modules.value.filter((module) => module.projectId !== projectId)
     loadedProjectIds.delete(projectId)
     projectAssetLoads.delete(projectId)
+    loadedModuleVersionProjectIds.delete(projectId)
+    moduleVersionLoads.delete(projectId)
   }
 
   async function toggleProjectFavorite(projectId: string) {
@@ -381,7 +481,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       noteLocalAssetMutation()
       const saved = response.publicModule
       const index = modules.value.findIndex((candidate) => candidate.id === moduleId)
-      modules.value[index] = saved
+      modules.value[index] = mergeModuleVersions(saved)
       replaceProject(response.project)
       return saved.schema
     } catch (error) {
@@ -403,7 +503,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       noteLocalAssetMutation()
       const published = response.publicModule
       const index = modules.value.findIndex((candidate) => candidate.id === moduleId)
-      modules.value[index] = published
+      modules.value[index] = mergeModuleVersions(published)
       replaceProject(response.project)
       return {
         status:
@@ -453,13 +553,102 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const publicModule = modules.value.find((candidate) => candidate.id === moduleId)
     if (!publicModule) return { status: 'not-found' as const }
     const references = getModuleReferences(moduleId)
-    if (references.length) return { status: 'referenced' as const, references }
+    if (references.length) {
+      return {
+        status: 'referenced' as const,
+        references,
+        hasHiddenReferences: false,
+        hiddenReferenceKinds: [] as ModuleReferenceBlockerKind[],
+      }
+    }
 
-    const project = await workspaceApi.deleteModule(publicModule.projectId, moduleId)
+    let project: DesignProject
+    try {
+      project = await workspaceApi.deleteModule(publicModule.projectId, moduleId)
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        const blockers = moduleDeletionBlockersSchema.safeParse(error.payload?.blockers)
+        if (!blockers.success) {
+          return {
+            status: 'referenced' as const,
+            references: [],
+            hasHiddenReferences: true,
+            hiddenReferenceKinds: ['unknown'] as ModuleReferenceBlockerKind[],
+          }
+        }
+        const activePageIds = new Set(blockers.data.activePageIds)
+        const visibleReferences = pages.value.filter((page) => activePageIds.has(page.id))
+        const hiddenReferenceKinds: ModuleReferenceBlockerKind[] = []
+        if (blockers.data.trashedPageIds.length > 0 || blockers.data.trashedModuleIds.length > 0) {
+          hiddenReferenceKinds.push('trash')
+        }
+        if (
+          blockers.data.historicalPageIds.length > 0 ||
+          blockers.data.historicalModuleIds.length > 0
+        ) {
+          hiddenReferenceKinds.push('history')
+        }
+        if (blockers.data.activeModuleIds.length > 0) hiddenReferenceKinds.push('module')
+        if (
+          blockers.data.referenceCount === 0 ||
+          blockers.data.activePageIds.length > visibleReferences.length
+        ) {
+          hiddenReferenceKinds.push('unknown')
+        }
+        return {
+          status: 'referenced' as const,
+          references: visibleReferences,
+          hasHiddenReferences: hiddenReferenceKinds.length > 0,
+          hiddenReferenceKinds,
+        }
+      }
+      throw error
+    }
     noteLocalAssetMutation()
     modules.value = modules.value.filter((candidate) => candidate.id !== moduleId)
+    loadedModuleVersionProjectIds.delete(publicModule.projectId)
+    moduleVersionLoads.delete(publicModule.projectId)
     replaceProject(project)
     return { status: 'removed' as const }
+  }
+
+  async function loadTrash() {
+    const response = await workspaceApi.getTrash(currentWorkspaceId.value)
+    trashItems.value = response.items
+    trashRetentionDays.value = response.retentionDays
+  }
+
+  async function restoreTrashItem(item: TrashItem) {
+    await workspaceApi.restoreTrashItem(currentWorkspaceId.value, item.type, item.id)
+    trashItems.value = trashItems.value.filter(
+      (candidate) => candidate.type !== item.type || candidate.id !== item.id,
+    )
+    if (item.type === 'public-module' && item.projectId) {
+      loadedModuleVersionProjectIds.delete(item.projectId)
+      moduleVersionLoads.delete(item.projectId)
+    }
+    try {
+      if (initializedForUserId) await initialize(initializedForUserId, true)
+      if (item.projectId) await loadProjectAssets(item.projectId, true)
+      return { synchronized: true }
+    } catch {
+      return { synchronized: false }
+    }
+  }
+
+  async function permanentlyDeleteTrashItem(item: TrashItem) {
+    await workspaceApi.permanentlyDeleteTrashItem(currentWorkspaceId.value, item.type, item.id)
+    trashItems.value = trashItems.value.filter(
+      (candidate) => candidate.type !== item.type || candidate.id !== item.id,
+    )
+    try {
+      if (item.type === 'page' && item.projectId) {
+        await loadProjectAssets(item.projectId, true)
+      }
+      return { synchronized: true }
+    } catch {
+      return { synchronized: false }
+    }
   }
 
   return {
@@ -468,6 +657,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     projects,
     pages,
     modules,
+    trashItems,
+    trashRetentionDays,
     selectedSystemId,
     status,
     errorMessage,
@@ -475,6 +666,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     reset,
     selectSystem,
     loadProjectAssets,
+    loadProjectModuleVersions,
     getProject,
     getPage,
     getProjectPages,
@@ -499,5 +691,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     duplicateModule,
     removePage,
     removeModule,
+    loadTrash,
+    restoreTrashItem,
+    permanentlyDeleteTrashItem,
   }
 })

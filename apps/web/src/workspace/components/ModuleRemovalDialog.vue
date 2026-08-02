@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { useWorkspaceStore } from '@/workspace/store.ts'
-import type { PublicModuleRecord } from '@ai-design/contracts/workspace'
+import { type ModuleReferenceBlockerKind, useWorkspaceStore } from '@/workspace/store.ts'
+import type { ProjectPageRecord, PublicModuleRecord } from '@ai-design/contracts/workspace'
 import { ElMessage } from 'element-plus'
 
 defineOptions({ name: 'ModuleRemovalDialog' })
@@ -13,12 +13,41 @@ const emit = defineEmits<{
 }>()
 const visible = defineModel<boolean>({ default: false })
 const workspaceStore = useWorkspaceStore()
+const serverBlocked = ref(false)
+const hasHiddenReferences = ref(false)
+const serverReferencePages = ref<ProjectPageRecord[]>([])
+const hiddenReferenceKinds = ref<ModuleReferenceBlockerKind[]>([])
 
-const referencePages = computed(() =>
+const localReferencePages = computed(() =>
   publicModule ? workspaceStore.getModuleReferences(publicModule.id) : [],
 )
-const isReferenced = computed(() => referencePages.value.length > 0)
-const publishedVersionCount = computed(() => publicModule?.versions.length ?? 0)
+const referencePages = computed(() => {
+  const pagesById = new Map(
+    [...localReferencePages.value, ...serverReferencePages.value].map((page) => [page.id, page]),
+  )
+  return [...pagesById.values()]
+})
+const isReferenced = computed(() => referencePages.value.length > 0 || serverBlocked.value)
+const hiddenReferenceDescription = computed(() => {
+  const labels: Record<ModuleReferenceBlockerKind, string> = {
+    trash: '垃圾桶资源',
+    history: '历史版本',
+    module: '其他模块草稿',
+    unknown: '暂时无法确认的资源',
+  }
+  return hiddenReferenceKinds.value.map((kind) => labels[kind]).join('、')
+})
+
+watch(
+  () => [visible.value, publicModule?.id] as const,
+  ([isVisible]) => {
+    if (!isVisible) return
+    serverBlocked.value = false
+    hasHiddenReferences.value = false
+    serverReferencePages.value = []
+    hiddenReferenceKinds.value = []
+  },
+)
 
 function close() {
   visible.value = false
@@ -28,6 +57,13 @@ async function removeModule() {
   if (!publicModule || isReferenced.value) return
   try {
     const result = await workspaceStore.removeModule(publicModule.id)
+    if (result.status === 'referenced') {
+      serverBlocked.value = true
+      hasHiddenReferences.value = result.hasHiddenReferences
+      serverReferencePages.value = result.references
+      hiddenReferenceKinds.value = result.hiddenReferenceKinds
+      return
+    }
     if (result.status !== 'removed') return
     close()
     emit('removed', publicModule)
@@ -44,7 +80,7 @@ async function removeModule() {
     footer-hide
     width="480px"
     :close-on-click-modal="false"
-    :title="isReferenced ? '暂时无法删除模块' : '永久删除公共模块'"
+    :title="isReferenced ? '暂时无法删除模块' : '将公共模块移入垃圾桶'"
   >
     <template v-if="publicModule">
       <div v-if="isReferenced" class="removal-message is-blocked">
@@ -52,8 +88,14 @@ async function removeModule() {
           <Icon icon="fluent:link-dismiss-20-filled" width="22" />
         </span>
         <div>
-          <strong>先解除 {{ referencePages.length }} 个页面中的模块引用</strong>
-          <p>直接删除会导致页面无法渲染这个模块，因此当前操作已被阻止。</p>
+          <strong v-if="referencePages.length">
+            先解除 {{ referencePages.length }} 个页面中的模块引用
+          </strong>
+          <strong v-else>该模块仍存在受保护的引用</strong>
+          <p v-if="hasHiddenReferences">
+            仍被{{ hiddenReferenceDescription }}引用，请先处理对应资源或解除引用。
+          </p>
+          <p v-else>直接删除会导致页面无法渲染这个模块，因此当前操作已被阻止。</p>
         </div>
       </div>
       <div v-else class="removal-message is-danger">
@@ -61,15 +103,12 @@ async function removeModule() {
           <Icon icon="fluent:delete-20-filled" width="22" />
         </span>
         <div>
-          <strong>删除“{{ publicModule.schema.root.name }}”后无法恢复</strong>
-          <p v-if="publishedVersionCount">
-            将同时删除当前草稿和 {{ publishedVersionCount }} 个已发布版本。
-          </p>
-          <p v-else>将删除当前草稿。</p>
+          <strong>“{{ publicModule.schema.root.name }}”将从项目中移除</strong>
+          <p>草稿和已发布版本会一同进入垃圾桶，并可在保留期内恢复。</p>
         </div>
       </div>
 
-      <div v-if="isReferenced" class="reference-pages">
+      <div v-if="referencePages.length" class="reference-pages">
         <RouterLink
           v-for="page in referencePages"
           :key="page.id"
@@ -89,7 +128,7 @@ async function removeModule() {
         {{ isReferenced ? '知道了' : '取消' }}
       </CommonButton>
       <CommonButton v-if="!isReferenced" type="danger" @click="removeModule">
-        永久删除
+        移入垃圾桶
       </CommonButton>
     </template>
   </CommonDialog>

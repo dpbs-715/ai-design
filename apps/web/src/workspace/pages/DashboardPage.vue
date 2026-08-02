@@ -6,6 +6,7 @@ import { storeToRefs } from 'pinia'
 import ProjectStackCard from '../components/ProjectStackCard.vue'
 import SystemSidebar from '../components/SystemSidebar.vue'
 import WorkspaceTopbar from '../components/WorkspaceTopbar.vue'
+import TrashDialog from '../components/TrashDialog.vue'
 import { useWorkspaceStore } from '../store.ts'
 import { compareWorkspaceTimeDescending } from '../time.ts'
 import { useWorkspaceResponsive } from '../useWorkspaceResponsive.ts'
@@ -23,6 +24,7 @@ const searchOpen = ref(false)
 const searchQuery = ref('')
 const dashboardMode = ref<'all' | 'recent' | 'favorites'>('all')
 const systemDialogVisible = ref(false)
+const trashVisible = ref(false)
 const systemEditorMode = ref<'create' | 'edit'>('create')
 const editingSystemId = ref('')
 const systemDraft = ref({ name: '', description: '' })
@@ -148,11 +150,11 @@ async function renameProject(project: DesignProject) {
 async function removeProject(project: DesignProject) {
   try {
     await ElMessageBox.confirm(
-      `将同时删除项目内的 ${project.pageCount} 个页面和 ${project.moduleCount} 个公共模块。`,
+      `项目及其中的 ${project.pageCount} 个页面和 ${project.moduleCount} 个公共模块将进入垃圾桶。`,
       `删除“${project.name}”`,
       {
         type: 'warning',
-        confirmButtonText: '删除项目',
+        confirmButtonText: '移入垃圾桶',
         cancelButtonText: '取消',
       },
     )
@@ -217,11 +219,14 @@ async function removeSystem(system: BusinessSystem) {
   }
 
   const systemProjects = projects.value.filter((project) => project.systemId === system.id)
-  const pageCount = systemProjects.reduce((count, project) => count + project.pageCount, 0)
-  const moduleCount = systemProjects.reduce((count, project) => count + project.moduleCount, 0)
+  if (systemProjects.length) {
+    ElMessage.warning('请先将该业务系统中的项目移入垃圾桶并永久删除')
+    return
+  }
+
   try {
     await ElMessageBox.confirm(
-      `将同时删除 ${systemProjects.length} 个项目、${pageCount} 个页面和 ${moduleCount} 个公共模块。`,
+      '仅删除空业务系统；垃圾桶中如仍有该系统的项目，服务端会阻止删除。',
       `删除“${system.name}”`,
       {
         type: 'warning',
@@ -400,6 +405,10 @@ async function removeSystem(system: BusinessSystem) {
             <Icon icon="fluent:search-20-regular" width="18" />
             <span>搜索</span>
           </button>
+          <button type="button" :class="{ active: trashVisible }" @click="trashVisible = true">
+            <Icon icon="fluent:delete-20-regular" width="18" />
+            <span>垃圾桶</span>
+          </button>
         </nav>
       </main>
     </div>
@@ -414,6 +423,7 @@ async function removeSystem(system: BusinessSystem) {
       <p class="system-editor-note">系统用于归类项目，名称和描述会显示在主页侧栏。</p>
       <CommonForm v-model="systemDraft" label-position="top" :config="systemFormConfig" />
     </CommonDialog>
+    <TrashDialog v-model="trashVisible" />
   </div>
 </template>
 
