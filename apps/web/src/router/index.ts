@@ -23,6 +23,7 @@ const router = createRouter({
       path: '/auth',
       component: AuthLayout,
       redirect: { name: 'Login' },
+      meta: { usesAuthPanelTransition: true },
       children: [
         {
           path: '/login',
@@ -83,7 +84,8 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to) => {
+router.beforeEach((to, from) => {
+  if (to.meta.usesAuthPanelTransition && from.meta.usesAuthPanelTransition) return
   beginRouteNavigation(to)
 })
 
