@@ -63,6 +63,11 @@ const group = [
     icon: 'fluent:form-20-filled',
     key: 'form',
   },
+  {
+    name: '交互',
+    icon: 'fluent:cursor-click-20-filled',
+    key: 'interaction',
+  },
 ]
 
 export function getMaterialByGroup(group: string) {

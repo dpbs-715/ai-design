@@ -94,7 +94,6 @@ body .CommonButton.CommonButton--primary.is-plain {
   }
 }
 
-
 .toolbar-button,
 .toolbar-action {
   display: inline-flex;
@@ -280,7 +279,10 @@ body .CommonButton.CommonButton--primary.is-plain {
 
 .rail-nav {
   width: 58px;
+  min-height: 0;
   flex: none;
+  overflow-x: hidden;
+  overflow-y: auto;
   border-right: 1px solid var(--border-color);
   background: var(--surface-workbench);
 

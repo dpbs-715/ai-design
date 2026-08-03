@@ -107,6 +107,14 @@ defineExpose({ getDraft })
       </div>
     </div>
 
+    <div class="trusted-code-notice" role="note">
+      <Icon icon="fluent:shield-lock-20-regular" width="17" />
+      <span>
+        <strong>仅运行可信代码</strong>
+        <small>事件代码会在预览和运行页面中执行，请勿粘贴来源不明的脚本。</small>
+      </span>
+    </div>
+
     <div class="code-editor">
       <div class="function-line">{{ functionSignature }} {</div>
       <MonacoEditor
@@ -207,6 +215,42 @@ defineExpose({ getDraft })
 
 .helper-select {
   width: min(220px, 48%);
+}
+
+.trusted-code-notice {
+  display: flex;
+  flex: none;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--el-color-warning) 42%, var(--border-color));
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--el-color-warning) 8%, var(--surface-raised));
+  color: var(--el-color-warning);
+
+  > svg {
+    flex: none;
+    margin-top: 1px;
+  }
+
+  span {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+  }
+
+  strong {
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  small {
+    margin-top: 2px;
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.5;
+  }
 }
 
 .code-editor {

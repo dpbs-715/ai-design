@@ -15,7 +15,9 @@ export function createMaterialEventProps(
     const previousListener = listeners[eventProp]
     listeners[eventProp] = (...args) => {
       previousListener?.(...args)
-      return context.executeEvent(node, event, args[0])
+      return context.executeEvent(node, event, args[0]).catch((error) => {
+        context.reportEventFailure({ error, event, node })
+      })
     }
   })
 

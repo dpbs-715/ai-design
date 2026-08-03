@@ -68,5 +68,5 @@ export interface EventScriptContext {
   /** 刷新绑定到指定数据源的全部节点。 */
   refreshNodesByDataId(dataId: string | number, ...args: unknown[]): void
   /** 触发指定节点中配置的事件函数。 */
-  dispatch(id: string, action: string, payload?: unknown): unknown
+  dispatch(id: string, action: string, payload?: unknown): Promise<unknown> | undefined
 }

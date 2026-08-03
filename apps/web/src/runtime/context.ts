@@ -7,13 +7,27 @@ import { runSandbox } from '@/runtime/sandbox.ts'
 
 export interface RuntimeContext extends EventScriptContext {
   getNode(id: string): MaterialSchema | undefined
-  executeEvent(node: MaterialSchema, event: MaterialEvent, payload: unknown): unknown
+  executeEvent(node: MaterialSchema, event: MaterialEvent, payload: unknown): Promise<unknown>
+  reportEventFailure(failure: RuntimeEventFailure): void
   registerNodeInstance(id: string, instance: unknown): void
   unregisterNodeInstance(id: string): void
   registerNodeValue(id: string, getValue: () => unknown): () => void
 }
 
-export function createRuntimeContext(page: Ref<PageSchema>): RuntimeContext {
+export interface RuntimeEventFailure {
+  error: unknown
+  event: MaterialEvent
+  node: MaterialSchema
+}
+
+export interface RuntimeContextOptions {
+  onEventFailure?: (failure: RuntimeEventFailure) => void
+}
+
+export function createRuntimeContext(
+  page: Ref<PageSchema>,
+  options: RuntimeContextOptions = {},
+): RuntimeContext {
   const instanceMap = new Map<string, any>()
   const nodeValueGetters = shallowReactive(new Map<string, () => unknown>())
   const treeIndex = computed(() =>
@@ -89,6 +103,11 @@ export function createRuntimeContext(page: Ref<PageSchema>): RuntimeContext {
     })
   }
 
+  const reportEventFailure: RuntimeContext['reportEventFailure'] = ({ error, event, node }) => {
+    console.error(`Event ${event.name} on node ${node.id} failed`, error)
+    options.onEventFailure?.({ error, event, node })
+  }
+
   const dispatch: RuntimeContext['dispatch'] = (id, action, payload) => {
     const node = getNode(id)
     if (!node) {
@@ -104,6 +123,7 @@ export function createRuntimeContext(page: Ref<PageSchema>): RuntimeContext {
   const context: RuntimeContext = {
     getNode,
     executeEvent,
+    reportEventFailure,
     setAttribute,
     setProps,
     setStyle,

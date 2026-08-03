@@ -11,6 +11,8 @@ import ScreenNode from './ScreenNode.vue'
 import { useWorkspaceStore } from '@/workspace/store.ts'
 import { providePublicModules } from '@/context/publicModules.ts'
 import { storeToRefs } from 'pinia'
+import { ElMessage } from 'element-plus'
+import type { RuntimeEventFailure } from '@/runtime/context.ts'
 
 defineOptions({ name: 'ScreenRenderer' })
 
@@ -22,7 +24,13 @@ provideMaterialRenderContext({ mode: 'runtime' })
 providePublicModules(modules)
 const runtimePage = ref(props.page)
 const renderTheme = provideRenderTheme(() => runtimePage.value.theme)
-const context = createRuntimeContext(runtimePage)
+
+function reportEventFailure({ error, event, node }: RuntimeEventFailure) {
+  const reason = error instanceof Error ? error.message : '未知错误'
+  ElMessage.error(`“${node.name}”的“${event.title ?? event.name}”执行失败：${reason}`)
+}
+
+const context = createRuntimeContext(runtimePage, { onEventFailure: reportEventFailure })
 provideRuntimeContext(context)
 
 const root = computed(() => runtimePage.value.root)
