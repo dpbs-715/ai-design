@@ -61,7 +61,6 @@ const displayVersion = computed(() =>
             <Icon icon="fluent:more-horizontal-20-regular" width="18" />
           </button>
           <template #dropdown>
-            <el-dropdown-item @click="$emit('references')">查看引用</el-dropdown-item>
             <el-dropdown-item @click="$emit('rename')">重命名</el-dropdown-item>
             <el-dropdown-item @click="$emit('duplicate')">复制模块</el-dropdown-item>
             <el-dropdown-item divided @click="$emit('remove')">删除模块</el-dropdown-item>
