@@ -10,7 +10,7 @@ import EventWorkbench from '@/editor/panels/property/components/EventWorkbench.v
 import ModuleInputValueEditor from '@/editor/panels/property/components/ModuleInputValueEditor.vue'
 import NodeNameEditor from '@/editor/panels/property/components/NodeNameEditor.vue'
 import { useUndoRedo } from '@/hooks/useUndoRedo.ts'
-import { getMaterialIcon, getMaterialSetters } from '@/materials'
+import { getMaterialIcon, getMaterialResizeConstraints, getMaterialSetters } from '@/materials'
 import { isFormItemPlacement, type MaterialEvent } from '@/schema/material.ts'
 import { createModuleInstanceInputs, normalizeProjectModuleInstanceProps } from '@/schema/module.ts'
 import { useEditorStore } from '@/stores/editor.ts'
@@ -58,6 +58,7 @@ const selectedNode = computed(() => selectedNodeRef.value!)
 
 const activeSection = ref<PropertySection>('config')
 const componentIcon = computed(() => getMaterialIcon(selectedNode.value.type))
+const resizeConstraints = computed(() => getMaterialResizeConstraints(selectedNode.value.type))
 const isProjectModuleInstance = computed(
   () => selectedNode.value.type === 'project-module-instance',
 )
@@ -151,14 +152,14 @@ const layoutSetters = computed<CommonFormConfig[]>(() =>
             field: 'width',
             component: 'number',
             span: 12,
-            props: { min: 1 },
+            props: { min: resizeConstraints.value?.minWidth ?? 1 },
           },
           {
             label: '高度',
             field: 'height',
             component: 'number',
             span: 12,
-            props: { min: 1 },
+            props: { min: resizeConstraints.value?.minHeight ?? 1 },
           },
         ],
   ),

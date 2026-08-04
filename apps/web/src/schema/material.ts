@@ -5,5 +5,6 @@ export type {
   MaterialDataBinding,
   MaterialDefinition,
   MaterialPreviewDefinition,
+  MaterialResizeConstraints,
   MaterialSetter,
 } from '@/materials/definition.ts'

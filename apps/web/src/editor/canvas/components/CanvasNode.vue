@@ -1,19 +1,37 @@
 <script setup lang="ts">
 import type { CSSProperties } from 'vue'
 import { isAbsolutePlacement, type MaterialSchema } from '@/schema/material.ts'
-import { getMaterialComponent, isContainerMaterial, isMaterialChildrenRenderer } from '@/materials'
+import {
+  getMaterialComponent,
+  isContainerMaterial,
+  isMaterialChildrenRenderer,
+  isOverlayMaterial,
+} from '@/materials'
 import { useEditorStore } from '@/stores/editor.ts'
+import type { RuntimeContext } from '@/runtime/context.ts'
 
 defineOptions({ name: 'CanvasNode' })
 
 const editorStore = useEditorStore()
-const props = defineProps<{
-  node: MaterialSchema
-  parentId: string
-  rootChild?: boolean
-  dropTargetId?: string
-  onNodeMouseDown: (node: MaterialSchema, event: MouseEvent) => void
-}>()
+const props = withDefaults(
+  defineProps<{
+    node: MaterialSchema
+    parentId: string
+    runtimeContext: RuntimeContext
+    editorVisible?: boolean
+    overlayActive?: boolean
+    rootChild?: boolean
+    dropTargetId?: string
+    onNodeMouseDown: (node: MaterialSchema, event: MouseEvent) => void
+    onOverlayOpen?: (nodeId: string) => void
+    onOverlayClose?: (nodeId: string) => void
+  }>(),
+  {
+    editorVisible: true,
+    overlayActive: false,
+    rootChild: false,
+  },
+)
 
 const nodeStyle = computed<CSSProperties>(() => {
   if (!isAbsolutePlacement(props.node.placement)) return {}
@@ -25,20 +43,40 @@ const nodeStyle = computed<CSSProperties>(() => {
   }
 })
 const isContainer = computed(() => isContainerMaterial(props.node.type))
+const isOverlay = computed(() => isOverlayMaterial(props.node.type))
 const rendersChildren = computed(() => isMaterialChildrenRenderer(props.node.type))
+const editorStateProps = computed(() =>
+  isOverlay.value ? { editorActive: props.overlayActive === true } : {},
+)
 const isDropTarget = computed(() => isContainer.value && props.node.id === props.dropTargetId)
 const effectiveLockKey = computed(() => editorStore.getNodeLockKey(props.node.id))
 
 function onMouseDown(event: MouseEvent) {
   props.onNodeMouseDown(props.node, event)
 }
+
+function registerInstance(instance: unknown) {
+  if (instance) props.runtimeContext.registerNodeInstance(props.node.id, instance)
+  else props.runtimeContext.unregisterNodeInstance(props.node.id)
+}
+
+function onEditorOpen() {
+  props.onOverlayOpen?.(props.node.id)
+}
+
+function onEditorClose() {
+  props.onOverlayClose?.(props.node.id)
+}
 </script>
 
 <template>
   <div
+    v-show="editorVisible !== false"
     class="canvas-node"
     :class="{
       'is-locked': effectiveLockKey,
+      'is-editor-hidden': editorVisible === false,
+      'is-active-overlay': overlayActive,
       'is-root-child': rootChild,
       'is-container': isContainer,
       'is-drop-target': isDropTarget,
@@ -49,9 +87,13 @@ function onMouseDown(event: MouseEvent) {
     @mousedown.stop="onMouseDown"
   >
     <component
+      :ref="registerInstance"
       :is="getMaterialComponent(node.type, 'editor')"
+      v-bind="editorStateProps"
       :schema="node"
       :data-container-id="isContainer ? node.id : undefined"
+      @editor-open="onEditorOpen"
+      @editor-close="onEditorClose"
     >
       <template v-if="rendersChildren">
         <CanvasNode
@@ -59,8 +101,11 @@ function onMouseDown(event: MouseEvent) {
           :key="child.id"
           :node="child"
           :parent-id="node.id"
+          :runtime-context="runtimeContext"
           :drop-target-id="dropTargetId"
           :on-node-mouse-down="onNodeMouseDown"
+          :on-overlay-open="onOverlayOpen"
+          :on-overlay-close="onOverlayClose"
         />
       </template>
     </component>
@@ -77,6 +122,10 @@ function onMouseDown(event: MouseEvent) {
 .canvas-node {
   position: absolute;
   isolation: isolate;
+}
+
+.canvas-node.is-active-overlay {
+  z-index: 2;
 }
 
 .canvas-node.is-container.is-drop-target {

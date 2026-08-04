@@ -26,6 +26,11 @@ export interface MaterialDataBinding {
   field: string
 }
 
+export interface MaterialResizeConstraints {
+  minHeight?: number
+  minWidth?: number
+}
+
 export interface MaterialCapability {
   kind: 'leaf' | 'container'
   roles: string[]
@@ -41,6 +46,7 @@ export interface MaterialDefinition {
   capability?: MaterialCapability
   editorComponent?: Component
   childrenRenderer?: 'renderer' | 'material'
+  resizeConstraints?: MaterialResizeConstraints
   validationSchema?: z.ZodType
   setters: MaterialSetter[]
 

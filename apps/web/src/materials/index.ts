@@ -5,7 +5,7 @@ import type { ModuleRootSchema } from '@/schema/module.ts'
 import { deepClone } from '@vunio/utils'
 import { commonMaterialEventOptions, createMaterialEventOptionGroups } from './events.ts'
 
-export { filterMaterialEventOptionGroups } from './events.ts'
+export { filterMaterialEventOptionGroups, getConfiguredMaterialEvents } from './events.ts'
 
 const materials: MaterialDefinition[] = []
 
@@ -88,8 +88,16 @@ export function getMaterialDefinition(type: string) {
   return materialMap.get(type)
 }
 
+export function getMaterialResizeConstraints(type: string) {
+  return materialMap.get(type)?.resizeConstraints
+}
+
 export function isContainerMaterial(type: string) {
   return materialMap.get(type)?.capability?.kind === 'container'
+}
+
+export function isOverlayMaterial(type: string) {
+  return materialMap.get(type)?.capability?.roles.includes('page-overlay') ?? false
 }
 
 export function isMaterialChildrenRenderer(type: string) {
@@ -102,9 +110,11 @@ export function canMaterialTypeBeChild(
 ) {
   const childRoles = materialMap.get(childType)?.capability?.roles ?? ['canvas-content']
   const acceptedRoles =
-    parent.type === 'page-root' || parent.type === 'module-root'
-      ? ['canvas-content']
-      : materialMap.get(parent.type)?.capability?.accepts
+    parent.type === 'page-root'
+      ? ['canvas-content', 'page-overlay']
+      : parent.type === 'module-root'
+        ? ['canvas-content']
+        : materialMap.get(parent.type)?.capability?.accepts
 
   if (parent.type !== 'page-root' && parent.type !== 'module-root') {
     const parentCapability = materialMap.get(parent.type)?.capability

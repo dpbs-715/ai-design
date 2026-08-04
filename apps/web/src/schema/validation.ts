@@ -100,6 +100,22 @@ function validateMaterialTree(
               : '该物料必须使用绝对布局',
         })
       }
+
+      if (child.placement.type === 'absolute') {
+        const { minHeight, minWidth } = definition.resizeConstraints ?? {}
+        if (minWidth !== undefined && child.placement.width < minWidth) {
+          issues.push({
+            path: [...nodePath, 'placement', 'width'],
+            message: `该物料宽度不能小于 ${minWidth}`,
+          })
+        }
+        if (minHeight !== undefined && child.placement.height < minHeight) {
+          issues.push({
+            path: [...nodePath, 'placement', 'height'],
+            message: `该物料高度不能小于 ${minHeight}`,
+          })
+        }
+      }
     }
 
     if (parent && !canMaterialAcceptChild(parent, child)) {

@@ -9,6 +9,7 @@ import {
 import { useEditorStore } from '@/stores/editor.ts'
 import { useUndoRedo } from '@/hooks/useUndoRedo.ts'
 import { SetFormFieldCommand } from '@vunio/ui'
+import { getMaterialResizeConstraints } from '@/materials'
 import {
   isAbsolutePlacement,
   type AbsolutePlacement,
@@ -53,7 +54,13 @@ export function useMoveable() {
   }
 
   function setMinimumResizeSize(event: OnResizeStart) {
-    event.setMin([MIN_NODE_SIZE, MIN_NODE_SIZE])
+    const target = event.target as HTMLElement
+    const node = editorStore.findNode(target.dataset.nodeId)
+    const constraints = node ? getMaterialResizeConstraints(node.type) : undefined
+    event.setMin([
+      constraints?.minWidth ?? MIN_NODE_SIZE,
+      constraints?.minHeight ?? MIN_NODE_SIZE,
+    ])
   }
 
   function onResizeStart(event: OnResizeStart) {

@@ -8,6 +8,7 @@ interface UseCanvasShortcutsOptions {
   cutNodes: (nodes: MaterialSchema[]) => Promise<void>
   pasteFromClipboard: () => Promise<void>
   closeContextMenu: () => void
+  onEscape?: () => boolean
 }
 
 const TEXT_EDITING_SELECTOR =
@@ -35,6 +36,7 @@ export function useCanvasShortcuts({
   cutNodes,
   pasteFromClipboard,
   closeContextMenu,
+  onEscape,
 }: UseCanvasShortcutsOptions) {
   const editorStore = useEditorStore()
   const { undo, redo } = useUndoRedo()
@@ -77,7 +79,7 @@ export function useCanvasShortcuts({
     if (event.key === 'Escape') {
       event.preventDefault()
       closeContextMenu()
-      editorStore.clearSelection()
+      if (!onEscape?.()) editorStore.clearSelection()
       return
     }
 

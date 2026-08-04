@@ -22,6 +22,7 @@ export interface RuntimeEventFailure {
 
 export interface RuntimeContextOptions {
   onEventFailure?: (failure: RuntimeEventFailure) => void
+  writeAttribute?: (node: MaterialSchema, key: string, value: unknown) => void
 }
 
 export function createRuntimeContext(
@@ -42,6 +43,10 @@ export function createRuntimeContext(
     const node = getNode(id)
     if (!node) {
       console.warn(`Node ${id} not found`)
+      return
+    }
+    if (options.writeAttribute) {
+      options.writeAttribute(node, key, value)
       return
     }
     setByKeyOrPath(node, key, value)

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { CSSProperties } from 'vue'
 import { isAbsolutePlacement, type MaterialSchema } from '@/schema/material.ts'
-import { getMaterialComponent, isMaterialChildrenRenderer } from '@/materials'
+import { getMaterialComponent, isMaterialChildrenRenderer, isOverlayMaterial } from '@/materials'
 import type { RuntimeContext } from '@/runtime/context.ts'
 import { createMaterialEventProps } from '@/runtime/materialEvents.ts'
 
@@ -29,7 +29,11 @@ function registerInstance(instance: unknown) {
 </script>
 
 <template>
-  <div class="screen-node" :style="nodeStyle">
+  <div
+    class="screen-node"
+    :class="{ 'is-overlay-node': isOverlayMaterial(node.type) }"
+    :style="nodeStyle"
+  >
     <component
       :ref="registerInstance"
       :is="getMaterialComponent(node.type)"
@@ -51,5 +55,9 @@ function registerInstance(instance: unknown) {
 <style scoped>
 .screen-node {
   position: absolute;
+}
+
+.screen-node.is-overlay-node {
+  pointer-events: none;
 }
 </style>

@@ -20,7 +20,8 @@ const props = defineProps<{ page: PageSchema }>()
 const workspaceStore = useWorkspaceStore()
 const { modules } = storeToRefs(workspaceStore)
 
-provideMaterialRenderContext({ mode: 'runtime' })
+const overlayRootRef = useTemplateRef<HTMLDivElement>('overlayRoot')
+provideMaterialRenderContext({ mode: 'runtime', overlayTarget: overlayRootRef })
 providePublicModules(modules)
 const runtimePage = ref(props.page)
 const renderTheme = provideRenderTheme(() => runtimePage.value.theme)
@@ -71,6 +72,7 @@ onMounted(init)
       :style="canvasStyle"
     >
       <CanvasBackground :background="root.style.background" />
+      <div ref="overlayRoot" class="screen-overlay-root"></div>
       <ScreenNode v-for="node in root.children" :key="node.id" :node="node" :context="context" />
     </div>
   </div>
@@ -85,5 +87,16 @@ onMounted(init)
 .canvas-root {
   position: relative;
   overflow: hidden;
+}
+
+.screen-overlay-root {
+  position: absolute;
+  z-index: 1000;
+  inset: 0;
+  pointer-events: none;
+}
+
+.screen-overlay-root :deep(.el-overlay) {
+  pointer-events: auto;
 }
 </style>

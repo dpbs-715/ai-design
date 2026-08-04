@@ -1,8 +1,13 @@
 import type { EventOption } from '@/schema/material.ts'
+import type { MaterialEvent, MaterialSchema } from '@ai-design/contracts'
 
 export interface MaterialEventOptionGroup {
   label: string
   options: EventOption[]
+}
+
+export function getConfiguredMaterialEvents(node: Pick<MaterialSchema, 'events'>): MaterialEvent[] {
+  return node.events?.filter((event) => event.code.trim().length > 0) ?? []
 }
 
 export const commonMaterialEventOptions: EventOption[] = [
