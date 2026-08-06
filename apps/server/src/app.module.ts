@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { AgentsModule } from './agents/agents.module.js'
 import { AuthModule } from './auth/auth.module.js'
 import { validateEnvironment } from './config/environment.js'
 import { DatabaseModule } from './database/database.module.js'
@@ -24,6 +25,7 @@ const serverRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
     RedisModule,
     AuthModule,
     WorkspaceModule,
+    AgentsModule,
     HealthModule,
   ],
 })

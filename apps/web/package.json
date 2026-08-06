@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@ai-design/contracts": "workspace:*",
+    "@ai-design/materials": "workspace:*",
     "@tailwindcss/vite": "^4.3.2",
     "@vunio/directives": "^1.7.1",
     "@vunio/hooks": "^1.7.1",

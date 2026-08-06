@@ -35,5 +35,6 @@ import { WorkspaceService } from './workspace.service.js'
     PublicModuleService,
     TrashService,
   ],
+  exports: [WorkspaceAccessService],
 })
 export class WorkspaceModule {}

@@ -1,16 +1,13 @@
-import type { MaterialDefinition } from '@/schema/material.ts'
+import { lineChartDescriptor } from '@ai-design/materials'
+import { defineMaterial } from '@/materials/defineMaterial.ts'
 import ChartPreview from '@/materials/previews/ChartPreview.vue'
 import {
   cartesianChartSetters,
   chartMaterialIcons,
   commonChartSetters,
-  createCartesianOption,
 } from '@/materials/charts/shared.ts'
-import { createThemeColorReference } from '@/theme/renderTheme.ts'
 
-export const lineMaterial: MaterialDefinition = {
-  name: '折线图',
-  group: 'charts',
+export const lineMaterial = defineMaterial(lineChartDescriptor, {
   icon: chartMaterialIcons.line,
   preview: {
     component: ChartPreview,
@@ -75,79 +72,4 @@ export const lineMaterial: MaterialDefinition = {
     { label: '分类轴 X', field: 'props.option.series.0.encode.x' },
     { label: '数值轴 Y', field: 'props.option.series.0.encode.y' },
   ],
-  schema: {
-    type: 'line-chart',
-    name: '折线图',
-    placement: {
-      type: 'absolute',
-      x: 0,
-      y: 0,
-      width: 420,
-      height: 260,
-    },
-    props: {
-      option: {
-        ...createCartesianOption('实时访问趋势'),
-        color: [createThemeColorReference('primary')],
-        dataset: {
-          source: [
-            { label: '08:00', value: 420 },
-            { label: '10:00', value: 680 },
-            { label: '12:00', value: 590 },
-            { label: '14:00', value: 960 },
-            { label: '16:00', value: 810 },
-            { label: '18:00', value: 1240 },
-            { label: '20:00', value: 1080 },
-          ],
-        },
-        xAxis: {
-          ...createCartesianOption('').xAxis,
-          boundaryGap: false,
-        },
-        series: [
-          {
-            name: '访问量',
-            type: 'line',
-            smooth: false,
-            showSymbol: true,
-            symbol: 'circle',
-            symbolSize: 7,
-            encode: {
-              x: 'label',
-              y: 'value',
-            },
-            lineStyle: {
-              width: 3,
-              type: 'solid',
-              color: createThemeColorReference('primary'),
-              cap: 'round',
-              join: 'round',
-              shadowColor: createThemeColorReference('primary'),
-              shadowBlur: 10,
-            },
-            itemStyle: {
-              color: createThemeColorReference('page-background'),
-              borderColor: createThemeColorReference('primary'),
-              borderWidth: 2,
-            },
-            emphasis: {
-              focus: 'series',
-              scale: 1.5,
-            },
-            markPoint: {
-              symbol: 'pin',
-              symbolSize: 34,
-              label: {
-                color: createThemeColorReference('page-background'),
-                fontSize: 10,
-              },
-              itemStyle: {
-                color: createThemeColorReference('primary'),
-              },
-            },
-          },
-        ],
-      },
-    },
-  },
-}
+})

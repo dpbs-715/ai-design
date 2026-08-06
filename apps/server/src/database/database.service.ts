@@ -26,6 +26,14 @@ export class DatabaseService implements OnModuleDestroy {
     })
   }
 
+  /**
+   * 暴露连接池给需要自带 SQL 层的库(例如 LangGraph 的 PostgresSaver),
+   * 避免为它们再开一份连接池。日常查询请用 `query` / `withTransaction`。
+   */
+  get connectionPool(): Pool {
+    return this.pool
+  }
+
   query<Row extends QueryResultRow = QueryResultRow>(
     statement: string,
     values?: QueryConfigValues<unknown[]>,

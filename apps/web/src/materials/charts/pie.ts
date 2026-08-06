@@ -1,11 +1,9 @@
-import type { MaterialDefinition } from '@/schema/material.ts'
+import { pieChartDescriptor } from '@ai-design/materials'
+import { defineMaterial } from '@/materials/defineMaterial.ts'
 import ChartPreview from '@/materials/previews/ChartPreview.vue'
-import { chartMaterialIcons, commonChartSetters, createChartBaseOption } from '@/materials/charts/shared.ts'
-import { createThemeColorReference } from '@/theme/renderTheme.ts'
+import { chartMaterialIcons, commonChartSetters } from '@/materials/charts/shared.ts'
 
-export const pieMaterial: MaterialDefinition = {
-  name: '饼图',
-  group: 'charts',
+export const pieMaterial = defineMaterial(pieChartDescriptor, {
   icon: chartMaterialIcons.pie,
   preview: {
     component: ChartPreview,
@@ -102,88 +100,4 @@ export const pieMaterial: MaterialDefinition = {
     { label: '名称字段', field: 'props.option.series.0.encode.itemName' },
     { label: '数值字段', field: 'props.option.series.0.encode.value' },
   ],
-  schema: {
-    type: 'pie-chart',
-    name: '饼图',
-    placement: {
-      type: 'absolute',
-      x: 0,
-      y: 0,
-      width: 420,
-      height: 260,
-    },
-    props: {
-      option: {
-        ...createChartBaseOption('流量来源构成'),
-        color: [createThemeColorReference('primary'), '#22d3ee', '#fbbf24', '#34d399', '#fb7185'],
-        legend: {
-          show: true,
-          orient: 'vertical',
-          top: 'middle',
-          right: 22,
-          itemWidth: 8,
-          itemHeight: 8,
-          itemGap: 15,
-          icon: 'circle',
-          textStyle: {
-            color: createThemeColorReference('text-secondary'),
-            fontSize: 11,
-          },
-        },
-        tooltip: {
-          ...createChartBaseOption('').tooltip,
-          trigger: 'item',
-        },
-        dataset: {
-          source: [
-            { label: '内容推荐', value: 42 },
-            { label: '搜索访问', value: 28 },
-            { label: '营销活动', value: 18 },
-            { label: '直接访问', value: 12 },
-          ],
-        },
-        series: [
-          {
-            name: '流量来源',
-            type: 'pie',
-            center: ['38%', '58%'],
-            radius: ['48%', '72%'],
-            startAngle: 96,
-            padAngle: 3,
-            minAngle: 6,
-            avoidLabelOverlap: true,
-            itemStyle: {
-              borderRadius: 7,
-              borderColor: createThemeColorReference('page-background'),
-              borderWidth: 2,
-            },
-            label: {
-              show: false,
-              position: 'outside',
-              color: createThemeColorReference('text-primary'),
-              fontSize: 11,
-            },
-            labelLine: {
-              length: 10,
-              length2: 8,
-              lineStyle: {
-                color: createThemeColorReference('border'),
-              },
-            },
-            emphasis: {
-              scaleSize: 6,
-              label: {
-                show: true,
-                fontWeight: 600,
-              },
-            },
-            encode: {
-              itemName: 'label',
-              value: 'value',
-            },
-          },
-        ],
-      },
-    },
-  },
-}
+})

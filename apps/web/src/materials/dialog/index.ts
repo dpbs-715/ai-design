@@ -1,25 +1,15 @@
-import type { MaterialDefinition } from '@/schema/material.ts'
+import { dialogDescriptor } from '@ai-design/materials'
+import { defineMaterial } from '@/materials/defineMaterial.ts'
 import DialogMaterial from './component.vue'
 import DialogMaterialEditor from './editor.vue'
 import DialogMaterialPreview from './preview.vue'
-import { minimumDialogHeight } from './config.ts'
 
-export const dialogMaterial: MaterialDefinition = {
-  name: '弹窗容器',
-  group: 'container',
+export const dialogMaterial = defineMaterial(dialogDescriptor, {
   icon: 'fluent:window-20-regular',
   preview: {
     component: DialogMaterialPreview,
   },
-  capability: {
-    kind: 'container',
-    roles: ['page-overlay'],
-    accepts: ['canvas-content'],
-  },
   editorComponent: DialogMaterialEditor,
-  resizeConstraints: {
-    minHeight: minimumDialogHeight,
-  },
   setters: [
     {
       component: 'input',
@@ -83,33 +73,7 @@ export const dialogMaterial: MaterialDefinition = {
     { label: '弹窗开始关闭', value: 'close' },
     { label: '弹窗关闭完成', value: 'closed' },
   ],
-  schema: {
-    type: 'dialog-container',
-    name: '弹窗',
-    placement: {
-      type: 'absolute',
-      x: 0,
-      y: 0,
-      width: 720,
-      height: 480,
-    },
-    childrenLayout: {
-      type: 'absolute',
-      clip: true,
-    },
-    props: {
-      title: '弹窗标题',
-      defaultOpen: false,
-      showClose: true,
-      modal: true,
-      modalBlur: true,
-      closeOnClickModal: false,
-      closeOnPressEscape: true,
-      draggable: false,
-    },
-    events: [],
-  },
-}
+})
 
 export function install(register) {
   register(dialogMaterial, DialogMaterial)

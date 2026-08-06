@@ -1,18 +1,13 @@
-import type { MaterialDefinition } from '@/schema/material.ts'
+import { buttonDescriptor } from '@ai-design/materials'
+import { defineMaterial } from '@/materials/defineMaterial.ts'
 import ButtonMaterial from './component.vue'
 import ButtonMaterialPreview from './preview.vue'
 import { buttonIconOptions, buttonSizeOptions, buttonVariantOptions } from './config.ts'
 
-export const buttonMaterial: MaterialDefinition = {
-  name: '按钮',
-  group: 'interaction',
+export const buttonMaterial = defineMaterial(buttonDescriptor, {
   icon: 'fluent:cursor-click-20-filled',
   preview: {
     component: ButtonMaterialPreview,
-  },
-  capability: {
-    kind: 'leaf',
-    roles: ['canvas-content'],
   },
   setters: [
     {
@@ -48,36 +43,7 @@ export const buttonMaterial: MaterialDefinition = {
     { component: 'switch', label: '朴素样式', field: 'props.plain', span: 12 },
     { component: 'switch', label: '圆角按钮', field: 'props.round', span: 12 },
   ],
-  schema: {
-    type: 'button',
-    name: '按钮',
-    placement: {
-      type: 'absolute',
-      x: 0,
-      y: 0,
-      width: 144,
-      height: 44,
-    },
-    props: {
-      text: '按钮',
-      variant: 'primary',
-      size: 'medium',
-      icon: '',
-      disabled: false,
-      loading: false,
-      plain: false,
-      round: false,
-    },
-    events: [
-      {
-        type: 'click',
-        name: 'onClick',
-        title: '点击事件',
-        code: '',
-      },
-    ],
-  },
-}
+})
 
 export function install(register) {
   register(buttonMaterial, ButtonMaterial)

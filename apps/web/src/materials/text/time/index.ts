@@ -1,7 +1,7 @@
-import type { MaterialDefinition } from '@/schema/material.ts'
+import { timeDescriptor } from '@ai-design/materials'
+import { defineMaterial } from '@/materials/defineMaterial.ts'
 import TimePreview from '@/materials/previews/TimePreview.vue'
 import { commonTextStyleSetters } from '@/materials/text/shared.ts'
-import { createThemeColorReference } from '@/theme/renderTheme.ts'
 
 const formatOptions = [
   { label: '日期 + 时间', value: 'YYYY-MM-DD HH:mm:ss' },
@@ -11,9 +11,7 @@ const formatOptions = [
   { label: '短日期时间', value: 'MM-DD HH:mm' },
 ]
 
-export const timeMaterial: MaterialDefinition = {
-  name: '当前时间',
-  group: 'info',
+export const timeMaterial = defineMaterial(timeDescriptor, {
   icon: 'fluent:clock-20-filled',
   preview: {
     component: TimePreview,
@@ -41,32 +39,4 @@ export const timeMaterial: MaterialDefinition = {
     ...commonTextStyleSetters,
   ],
   customEventOptions: [],
-  schema: {
-    type: 'time',
-    name: '当前时间',
-    placement: {
-      type: 'absolute',
-      x: 0,
-      y: 0,
-      width: 360,
-      height: 72,
-    },
-    style: {
-      color: createThemeColorReference('text-primary'),
-      backgroundColor: '',
-      fontFamily: '"DIN Alternate", "Arial Narrow", Arial, sans-serif',
-      fontSize: 26,
-      fontWeight: 600,
-      letterSpacing: 1,
-      textAlign: 'left',
-      padding: 16,
-      borderRadius: 10,
-    },
-    props: {
-      format: 'YYYY-MM-DD HH:mm:ss',
-      showWeekday: false,
-      animated: true,
-    },
-    events: [],
-  },
-}
+})

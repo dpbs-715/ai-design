@@ -1,9 +1,14 @@
-import type {
-  MaterialCapability,
-  MaterialDataBinding,
-  MaterialDefinition,
-  MaterialSetter,
-} from '@/schema/material.ts'
+import {
+  businessFormDescriptor,
+  formCheckboxGroupDescriptor,
+  formColorDescriptor,
+  formCommonSelectDescriptor,
+  formDatePickerDescriptor,
+  formInputDescriptor,
+  formRadioGroupDescriptor,
+} from '@ai-design/materials'
+import type { MaterialDataBinding, MaterialDefinition, MaterialSetter } from '@/schema/material.ts'
+import { defineMaterial } from '@/materials/defineMaterial.ts'
 import BusinessFormEditor from './editor.vue'
 import BusinessFormPreview from './preview.vue'
 import {
@@ -15,11 +20,6 @@ import {
   formInputNodeSchema,
   formRadioGroupNodeSchema,
 } from './schema.ts'
-import { createThemeColorReference } from '@/theme/renderTheme.ts'
-import {
-  DEFAULT_STATIC_FORM_SOURCE_ID,
-  DEFAULT_STATIC_OPTIONS_SOURCE_ID,
-} from '@/dataSources/defaults.ts'
 
 const labelPositionOptions = [
   { label: '左侧', value: 'left' },
@@ -42,11 +42,6 @@ const commonSelectTypeOptions = [
   { label: '普通选择', value: 'ElSelect' },
   { label: '树形选择', value: 'ElTreeSelect' },
 ]
-
-const formItemCapability: MaterialCapability = {
-  kind: 'leaf',
-  roles: ['form-item'],
-}
 
 const optionDataBindings: MaterialDataBinding[] = [
   { label: '选项标签', field: 'props.control.labelField' },
@@ -114,18 +109,11 @@ function hiddenUnlessMultiple({ formData }: { formData: Record<string, any> }) {
   return !formData.props?.control?.multiple
 }
 
-export const businessFormMaterial: MaterialDefinition = {
-  name: '业务表单',
-  group: 'container',
+export const businessFormMaterial = defineMaterial(businessFormDescriptor, {
   icon: 'fluent:form-20-filled',
   preview: {
     component: BusinessFormPreview,
     props: { kind: 'form' },
-  },
-  capability: {
-    kind: 'container',
-    roles: ['canvas-content'],
-    accepts: ['form-item'],
   },
   editorComponent: BusinessFormEditor,
   childrenRenderer: 'material',
@@ -182,43 +170,14 @@ export const businessFormMaterial: MaterialDefinition = {
     },
   ],
   supportsDataSource: true,
-  schema: {
-    type: 'business-form',
-    name: '业务表单',
-    dataId: DEFAULT_STATIC_FORM_SOURCE_ID,
-    placement: {
-      type: 'absolute',
-      x: 0,
-      y: 0,
-      width: 720,
-      height: 420,
-    },
-    childrenLayout: {
-      type: 'form-grid',
-    },
-    style: {
-      backgroundColor: createThemeColorReference('container-background'),
-    },
-    props: {
-      labelPosition: 'top',
-      labelWidth: 100,
-      size: 'default',
-      disabled: false,
-      readonly: false,
-    },
-    events: [],
-  },
-}
+})
 
-export const formInputMaterial: MaterialDefinition = {
-  name: '输入框',
-  group: 'form',
+export const formInputMaterial = defineMaterial(formInputDescriptor, {
   icon: 'fluent:text-field-20-filled',
   preview: {
     component: BusinessFormPreview,
     props: { kind: 'input' },
   },
-  capability: formItemCapability,
   validationSchema: formInputNodeSchema,
   setters: formItemSetters(
     [
@@ -281,47 +240,14 @@ export const formInputMaterial: MaterialDefinition = {
     true,
   ),
   customEventOptions: formItemEventOptions,
-  schema: {
-    type: 'form-input',
-    name: '输入框',
-    placement: { type: 'form-item', span: 12 },
-    props: {
-      field: 'name',
-      label: '姓名',
-      initialValue: '',
-      control: {
-        type: 'text',
-        placeholder: '请输入内容',
-        clearable: true,
-        disabled: false,
-        readonly: false,
-        maxlength: 50,
-        showWordLimit: false,
-        min: 0,
-        max: 100,
-        step: 1,
-      },
-      rules: [
-        {
-          type: 'required',
-          message: '请输入内容',
-          trigger: ['blur', 'change'],
-        },
-      ],
-    },
-    events: [],
-  },
-}
+})
 
-export const formCommonSelectMaterial: MaterialDefinition = {
-  name: '选择器',
-  group: 'form',
+export const formCommonSelectMaterial = defineMaterial(formCommonSelectDescriptor, {
   icon: 'fluent:list-bar-20-filled',
   preview: {
     component: BusinessFormPreview,
     props: { kind: 'select' },
   },
-  capability: formItemCapability,
   validationSchema: formCommonSelectNodeSchema,
   setters: formItemSetters(
     [
@@ -366,51 +292,14 @@ export const formCommonSelectMaterial: MaterialDefinition = {
     ...optionDataBindings,
     { label: '子节点字段', field: 'props.control.childrenField' },
   ],
-  schema: {
-    type: 'form-common-select',
-    name: '选择器',
-    placement: { type: 'form-item', span: 12 },
-    dataId: DEFAULT_STATIC_OPTIONS_SOURCE_ID,
-    props: {
-      field: 'department',
-      label: '所属部门',
-      initialValue: null,
-      control: {
-        componentType: 'ElSelect',
-        placeholder: '请选择部门',
-        clearable: true,
-        filterable: true,
-        multiple: false,
-        joinSplit: '',
-        disabled: false,
-        checkStrictly: false,
-        options: [],
-        labelField: 'label',
-        valueField: 'value',
-        disabledField: 'disabled',
-        childrenField: 'children',
-      },
-      rules: [
-        {
-          type: 'required',
-          message: '请选择所属部门',
-          trigger: ['change'],
-        },
-      ],
-    },
-    events: [],
-  },
-}
+})
 
-export const formRadioGroupMaterial: MaterialDefinition = {
-  name: '单选框组',
-  group: 'form',
+export const formRadioGroupMaterial = defineMaterial(formRadioGroupDescriptor, {
   icon: 'fluent:radio-button-20-filled',
   preview: {
     component: BusinessFormPreview,
     props: { kind: 'radio' },
   },
-  capability: formItemCapability,
   validationSchema: formRadioGroupNodeSchema,
   setters: formItemSetters(
     [
@@ -433,38 +322,14 @@ export const formRadioGroupMaterial: MaterialDefinition = {
   ),
   customEventOptions: formItemEventOptions,
   dataBindings: optionDataBindings,
-  schema: {
-    type: 'form-radio-group',
-    name: '单选框组',
-    placement: { type: 'form-item', span: 12 },
-    dataId: DEFAULT_STATIC_OPTIONS_SOURCE_ID,
-    props: {
-      field: 'status',
-      label: '状态',
-      initialValue: null,
-      control: {
-        disabled: false,
-        type: 'radio',
-        options: [],
-        labelField: 'label',
-        valueField: 'value',
-        disabledField: 'disabled',
-      },
-      rules: [],
-    },
-    events: [],
-  },
-}
+})
 
-export const formCheckboxGroupMaterial: MaterialDefinition = {
-  name: '复选框组',
-  group: 'form',
+export const formCheckboxGroupMaterial = defineMaterial(formCheckboxGroupDescriptor, {
   icon: 'fluent:checkbox-indeterminate-20-filled',
   preview: {
     component: BusinessFormPreview,
     props: { kind: 'checkboxGroup' },
   },
-  capability: formItemCapability,
   validationSchema: formCheckboxGroupNodeSchema,
   setters: formItemSetters(
     [
@@ -489,39 +354,14 @@ export const formCheckboxGroupMaterial: MaterialDefinition = {
   ),
   customEventOptions: formItemEventOptions,
   dataBindings: optionDataBindings,
-  schema: {
-    type: 'form-checkbox-group',
-    name: '复选框组',
-    placement: { type: 'form-item', span: 12 },
-    dataId: DEFAULT_STATIC_OPTIONS_SOURCE_ID,
-    props: {
-      field: 'tags',
-      label: '标签',
-      initialValue: [],
-      control: {
-        disabled: false,
-        min: 0,
-        max: 2,
-        options: [],
-        labelField: 'label',
-        valueField: 'value',
-        disabledField: 'disabled',
-      },
-      rules: [],
-    },
-    events: [],
-  },
-}
+})
 
-export const formDatePickerMaterial: MaterialDefinition = {
-  name: '日期选择',
-  group: 'form',
+export const formDatePickerMaterial = defineMaterial(formDatePickerDescriptor, {
   icon: 'fluent:calendar-20-filled',
   preview: {
     component: BusinessFormPreview,
     props: { kind: 'date' },
   },
-  capability: formItemCapability,
   validationSchema: formDatePickerNodeSchema,
   setters: formItemSetters(
     [
@@ -559,37 +399,14 @@ export const formDatePickerMaterial: MaterialDefinition = {
     '请选择日期',
   ),
   customEventOptions: formItemEventOptions,
-  schema: {
-    type: 'form-date-picker',
-    name: '日期选择',
-    placement: { type: 'form-item', span: 12 },
-    props: {
-      field: 'date',
-      label: '日期',
-      initialValue: null,
-      control: {
-        placeholder: '请选择日期',
-        disabled: false,
-        clearable: true,
-        editable: false,
-        type: 'date',
-        valueFormat: 'YYYY-MM-DD',
-      },
-      rules: [],
-    },
-    events: [],
-  },
-}
+})
 
-export const formColorMaterial: MaterialDefinition = {
-  name: '颜色选择',
-  group: 'form',
+export const formColorMaterial = defineMaterial(formColorDescriptor, {
   icon: 'fluent:color-20-filled',
   preview: {
     component: BusinessFormPreview,
     props: { kind: 'color' },
   },
-  capability: formItemCapability,
   validationSchema: formColorNodeSchema,
   setters: formItemSetters(
     [
@@ -614,25 +431,7 @@ export const formColorMaterial: MaterialDefinition = {
     '请选择颜色',
   ),
   customEventOptions: formItemEventOptions,
-  schema: {
-    type: 'form-color',
-    name: '颜色选择',
-    placement: { type: 'form-item', span: 12 },
-    props: {
-      field: 'color',
-      label: '颜色',
-      initialValue: '#409eff',
-      control: {
-        disabled: false,
-        clearable: true,
-        showAlpha: false,
-        colorFormat: 'hex',
-      },
-      rules: [],
-    },
-    events: [],
-  },
-}
+})
 
 export const formItemMaterials: MaterialDefinition[] = [
   formInputMaterial,

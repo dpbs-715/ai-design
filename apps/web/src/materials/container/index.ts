@@ -1,19 +1,12 @@
-import type { MaterialDefinition } from '@/schema/material.ts'
-import { createThemeColorReference } from '@/theme/renderTheme.ts'
+import { freeContainerDescriptor } from '@ai-design/materials'
+import { defineMaterial } from '@/materials/defineMaterial.ts'
 import FreeContainerMaterial from './component.vue'
 import FreeContainerPreview from './preview.vue'
 
-export const freeContainerMaterial: MaterialDefinition = {
-  name: '自由容器',
-  group: 'container',
+export const freeContainerMaterial = defineMaterial(freeContainerDescriptor, {
   icon: 'fluent:panel-left-expand-20-filled',
   preview: {
     component: FreeContainerPreview,
-  },
-  capability: {
-    kind: 'container',
-    roles: ['canvas-content'],
-    accepts: ['canvas-content'],
   },
   setters: [
     {
@@ -51,31 +44,7 @@ export const freeContainerMaterial: MaterialDefinition = {
       span: 24,
     },
   ],
-  schema: {
-    type: 'free-container',
-    name: '自由容器',
-    placement: {
-      type: 'absolute',
-      x: 0,
-      y: 0,
-      width: 560,
-      height: 360,
-    },
-    childrenLayout: {
-      type: 'absolute',
-      clip: false,
-    },
-    style: {
-      backgroundColor: createThemeColorReference('container-background'),
-      borderColor: createThemeColorReference('border'),
-      borderRadius: 8,
-      borderStyle: 'solid',
-      borderWidth: 1,
-    },
-    props: {},
-    events: [],
-  },
-}
+})
 
 export function install(register) {
   register(freeContainerMaterial, FreeContainerMaterial)

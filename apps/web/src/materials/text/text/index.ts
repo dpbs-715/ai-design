@@ -1,4 +1,5 @@
-import type { MaterialDefinition } from '@/schema/material.ts'
+import { textDescriptor } from '@ai-design/materials'
+import { defineMaterial } from '@/materials/defineMaterial.ts'
 import TextPreview from '@/materials/previews/TextPreview.vue'
 import { commonTextStyleSetters } from '@/materials/text/shared.ts'
 
@@ -8,9 +9,7 @@ const verticalAlignmentOptions = [
   { label: '底部', value: 'flex-end' },
 ]
 
-export const textMaterial: MaterialDefinition = {
-  name: '文本',
-  group: 'info',
+export const textMaterial = defineMaterial(textDescriptor, {
   icon: 'fluent:text-font-20-filled',
   preview: {
     component: TextPreview,
@@ -70,37 +69,4 @@ export const textMaterial: MaterialDefinition = {
   ],
 
   customEventOptions: [],
-
-  schema: {
-    type: 'text',
-    name: '标题文本',
-    placement: {
-      type: 'absolute',
-      x: 0,
-      y: 0,
-      width: 460,
-      height: 92,
-    },
-    style: {
-      color: { type: 'theme', key: 'text-primary' },
-      backgroundColor: '',
-      fontFamily: 'Inter, "PingFang SC", "Microsoft YaHei", sans-serif',
-      fontSize: 28,
-      fontWeight: 700,
-      lineHeight: 1.3,
-      letterSpacing: -0.5,
-      textAlign: 'left',
-      padding: 18,
-      borderRadius: 12,
-    },
-    props: {
-      content: 'hello world',
-      verticalAlign: 'center',
-      italic: false,
-      underline: false,
-      shadow: true,
-      wrap: true,
-    },
-    events: [],
-  },
-}
+})

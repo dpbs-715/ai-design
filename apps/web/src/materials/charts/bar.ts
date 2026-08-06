@@ -1,16 +1,13 @@
-import type { MaterialDefinition } from '@/schema/material.ts'
+import { barChartDescriptor } from '@ai-design/materials'
+import { defineMaterial } from '@/materials/defineMaterial.ts'
 import ChartPreview from '@/materials/previews/ChartPreview.vue'
 import {
   cartesianChartSetters,
   chartMaterialIcons,
   commonChartSetters,
-  createCartesianOption,
 } from '@/materials/charts/shared.ts'
-import { createThemeColorReference } from '@/theme/renderTheme.ts'
 
-export const barMaterial: MaterialDefinition = {
-  name: '柱状图',
-  group: 'charts',
+export const barMaterial = defineMaterial(barChartDescriptor, {
   icon: chartMaterialIcons.bar,
   preview: {
     component: ChartPreview,
@@ -71,67 +68,4 @@ export const barMaterial: MaterialDefinition = {
     { label: '分类轴 X', field: 'props.option.series.0.encode.x' },
     { label: '数值轴 Y', field: 'props.option.series.0.encode.y' },
   ],
-  schema: {
-    type: 'bar-chart',
-    name: '柱状图',
-    placement: {
-      type: 'absolute',
-      x: 0,
-      y: 0,
-      width: 420,
-      height: 260,
-    },
-    props: {
-      option: {
-        ...createCartesianOption('渠道转化量'),
-        dataset: {
-          source: [
-            { label: '搜索', value: 186 },
-            { label: '推荐', value: 268 },
-            { label: '社媒', value: 214 },
-            { label: '活动', value: 336 },
-            { label: '自然', value: 292 },
-            { label: '其他', value: 148 },
-          ],
-        },
-        series: [
-          {
-            name: '转化量',
-            type: 'bar',
-            barWidth: 24,
-            encode: {
-              x: 'label',
-              y: 'value',
-            },
-            label: {
-              show: false,
-              position: 'top',
-              color: createThemeColorReference('text-primary'),
-              fontSize: 11,
-            },
-            itemStyle: {
-              borderRadius: 6,
-              color: {
-                type: 'linear',
-                x: 0,
-                y: 0,
-                x2: 0,
-                y2: 1,
-                colorStops: [
-                  { offset: 0, color: createThemeColorReference('primary') },
-                  { offset: 1, color: 'transparent' },
-                ],
-              },
-            },
-            emphasis: {
-              itemStyle: {
-                shadowColor: createThemeColorReference('primary'),
-                shadowBlur: 14,
-              },
-            },
-          },
-        ],
-      },
-    },
-  },
-}
+})

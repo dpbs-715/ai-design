@@ -1,5 +1,6 @@
+import { imageDescriptor } from '@ai-design/materials'
 import ImageMaterial from './component.vue'
-import type { MaterialDefinition } from '@/schema/material.ts'
+import { defineMaterial } from '@/materials/defineMaterial.ts'
 import ImagePreview from '@/materials/previews/ImagePreview.vue'
 
 const fitOptions = [
@@ -10,9 +11,7 @@ const fitOptions = [
   { label: '缩放适应', value: 'scale-down' },
 ]
 
-export const imageMaterial: MaterialDefinition = {
-  name: '图片',
-  group: 'media',
+export const imageMaterial = defineMaterial(imageDescriptor, {
   icon: 'fluent:image-20-filled',
   preview: {
     component: ImagePreview,
@@ -82,31 +81,7 @@ export const imageMaterial: MaterialDefinition = {
   ],
   dataBindings: [{ label: '图片地址', field: 'props.src' }],
   customEventOptions: [],
-  schema: {
-    type: 'image',
-    name: '图片',
-    placement: {
-      type: 'absolute',
-      x: 0,
-      y: 0,
-      width: 320,
-      height: 200,
-    },
-    style: {
-      backgroundColor: '',
-      borderRadius: 8,
-      borderWidth: 0,
-      borderColor: '',
-    },
-    props: {
-      src: '/image-placeholder.svg',
-      alt: '',
-      fit: 'cover',
-      opacity: 1,
-    },
-    events: [],
-  },
-}
+})
 
 export function install(register) {
   register(imageMaterial, ImageMaterial)

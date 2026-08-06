@@ -20,6 +20,10 @@ export interface EnvironmentVariables {
   SMTP_USER: string
   SMTP_PASSWORD: string
   SMTP_FROM: string
+  AGENT_MODEL_API_KEY: string
+  AGENT_MODEL_NAME: string
+  AGENT_MODEL_BASE_URL: string
+  AGENT_MODEL_TIMEOUT_MS: number
 }
 
 const DEFAULT_SERVER_PORT = 3000
@@ -31,6 +35,7 @@ const DEFAULT_POSTGRES_HOST = '127.0.0.1'
 const DEFAULT_REDIS_HOST = '127.0.0.1'
 const DEFAULT_SMTP_HOST = 'smtp.qq.com'
 const DEFAULT_SMTP_PORT = 465
+const DEFAULT_AGENT_MODEL_TIMEOUT_MS = 120_000
 
 function readRequiredString(
   environment: Record<string, unknown>,
@@ -156,5 +161,13 @@ export function validateEnvironment(environment: Record<string, unknown>): Envir
     SMTP_USER: smtpUser,
     SMTP_PASSWORD: readRequiredString(environment, 'SMTP_PASSWORD'),
     SMTP_FROM: typeof environment.SMTP_FROM === 'string' ? environment.SMTP_FROM : smtpUser,
+    AGENT_MODEL_API_KEY: readRequiredString(environment, 'AGENT_MODEL_API_KEY'),
+    AGENT_MODEL_NAME: readRequiredString(environment, 'AGENT_MODEL_NAME'),
+    AGENT_MODEL_BASE_URL: readRequiredString(environment, 'AGENT_MODEL_BASE_URL'),
+    AGENT_MODEL_TIMEOUT_MS: readPositiveInteger(
+      environment,
+      'AGENT_MODEL_TIMEOUT_MS',
+      DEFAULT_AGENT_MODEL_TIMEOUT_MS,
+    ),
   }
 }
