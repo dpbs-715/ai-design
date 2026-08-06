@@ -29,6 +29,8 @@ export interface TableChanges {
   delete: TableRow[]
 }
 
+type TableConfigManager = ReturnType<typeof useConfigs<CommonTableConfig>>
+
 export interface DataTableMaterialExpose {
   validate(): Promise<void>
   getValue(): TableRow[]
@@ -42,7 +44,11 @@ export interface DataTableMaterialExpose {
   removeRow(rowKey: string | number): void
   moveRow(fromIndex: number, toIndex: number): void
   refresh(): Promise<void>
-  configManager: ReturnType<typeof useConfigs<CommonTableConfig>>
+  setHidden: TableConfigManager['setHidden']
+  setDisabled: TableConfigManager['setDisabled']
+  setDisabledAll: TableConfigManager['setDisabledAll']
+  setPropsByField: TableConfigManager['setPropsByField']
+  getConfigByField: TableConfigManager['getConfigByField']
 }
 
 const { schema } = defineProps<{
@@ -249,7 +255,11 @@ defineExpose<DataTableMaterialExpose>({
   removeRow,
   moveRow,
   refresh,
-  configManager,
+  setHidden: configManager.setHidden,
+  setDisabled: configManager.setDisabled,
+  setDisabledAll: configManager.setDisabledAll,
+  setPropsByField: configManager.setPropsByField,
+  getConfigByField: configManager.getConfigByField,
 })
 </script>
 

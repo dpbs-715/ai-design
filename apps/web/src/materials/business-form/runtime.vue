@@ -21,6 +21,8 @@ interface CommonFormExpose {
   clearValidate(fields?: string[]): void
 }
 
+type BusinessFormConfigManager = ReturnType<typeof useConfigs<CommonFormConfig>>
+
 export interface BusinessFormExpose {
   validate(): Promise<void>
   resetFields(): void
@@ -30,7 +32,11 @@ export interface BusinessFormExpose {
   setValues(values: Record<string, unknown>): void
   submit(): Promise<Record<string, unknown>>
   refresh(): Promise<void>
-  configManager: ReturnType<typeof useConfigs<CommonFormConfig>>
+  setHidden: BusinessFormConfigManager['setHidden']
+  setDisabled: BusinessFormConfigManager['setDisabled']
+  setDisabledAll: BusinessFormConfigManager['setDisabledAll']
+  setPropsByField: BusinessFormConfigManager['setPropsByField']
+  getConfigByField: BusinessFormConfigManager['getConfigByField']
 }
 
 const { schema } = defineProps<{
@@ -198,7 +204,11 @@ defineExpose<BusinessFormExpose>({
   setValues,
   submit,
   refresh,
-  configManager,
+  setHidden: configManager.setHidden,
+  setDisabled: configManager.setDisabled,
+  setDisabledAll: configManager.setDisabledAll,
+  setPropsByField: configManager.setPropsByField,
+  getConfigByField: configManager.getConfigByField,
 })
 </script>
 
