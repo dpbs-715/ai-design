@@ -7,7 +7,7 @@ const panelNames: PanelName[] = ['material', 'layer', 'property']
 export const useEditorPanelStore = defineStore('editorPanel', () => {
   const desktopPanelVisible = ref<Record<PanelName, boolean>>({
     material: true,
-    layer: false,
+    layer: true,
     property: true,
   })
   const narrowPanel = ref<PanelName | null>(null)
