@@ -1,13 +1,15 @@
 import { defineStore } from 'pinia'
 
-type PanelName = 'material' | 'layer' | 'property'
+type PanelName = 'material' | 'layer' | 'agent' | 'property'
 
-const panelNames: PanelName[] = ['material', 'layer', 'property']
+const panelNames: PanelName[] = ['material', 'layer', 'agent', 'property']
 
 export const useEditorPanelStore = defineStore('editorPanel', () => {
   const desktopPanelVisible = ref<Record<PanelName, boolean>>({
     material: true,
     layer: true,
+    // 默认收起 —— 不是每次进编辑器都要用 AI。
+    agent: false,
     property: true,
   })
   const narrowPanel = ref<PanelName | null>(null)
@@ -19,6 +21,7 @@ export const useEditorPanelStore = defineStore('editorPanel', () => {
     return {
       material: narrowPanel.value === 'material',
       layer: narrowPanel.value === 'layer',
+      agent: narrowPanel.value === 'agent',
       property: narrowPanel.value === 'property',
     }
   })

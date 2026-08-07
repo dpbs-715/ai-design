@@ -46,6 +46,16 @@ export const tableEditorOptionSchema = extensibleObject({
   disabled: z.boolean().optional(),
 })
 
+export const tableActionVariantSchema = z.enum([
+  'normal',
+  'primary',
+  'success',
+  'warning',
+  'danger',
+  'info',
+  'link',
+])
+
 export const tableColumnEditorSchema = extensibleObject({
   enabled: z.boolean().default(false),
   component: tableEditorComponentSchema.default('input'),
@@ -89,6 +99,38 @@ export const tableColumnLeafSchema = extensibleObject({
   editor: tableColumnEditorSchema.optional(),
 })
 
+export const tableActionSchema = extensibleObject({
+  id: z.string().trim().min(1, '操作标识不能为空'),
+  label: z.string().trim().min(1, '操作名称不能为空'),
+  variant: tableActionVariantSchema.default('link'),
+  icon: z.string().default(''),
+  /** 满足条件时隐藏该操作;不配置则始终显示。 */
+  hiddenWhen: tableConditionGroupSchema.optional(),
+  /** 满足条件时禁用该操作;不配置则始终可点。 */
+  disabledWhen: tableConditionGroupSchema.optional(),
+})
+
+/**
+ * 操作列 —— 不绑定数据字段,只渲染按钮。
+ *
+ * `field` 仍然必填:CommonTable 的单元格插槽是按 `configItem.field` 取的
+ * (@vunio/ui renderColumns),没有 field 就拿不到插槽,单元格会退化成空白。
+ * 这里默认 `$actions`,与真实数据字段不会冲突。
+ */
+export const tableColumnActionSchema = extensibleObject({
+  type: z.literal('action'),
+  id: z.string().min(1),
+  field: z.string().trim().min(1).default('$actions'),
+  label: z.string().default('操作'),
+  hidden: z.boolean().default(false),
+  width: optionalColumnDimensionSchema,
+  minWidth: optionalColumnDimensionSchema,
+  fixed: z.union([z.boolean(), z.enum(['left', 'right'])]).optional(),
+  align: tableColumnAlignSchema.default('center'),
+  headerAlign: tableColumnAlignSchema.default('center'),
+  actions: z.array(tableActionSchema).default([]),
+})
+
 export const tableColumnSchema: z.ZodTypeAny = z.lazy(() =>
   z.preprocess(
     (value) => {
@@ -96,7 +138,12 @@ export const tableColumnSchema: z.ZodTypeAny = z.lazy(() =>
 
       const column = value as Record<string, unknown>
       const children = column.children ?? column.columnChildren
-      const type = column.type ?? (Array.isArray(children) ? 'group' : 'column')
+      const inferredType = Array.isArray(children)
+        ? 'group'
+        : Array.isArray(column.actions)
+          ? 'action'
+          : 'column'
+      const type = column.type ?? inferredType
 
       return {
         ...column,
@@ -115,6 +162,7 @@ export const tableColumnSchema: z.ZodTypeAny = z.lazy(() =>
         children: z.array(tableColumnSchema).default([]),
       }),
       tableColumnLeafSchema,
+      tableColumnActionSchema,
     ]),
   ),
 )
@@ -148,6 +196,20 @@ export const tableColumnsSchema = z.array(tableColumnSchema).superRefine((column
         })
       }
       usedFields.add(column.field)
+
+      if (column.type !== 'action') return
+
+      const usedActionIds = new Set<string>()
+      column.actions.forEach((action, actionIndex) => {
+        if (usedActionIds.has(action.id)) {
+          context.addIssue({
+            code: 'custom',
+            path: [...columnPath, 'actions', actionIndex, 'id'],
+            message: `操作标识 “${action.id}” 不能重复`,
+          })
+        }
+        usedActionIds.add(action.id)
+      })
     })
   }
 
@@ -189,6 +251,7 @@ export type TableMode = z.infer<typeof tableModeSchema>
 export type TableColumnAlign = z.infer<typeof tableColumnAlignSchema>
 export type TableDisplayType = z.infer<typeof tableDisplayTypeSchema>
 export type TableEditorComponent = z.infer<typeof tableEditorComponentSchema>
+export type TableActionVariant = z.infer<typeof tableActionVariantSchema>
 export type TableConditionOperator = z.infer<typeof tableConditionOperatorSchema>
 
 export interface TableCondition {
@@ -264,7 +327,35 @@ export interface TableColumnGroupSchema {
   children: TableColumnSchema[]
 }
 
-export type TableColumnSchema = TableColumnGroupSchema | TableColumnLeafSchema
+export interface TableActionSchema {
+  [key: string]: any
+  id: string
+  label: string
+  variant: TableActionVariant
+  icon: string
+  hiddenWhen?: TableConditionGroup
+  disabledWhen?: TableConditionGroup
+}
+
+export interface TableColumnActionSchema {
+  [key: string]: any
+  type: 'action'
+  id: string
+  field: string
+  label: string
+  hidden: boolean
+  width?: number
+  minWidth?: number
+  fixed?: boolean | 'left' | 'right'
+  align: TableColumnAlign
+  headerAlign: TableColumnAlign
+  actions: TableActionSchema[]
+}
+
+export type TableColumnSchema =
+  | TableColumnGroupSchema
+  | TableColumnLeafSchema
+  | TableColumnActionSchema
 
 export interface TableProps {
   [key: string]: any

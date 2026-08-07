@@ -647,6 +647,26 @@ export const useEditorStore = defineStore('editor', () => {
     )
   }
 
+  /**
+   * 应用 agent 生成的页面。
+   *
+   * 走 setChildren 而不是 setPage:后者会 clearHistory,agent 的改动就撤不回去了。
+   * agent 只改 root.children(applyDesignOperations 的返回结构如此),所以替换
+   * children 足够,且能进撤销栈 —— 用户不满意直接 Ctrl+Z。
+   */
+  function applyAgentPage(agentPage: PageSchema): string[] {
+    const nextChildren = agentPage.root.children
+    const previousIds = new Set(nodes.value.map((node) => node.id))
+    dispatchCommandBatch(() => {
+      setChildren(root.value.id, nextChildren)
+    })
+    const addedIds = createMaterialTreeIndex(nextChildren, root.value.id)
+      .nodes.filter((node) => !previousIds.has(node.id))
+      .map((node) => node.id)
+    if (addedIds.length) selectNodes(addedIds)
+    return addedIds
+  }
+
   function updateNode(id: string, newNode: MaterialSchema): SchemaParseResult<MaterialSchema> {
     const parentId = findParentId(id)
     if (!parentId || newNode.id !== id) {
@@ -725,5 +745,6 @@ export const useEditorStore = defineStore('editor', () => {
     unlockNodes,
     updateNode,
     setPage,
+    applyAgentPage,
   }
 })

@@ -100,6 +100,12 @@ export const dataTableMaterial = defineMaterial(dataTableDescriptor, {
       value: 'dirty-change',
       payloadType: 'boolean',
     },
+    {
+      label: '操作列点击',
+      value: 'action-click',
+      payloadType:
+        '{ actionId: string; actionLabel: string; columnId: string; rowIndex: number; rowKey: unknown; row: Record<string, unknown> }',
+    },
   ],
   dataBindings: [{ label: '行唯一字段', field: 'props.rowKey' }],
 })

@@ -29,6 +29,10 @@ export function useResponsiveEditorLayout() {
     return isNarrowWorkspace.value ? 'min(260px, 42vw)' : '260px'
   })
   const layerWidth = computed(() => (editorPanelStore.panelVisible.layer ? '160px' : '0'))
+  const agentWidth = computed(() => {
+    if (!editorPanelStore.panelVisible.agent) return '0'
+    return isNarrowWorkspace.value ? 'min(300px, 46vw)' : '300px'
+  })
   const propertyWidth = computed(() => {
     if (!editorPanelStore.panelVisible.property) return '0'
     return isNarrowWorkspace.value ? 'min(360px, 42vw)' : '360px'
@@ -38,6 +42,7 @@ export function useResponsiveEditorLayout() {
     isNarrowWorkspace,
     materialWidth,
     layerWidth,
+    agentWidth,
     propertyWidth,
   }
 }

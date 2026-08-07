@@ -8,7 +8,12 @@ export const dataTableDescriptor: MaterialDescriptor = {
   name: '数据表格',
   group: 'data',
   description:
-    '展示结构化数据的表格,支持多级表头、只读或可编辑模式、序号列与选择列。列定义在 props.columns,group 类型表示分组表头,column 类型表示实际数据列。',
+    '展示结构化数据的表格,支持多级表头、只读或可编辑模式、序号列与选择列。列定义在 props.columns:group 表示分组表头,column 表示数据列,action 表示操作列。' +
+    'action 列不绑定数据,只渲染 actions[] 里的按钮(每项含 id/label/variant/icon),点击时抛出 action-click 事件,' +
+    'payload 为 { actionId, actionLabel, columnId, rowIndex, rowKey, row }。' +
+    '要做「点编辑打开弹窗并回填」时:加一个 action 列(actions 里放 id 为 edit 的按钮),' +
+    '再给表格配 action-click 事件,脚本里按 actionId 分支,用 $context.trigger(弹窗id, "open") 打开弹窗、' +
+    '$context.trigger(表单id, "setValues", $payload.row) 回填行数据。',
   capability: {
     kind: 'leaf',
     roles: ['canvas-content'],

@@ -1,5 +1,5 @@
 import { materialPlacementSchema, materialSchema } from '@ai-design/contracts'
-import type { MaterialPlacement, MaterialSchema } from '@ai-design/contracts'
+import type { MaterialPlacement } from '@ai-design/contracts'
 import { z } from 'zod'
 
 /**
@@ -48,7 +48,13 @@ export const designOperationSchema = z.discriminatedUnion('type', [
 export interface AddNodeOperation {
   type: 'add-node'
   parentId: string
-  node: MaterialSchema
+  /**
+   * LLM 给的原始 JSON,**尚未校验**(上面的 schema 是 `z.json()`,原因见文件头注释)。
+   * 类型故意是 unknown 而不是 MaterialSchema —— 声明成后者是往类型里写假话,
+   * 消费方会以为拿到的是校验过的节点而直接使用。
+   * 用 `applyDesignOperations` 里的 `materialSchema.safeParse` 转成真正的节点。
+   */
+  node: unknown
   index?: number
 }
 

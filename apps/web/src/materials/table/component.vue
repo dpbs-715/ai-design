@@ -8,13 +8,15 @@ import { useMaterialRootStyle } from '@/materials/materialStyle.ts'
 import { useMaterialDataQuery } from '@/runtime/dataQuery.ts'
 import { injectRuntimeContext } from '@/runtime/runtimeContextProvider.ts'
 import { createThemeColorReference } from '@/theme/renderTheme.ts'
-import type { TableMaterialSchema, TableRow } from './schema.ts'
+import type { TableActionSchema, TableMaterialSchema, TableRow } from './schema.ts'
 import {
+  getCellTableColumns,
   getLeafTableColumns,
   toCommonTableConfigs,
   toCommonTableProps,
   type TableCellContext,
 } from './tableConfig.ts'
+import TableActionCell from './TableActionCell.vue'
 import TableCellEditor from './TableCellEditor.vue'
 
 defineOptions({ name: 'DataTableMaterial' })
@@ -68,6 +70,16 @@ const emit = defineEmits<{
     },
   ]
   dirtyChange: [dirty: boolean]
+  actionClick: [
+    payload: {
+      actionId: string
+      actionLabel: string
+      columnId: string
+      rowIndex: number
+      rowKey: unknown
+      row: TableRow
+    },
+  ]
 }>()
 
 const tableRef = useTemplateRef<CommonTableExpose>('table')
@@ -85,6 +97,7 @@ const pendingSourceRows = ref<TableRow[]>()
 const effectiveMode = computed(() =>
   renderContext.mode === 'editor' ? 'readonly' : schema.props.mode,
 )
+const cellColumns = computed(() => getCellTableColumns(schema.props.columns))
 const leafColumns = computed(() => getLeafTableColumns(schema.props.columns))
 const diffFields = computed(() => leafColumns.value.map((column) => column.field))
 
@@ -161,6 +174,17 @@ function notifyCellChange(value: unknown, context: TableCellContext) {
 function updateCellValue(value: unknown, context: TableCellContext) {
   const field = String(context.column.field ?? '')
   context.rowData[field] = value
+}
+
+function notifyActionClick(action: TableActionSchema, context: TableCellContext) {
+  emit('actionClick', {
+    actionId: action.id,
+    actionLabel: action.label,
+    columnId: String(context.column.columnKey ?? ''),
+    rowIndex: context.rowIndex,
+    rowKey: context.rowData[schema.props.rowKey],
+    row: deepClone(context.rowData),
+  })
 }
 
 const schemaConfigs = computed<CommonTableConfig[]>(() =>
@@ -286,8 +310,15 @@ defineExpose<DataTableMaterialExpose>({
       :show-overflow-tooltip="false"
       height="100%"
     >
-      <template v-for="column in leafColumns" :key="column.id" #[column.field]="context">
+      <template v-for="column in cellColumns" :key="column.id" #[column.field]="context">
+        <TableActionCell
+          v-if="column.type === 'action'"
+          :column="column"
+          :context="context"
+          @action="notifyActionClick"
+        />
         <TableCellEditor
+          v-else
           :column="column"
           :context="context"
           :editable="effectiveMode === 'editable' && Boolean(column.editor?.enabled)"

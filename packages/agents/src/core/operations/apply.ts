@@ -122,7 +122,11 @@ export function applyDesignOperations(
         if (selfDuplicate !== undefined) {
           return fail(`新增的子树内部存在重复 id “${selfDuplicate}”`)
         }
-        children = attach(rootId, children, operation.parentId, operation.node, operation.index)
+        // 入树的是 parsed.data 而不是 operation.node。当前 materialSchema 不含
+        // 默认值,两者内容一致,但 parsed.data 是独立副本 —— 用原始对象会让页面树
+        // 和 proposal 共享同一份节点,改一处影响另一处;且日后 schema 一旦加上
+        // 默认值或 transform,用原始对象就会静默丢掉这些规范化结果。
+        children = attach(rootId, children, operation.parentId, node, operation.index)
         break
       }
 

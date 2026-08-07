@@ -4,7 +4,7 @@
 
 ## 项目结构
 
-- `apps/web`：Vue 3 可视化大屏编辑器。
+- `apps/web`：Vue 3 可视化编辑器。
 - `apps/server`：NestJS 服务端。
 - `packages/contracts`：前后端共享的数据协议、Zod Schema 和纯 TypeScript 类型。
 - `infra`：本地开发所需的 PostgreSQL 等基础设施配置。

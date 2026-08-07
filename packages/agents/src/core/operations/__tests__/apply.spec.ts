@@ -246,4 +246,27 @@ describe('applyDesignOperations — 正常路径', () => {
     expect(result.page.schemaVersion).toBe(source.schemaVersion)
     expect(result.page.id).toBe(source.id)
   })
+
+  /**
+   * 入树的必须是 materialSchema 的解析结果,不是 operation 里的原始对象 ——
+   * 否则页面树与 proposal 共享同一份节点,改一处会影响另一处。
+   */
+  it('写入解析后的副本,不与 operation 共享节点对象', () => {
+    const raw = {
+      type: 'free-container',
+      name: '新节点',
+      id: 'fresh',
+      placement: { type: 'absolute' as const, x: 0, y: 0, width: 10, height: 10 },
+      props: {},
+      children: [],
+    }
+    const result = apply(page([]), [{ type: 'add-node', parentId: 'root', node: raw }])
+
+    expect(result.errors).toEqual([])
+    const added = result.page.root.children[0]!
+    expect(added.id).toBe('fresh')
+    // 内容一致但不是同一个对象,改页面树不会污染 proposal。
+    expect(added).toEqual(raw)
+    expect(added).not.toBe(raw)
+  })
 })

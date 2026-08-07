@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { deepClone } from '@vunio/utils'
 import type {
+  TableActionSchema,
+  TableActionVariant,
+  TableColumnActionSchema,
   TableColumnEditorSchema,
   TableColumnLeafSchema,
   TableColumnSchema,
@@ -23,6 +26,7 @@ const emit = defineEmits<{
 type ConditionKey = 'editableWhen' | 'disabledWhen'
 
 const DEFAULT_NEW_COLUMN_MIN_WIDTH = 120
+const DEFAULT_ACTION_COLUMN_WIDTH = 160
 
 const columns = ref<TableColumnSchema[]>([])
 const selectedId = ref('')
@@ -104,6 +108,46 @@ function createGroup(): TableColumnSchema {
   }
 }
 
+/** 操作列也占一个插槽字段名,必须和数据列一起去重。 */
+function createUniqueActionField() {
+  const fields = collectFields(columns.value)
+  if (!fields.has('$actions')) return '$actions'
+  let index = 2
+  while (fields.has(`$actions${index}`)) index += 1
+  return `$actions${index}`
+}
+
+function createActionColumn(): TableColumnActionSchema {
+  return {
+    type: 'action',
+    id: crypto.randomUUID(),
+    field: createUniqueActionField(),
+    label: '操作',
+    hidden: false,
+    width: DEFAULT_ACTION_COLUMN_WIDTH,
+    align: 'center',
+    headerAlign: 'center',
+    fixed: 'right',
+    actions: [{ id: 'edit', label: '编辑', variant: 'link', icon: '' }],
+  }
+}
+
+/**
+ * 操作标识是事件脚本里用来分支的值(`$payload.actionId`),
+ * 所以要生成可读的 id,不能用 UUID。
+ */
+function createAction(existing: TableActionSchema[]): TableActionSchema {
+  const usedIds = new Set(existing.map((action) => action.id))
+  let index = existing.length + 1
+  while (usedIds.has(`action${index}`)) index += 1
+  return {
+    id: `action${index}`,
+    label: `操作 ${index}`,
+    variant: 'link',
+    icon: '',
+  }
+}
+
 function selectedChildrenTarget() {
   const selected = selectedColumn.value
   return selected?.type === 'group' ? selected.children : columns.value
@@ -120,6 +164,36 @@ function addGroup() {
   const group = createGroup()
   selectedChildrenTarget().push(group)
   selectedId.value = group.id
+  commit()
+}
+
+function addActionColumn() {
+  const column = createActionColumn()
+  selectedChildrenTarget().push(column)
+  selectedId.value = column.id
+  commit()
+}
+
+function addAction() {
+  const selected = selectedColumn.value
+  if (selected?.type !== 'action') return
+  selected.actions.push(createAction(selected.actions))
+  commit()
+}
+
+function removeAction(index: number) {
+  const selected = selectedColumn.value
+  if (selected?.type !== 'action') return
+  selected.actions.splice(index, 1)
+  commit()
+}
+
+function updateAction(index: number, field: keyof TableActionSchema, value: unknown) {
+  const selected = selectedColumn.value
+  if (selected?.type !== 'action') return
+  const action = selected.actions[index]
+  if (!action) return
+  ;(action as Record<string, unknown>)[field] = value
   commit()
 }
 
@@ -331,6 +405,16 @@ const editorComponentOptions: Array<{ label: string; value: TableEditorComponent
   { label: '日期选择', value: 'date' },
 ]
 
+const actionVariantOptions: Array<{ label: string; value: TableActionVariant }> = [
+  { label: '链接', value: 'link' },
+  { label: '普通', value: 'normal' },
+  { label: '主要', value: 'primary' },
+  { label: '成功', value: 'success' },
+  { label: '警告', value: 'warning' },
+  { label: '危险', value: 'danger' },
+  { label: '信息', value: 'info' },
+]
+
 const conditionOperatorOptions = [
   { label: '等于', value: 'equals' },
   { label: '不等于', value: 'notEquals' },
@@ -340,6 +424,16 @@ const conditionOperatorOptions = [
   { label: '为真', value: 'truthy' },
   { label: '为假', value: 'falsy' },
 ]
+
+const columnKindLabels = {
+  group: '分组表头',
+  column: '数据列',
+  action: '操作列',
+} as const satisfies Record<TableColumnSchema['type'], string>
+
+function columnKindLabel(column: TableColumnSchema) {
+  return columnKindLabels[column.type]
+}
 
 function needsConditionValue(operator: TableCondition['operator']) {
   return !['truthy', 'falsy'].includes(operator)
@@ -370,6 +464,10 @@ function parseConditionValue(value: string) {
         <Icon icon="fluent:group-list-20-regular" width="15" />
         添加分组
       </CommonButton>
+      <CommonButton size="small" @click="addActionColumn">
+        <Icon icon="fluent:cursor-click-20-regular" width="15" />
+        添加操作列
+      </CommonButton>
     </div>
 
     <div v-if="columns.length" class="column-tree">
@@ -389,7 +487,9 @@ function parseConditionValue(value: string) {
               :icon="
                 data.type === 'group'
                   ? 'fluent:group-list-20-regular'
-                  : 'fluent:column-triple-20-regular'
+                  : data.type === 'action'
+                    ? 'fluent:cursor-click-20-regular'
+                    : 'fluent:column-triple-20-regular'
               "
               width="15"
             />
@@ -404,13 +504,13 @@ function parseConditionValue(value: string) {
     <section v-if="selectedColumn" class="column-detail">
       <div class="detail-heading">
         <div class="detail-heading-copy">
-          <strong>{{ selectedColumn.type === 'group' ? '分组表头' : '数据列' }}</strong>
+          <strong>{{ columnKindLabel(selectedColumn) }}</strong>
           <span>{{ selectedColumn.id.slice(0, 8) }}</span>
         </div>
         <button
           type="button"
           class="column-remove icon-button icon-button--sm"
-          :aria-label="`删除${selectedColumn.type === 'group' ? '分组' : '列'} ${selectedColumn.label}`"
+          :aria-label="`删除${columnKindLabel(selectedColumn)} ${selectedColumn.label}`"
           @click="removeSelected"
         >
           <Icon icon="fluent:delete-16-regular" width="15" />
@@ -453,6 +553,96 @@ function parseConditionValue(value: string) {
           />
         </div>
       </div>
+
+      <template v-if="selectedColumn.type === 'action'">
+        <div class="detail-grid">
+          <label class="detail-field">
+            <span>内容对齐</span>
+            <el-select
+              :model-value="selectedColumn.align"
+              @update:model-value="updateSelected('align', $event)"
+            >
+              <el-option label="左对齐" value="left" />
+              <el-option label="居中" value="center" />
+              <el-option label="右对齐" value="right" />
+            </el-select>
+          </label>
+          <label class="detail-field">
+            <span>列宽</span>
+            <el-input-number
+              :model-value="selectedColumn.width"
+              :min="40"
+              controls-position="right"
+              @update:model-value="updateColumnDimension('width', $event)"
+            />
+          </label>
+        </div>
+
+        <section class="condition-section">
+          <div class="condition-toolbar">
+            <strong>操作按钮</strong>
+            <button type="button" @click="addAction">添加操作</button>
+          </div>
+          <p class="detail-hint">
+            点击按钮会触发表格的「操作列点击」事件,事件脚本里用 $payload.actionId 区分是哪个操作。
+          </p>
+          <div
+            v-for="(action, index) in selectedColumn.actions"
+            :key="action.id"
+            class="action-item"
+          >
+            <div class="detail-grid">
+              <label class="detail-field">
+                <span>操作标识</span>
+                <el-input
+                  :model-value="action.id"
+                  @update:model-value="updateAction(index, 'id', $event)"
+                />
+              </label>
+              <label class="detail-field">
+                <span>按钮文字</span>
+                <el-input
+                  :model-value="action.label"
+                  @update:model-value="updateAction(index, 'label', $event)"
+                />
+              </label>
+            </div>
+            <div class="detail-grid">
+              <label class="detail-field">
+                <span>按钮样式</span>
+                <el-select
+                  :model-value="action.variant"
+                  @update:model-value="updateAction(index, 'variant', $event)"
+                >
+                  <el-option
+                    v-for="option in actionVariantOptions"
+                    :key="option.value"
+                    :label="option.label"
+                    :value="option.value"
+                  />
+                </el-select>
+              </label>
+              <label class="detail-field">
+                <span>图标</span>
+                <el-input
+                  :model-value="action.icon"
+                  placeholder="如 fluent:edit-20-regular"
+                  @update:model-value="updateAction(index, 'icon', $event)"
+                />
+              </label>
+            </div>
+            <button
+              type="button"
+              class="condition-remove action-item__remove"
+              :aria-label="`删除操作 ${action.label}`"
+              @click="removeAction(index)"
+            >
+              <Icon icon="fluent:delete-16-regular" width="15" />
+            </button>
+          </div>
+          <div v-if="!selectedColumn.actions.length" class="column-empty">添加操作按钮</div>
+        </section>
+      </template>
 
       <template v-if="selectedColumn.type === 'column'">
         <div class="detail-grid">
@@ -843,5 +1033,28 @@ function parseConditionValue(value: string) {
   display: grid;
   place-items: center;
   color: var(--el-color-danger);
+}
+
+.detail-hint {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.action-item {
+  display: grid;
+  gap: 5px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-color);
+}
+
+.action-item:first-of-type {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.action-item__remove {
+  justify-self: end;
 }
 </style>

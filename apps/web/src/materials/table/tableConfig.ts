@@ -3,6 +3,8 @@ import type { CommonTableConfig, CommonTableProps } from '@vunio/ui'
 import { getByKeyOrPath } from '@vunio/utils'
 import dayjs from 'dayjs'
 import type {
+  TableActionSchema,
+  TableColumnActionSchema,
   TableColumnLeafSchema,
   TableColumnSchema,
   TableCondition,
@@ -60,9 +62,19 @@ export function getTableEditorComponent(component: TableEditorComponent) {
   return editorComponentMap[component]
 }
 
-export function getLeafTableColumns(columns: TableColumnSchema[]): TableColumnLeafSchema[] {
+export type TableCellColumnSchema = TableColumnLeafSchema | TableColumnActionSchema
+
+/** 分组表头以外的全部列 —— 数据列与操作列,即需要单元格插槽的那些。 */
+export function getCellTableColumns(columns: TableColumnSchema[]): TableCellColumnSchema[] {
   return columns.flatMap((column) =>
-    column.type === 'group' ? getLeafTableColumns(column.children) : [column],
+    column.type === 'group' ? getCellTableColumns(column.children) : [column],
+  )
+}
+
+/** 只取绑定数据字段的列 —— 校验、diff、格式化都只针对这些列。 */
+export function getLeafTableColumns(columns: TableColumnSchema[]): TableColumnLeafSchema[] {
+  return getCellTableColumns(columns).filter(
+    (column): column is TableColumnLeafSchema => column.type === 'column',
   )
 }
 
@@ -141,9 +153,34 @@ export function formatTableCellValue(row: TableRow, column: TableColumnLeafSchem
   return String(value)
 }
 
+export function isTableActionVisible(action: TableActionSchema, context: TableConditionContext) {
+  return !evaluateConditionGroup(action.hiddenWhen, context, false)
+}
+
+export function isTableActionDisabled(action: TableActionSchema, context: TableConditionContext) {
+  return evaluateConditionGroup(action.disabledWhen, context, false)
+}
+
 function isColumnTreeHidden(column: TableColumnSchema): boolean {
   if (column.hidden) return true
   return column.type === 'group' && column.children.every(isColumnTreeHidden)
+}
+
+/**
+ * 操作列的列配置 —— 刻意不给 `component` 和 `rules`。
+ *
+ * CommonTable 只在没有 `component` 时才走单元格插槽,给了就会渲染成表单控件;
+ * 操作列也不参与表单校验,rules 必须是空数组。
+ */
+function toActionConfig(column: TableColumnActionSchema): CommonTableConfig {
+  const { type: _type, id: _id, actions: _actions, ...columnProps } = column
+
+  return {
+    ...columnProps,
+    columnKey: column.id,
+    showOverflowTooltip: false,
+    rules: [],
+  }
 }
 
 function toLeafConfig(
@@ -187,6 +224,7 @@ export function toCommonTableConfigs(
 ): CommonTableConfig[] {
   return columns.map((column) => {
     if (column.type === 'column') return toLeafConfig(column, options)
+    if (column.type === 'action') return toActionConfig(column)
 
     const { type: _type, id: _id, children: _children, ...columnProps } = column
 

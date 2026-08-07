@@ -65,6 +65,16 @@ const workbenchPath = computed(() => {
     <button
       type="button"
       class="toolbar-button"
+      :class="{ active: panelVisible.agent }"
+      title="切换 AI 设计面板"
+      aria-label="切换 AI 设计面板"
+      @click="editorPanelStore.togglePanel('agent')"
+    >
+      <Icon icon="fluent:sparkle-20-filled" />
+    </button>
+    <button
+      type="button"
+      class="toolbar-button"
       :class="{ active: panelVisible.property }"
       title="切换属性面板"
       aria-label="切换属性面板"

@@ -5,6 +5,7 @@ import ToolbarRight from '@/editor/toolbar/ToolbarRight.vue'
 import { useEditorStore } from '@/stores/editor.ts'
 import MaterialPanel from '@/editor/panels/material/index.vue'
 import LayerPanel from '@/editor/panels/layer/index.vue'
+import AgentPanel from '@/editor/panels/agent/index.vue'
 import CanvasRoot from '@/editor/canvas/index.vue'
 import PropertyPanel from '@/editor/panels/property/index.vue'
 import { storeToRefs } from 'pinia'
@@ -105,7 +106,8 @@ const { dataSources, theme } = storeToRefs(editorStore)
 provideDataSources(dataSources)
 provideRenderTheme(theme)
 
-const { isNarrowWorkspace, materialWidth, layerWidth, propertyWidth } = useResponsiveEditorLayout()
+const { isNarrowWorkspace, materialWidth, layerWidth, agentWidth, propertyWidth } =
+  useResponsiveEditorLayout()
 </script>
 
 <template>
@@ -132,6 +134,8 @@ const { isNarrowWorkspace, materialWidth, layerWidth, propertyWidth } = useRespo
       />
       <!--  图层  -->
       <LayerPanel class="layer overflow-hidden transition-all" :style="{ width: layerWidth }" />
+      <!--  AI 设计  -->
+      <AgentPanel class="agent overflow-hidden transition-all" :style="{ width: agentWidth }" />
       <!--  画布  -->
       <CanvasRoot class="canvas flex-1" />
       <!--  属性  -->
@@ -225,6 +229,10 @@ const { isNarrowWorkspace, materialWidth, layerWidth, propertyWidth } = useRespo
   }
 
   .material {
+    border-right: 1px solid var(--border-color);
+  }
+
+  .agent {
     border-right: 1px solid var(--border-color);
   }
 

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import type { RunnableConfig } from '@langchain/core/runnables'
 import type { BaseCheckpointSaver } from '@langchain/langgraph'
 import { contextToConfig } from '../core/runtime/context.js'
@@ -57,10 +58,17 @@ export function createAgentRuntime(options: CreateAgentRuntimeOptions = {}) {
     runOptions?: AgentRunOptions,
   ): RunnableConfig {
     const base = contextToConfig(context)
-    if (!runOptions?.threadId) return base
     return {
       ...base,
-      configurable: { ...base.configurable, thread_id: runOptions.threadId },
+      // LangGraph 用它中断节点间的推进,节点内部的 model.invoke 另外从 context 取。
+      ...(runOptions?.signal ? { signal: runOptions.signal } : {}),
+      configurable: {
+        ...base.configurable,
+        // 配了 checkpointer 就必须有 thread_id —— 缺了会在写 checkpoint_blobs 时
+        // 撞 NOT NULL 约束。不传 threadId 表示「本轮不需要延续历史」,
+        // 这里给一个一次性 id 满足存储层,语义上仍是独立会话。
+        thread_id: runOptions?.threadId ?? `once:${randomUUID()}`,
+      },
     }
   }
 

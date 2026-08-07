@@ -44,7 +44,7 @@ export class AgentsService {
     signal?: AbortSignal,
   ): Promise<PageDesignResult> {
     await this.access.requireProjectAccess(userId, projectId, 'write')
-    return this.runtime.invoke('page-design', this.toInput(request), this.buildContext(), {
+    return this.runtime.invoke('page-design', this.toInput(request), this.buildContext(signal), {
       ...(signal ? { signal } : {}),
       ...(request.threadId ? { threadId: request.threadId } : {}),
     })
@@ -58,7 +58,7 @@ export class AgentsService {
     signal?: AbortSignal,
   ): Promise<AsyncIterable<AgentStreamEvent>> {
     await this.access.requireProjectAccess(userId, projectId, 'write')
-    return this.runtime.stream('page-design', this.toInput(request), this.buildContext(), {
+    return this.runtime.stream('page-design', this.toInput(request), this.buildContext(signal), {
       ...(signal ? { signal } : {}),
       ...(request.threadId ? { threadId: request.threadId } : {}),
     })
@@ -72,7 +72,8 @@ export class AgentsService {
     }
   }
 
-  private buildContext() {
+  /** signal 同时进 RunnableConfig 与 context —— 前者中断图推进,后者中断节点内的模型调用。 */
+  private buildContext(signal?: AbortSignal) {
     const agentLogger: AgentLogger = {
       debug: (message, meta) => this.logger.debug(this.format(message, meta)),
       info: (message, meta) => this.logger.log(this.format(message, meta)),
@@ -89,6 +90,7 @@ export class AgentsService {
         maxRetries: 1,
       }),
       logger: agentLogger,
+      ...(signal ? { signal } : {}),
     }
   }
 

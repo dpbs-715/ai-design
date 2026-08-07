@@ -1,19 +1,13 @@
-import { Body, Controller, Param, ParseUUIDPipe, Post, Req, Sse, UseGuards } from '@nestjs/common'
-import { from } from 'rxjs'
-import type { Observable } from 'rxjs'
-import { map } from 'rxjs/operators'
-import type { AgentStreamEvent, PageDesignResult } from '@ai-design/agents'
+import { Body, Controller, Param, ParseUUIDPipe, Post, Req, Res, UseGuards } from '@nestjs/common'
+import type { Response } from 'express'
+import type { PageDesignResult } from '@ai-design/agents'
 import type { AuthenticatedRequest } from '../auth/authenticated-request.js'
 import { SessionAuthGuard } from '../auth/session-auth.guard.js'
 import { ZodValidationPipe } from '../common/zod-validation.pipe.js'
 import { AgentsService } from './agents.service.js'
 import { pageDesignRequestSchema } from './agents.dto.js'
 import type { PageDesignRequest } from './agents.dto.js'
-
-/** Nest 的 SSE 返回类型。 */
-interface MessageEvent {
-  data: string
-}
+import { writeSseStream } from './sse-stream.js'
 
 @Controller()
 @UseGuards(SessionAuthGuard)
@@ -33,18 +27,32 @@ export class AgentsController {
   /**
    * 流式返回执行过程。
    *
-   * 浏览器原生 EventSource 不能带自定义头,但会带 cookie —— 会话 cookie 的
-   * path 是 `/api`,所以 SessionAuthGuard 在这条路由上同样生效。
+   * 用 POST 手写 SSE 而不用 Nest 的 `@Sse`(它注册的是 GET):请求体要带
+   * 整个页面草稿,原生 EventSource 既发不了 body 也带不了自定义头。前端用
+   * fetch 读 ReadableStream,断开即取消 —— 服务端不必维护 run 生命周期。
    */
-  @Sse('projects/:projectId/agents/page-design/stream')
+  @Post('projects/:projectId/agents/page-design/stream')
   async streamPageDesign(
     @Req() request: AuthenticatedRequest,
     @Param('projectId', ParseUUIDPipe) projectId: string,
     @Body(new ZodValidationPipe(pageDesignRequestSchema)) body: PageDesignRequest,
-  ): Promise<Observable<MessageEvent>> {
-    const events = await this.agents.streamPageDesign(request.auth.userId, projectId, body)
-    return from(events).pipe(
-      map((event: AgentStreamEvent) => ({ data: JSON.stringify(event) })),
+    @Res() response: Response,
+  ): Promise<void> {
+    // 客户端断开时中止图执行,否则模型会把剩下的节点跑完,白烧 token。
+    //
+    // 监听 response 而不是 request:body parser 已经读完请求体,request 流早已结束,
+    // 不会再有 close 事件 —— 挂在 request 上等于永远不触发。
+    const controller = new AbortController()
+    response.on('close', () => controller.abort())
+
+    // 鉴权与参数校验都要在 writeSseStream 写出 200 头之前完成,
+    // 否则失败就只能表达成响应体里的事件,前端得处理两套错误路径。
+    const events = await this.agents.streamPageDesign(
+      request.auth.userId,
+      projectId,
+      body,
+      controller.signal,
     )
+    await writeSseStream(response, events)
   }
 }
