@@ -97,6 +97,15 @@ const errors = computed(() => reply.value?.errors ?? [])
   font-size: 11px;
 }
 
+// 失败消息可能是模型服务原样抛回的长串(含 URL),而 flex 子项默认
+// min-width: auto 撑不下就把面板顶宽,外层 overflow-auto 于是长出横向滚动条。
+// overflow-wrap: anywhere 同时缩小最小内容宽度,长 URL 才会真的折行。
+.stage span,
+.meta span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .meta svg {
   flex: none;
   color: var(--el-color-success);
@@ -115,6 +124,8 @@ const errors = computed(() => reply.value?.errors ?? [])
   padding-left: 16px;
   color: var(--el-color-warning);
   font-size: 11px;
+  // 校验消息里会出现节点 id、字段路径这类不含空格的长串,同样要能折行。
+  overflow-wrap: anywhere;
 
   li + li {
     margin-top: 3px;
