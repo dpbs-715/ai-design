@@ -73,7 +73,7 @@ function createCollections(namesByPrefix) {
       const icons = Object.fromEntries(
         [...names].sort().map((name) => {
           const icon = getIconData(iconSet, name)
-          if (!icon) throw new Error(`Icon \"${prefix}:${name}\" does not exist`)
+          if (!icon) throw new Error(`Icon "${prefix}:${name}" does not exist`)
           return [name, icon]
         }),
       )
