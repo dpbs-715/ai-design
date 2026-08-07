@@ -109,13 +109,46 @@ describe('formatMaterialSummaries', () => {
 })
 
 describe('formatMaterialDetail', () => {
+  /** 定位模板那一行 —— 说明文字在模板前后都有,不能假定它在首行或末行。 */
+  function templateLine(text: string): string {
+    return text.split('\n').find((line) => line.trim().startsWith('{'))!.trim()
+  }
+
   it('包含可被 JSON.parse 的模板', () => {
     const detail = getMaterialDetail('button')!
     const text = formatMaterialDetail(detail)
-    const jsonLine = text.split('\n').at(-1)!.trim()
 
-    expect(JSON.parse(jsonLine)).toMatchObject({ type: 'button' })
-    expect(text).toContain('必须自行补上唯一的 id')
+    expect(JSON.parse(templateLine(text))).toMatchObject({ type: 'button' })
+  })
+
+  /**
+   * 模板省略了 id 和 children,而节点两者都必填。工具输出必须点明这件事,
+   * 否则模型照抄模板就会产出缺 children 的节点被 apply 打回。
+   */
+  it('说明模板省略了 id 与 children', () => {
+    const text = formatMaterialDetail(getMaterialDetail('free-container')!)
+
+    expect(JSON.parse(templateLine(text))).not.toHaveProperty('children')
+    expect(text).toContain('id')
+    expect(text).toContain('children')
+  })
+
+  /**
+   * 有暴露方法的物料(弹窗 / 图表 / 表格 / 表单)必须打印方法清单,
+   * 否则模型写 trigger 调用时完全瞎猜。
+   */
+  it('打印物料暴露的方法清单', () => {
+    const dialogText = formatMaterialDetail(getMaterialDetail('dialog-container')!)
+    expect(dialogText).toContain('$context.trigger')
+    expect(dialogText).toContain('open()')
+    expect(dialogText).toContain('close()')
+
+    const chartText = formatMaterialDetail(getMaterialDetail('bar-chart')!)
+    expect(chartText).toContain('refresh()')
+
+    // 没有暴露方法的物料(纯展示类)不应出现 trigger 相关文本。
+    const textText = formatMaterialDetail(getMaterialDetail('text')!)
+    expect(textText).not.toContain('trigger')
   })
 })
 

@@ -2,7 +2,7 @@ import type { MaterialEvent, MaterialSchema } from '@/schema/material.ts'
 import type { PageSchema } from '@/schema/page.ts'
 import { createMaterialTreeIndex } from '@/schema/nodeTree.ts'
 import { setByKeyOrPath } from '@vunio/utils'
-import type { EventScriptContext } from './eventScriptContract.ts'
+import type { EventScriptContext } from '@ai-design/contracts'
 import { runSandbox } from '@/runtime/sandbox.ts'
 
 export interface RuntimeContext extends EventScriptContext {

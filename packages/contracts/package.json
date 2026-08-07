@@ -15,6 +15,10 @@
       "types": "./src/auth.ts",
       "default": "./dist/auth.js"
     },
+    "./event-script": {
+      "types": "./src/event-script.ts",
+      "default": "./dist/event-script.js"
+    },
     "./material": {
       "types": "./src/material.ts",
       "default": "./dist/material.js"

@@ -12,6 +12,11 @@ defineOptions({
   name: 'ChartMaterial',
 })
 
+/** 事件脚本可通过 `$context.trigger` 调用的方法,与描述符的 exposedMethods 对应。 */
+export interface ChartMaterialExpose {
+  refresh(): Promise<void>
+}
+
 let chart: EChartsType
 const props = defineProps<{ schema: MaterialSchema }>()
 const chartRef = useTemplateRef('chartRef')
@@ -45,7 +50,7 @@ watch(option, (newValue) => chart.setOption(newValue), {
   deep: true,
 })
 
-defineExpose({ refresh })
+defineExpose<ChartMaterialExpose>({ refresh })
 
 onMounted(() => {
   chart = init(chartRef.value)

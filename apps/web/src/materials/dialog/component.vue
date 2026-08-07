@@ -5,6 +5,13 @@ import { resolveDialogMaterialConfig } from './config.ts'
 
 defineOptions({ name: 'DialogMaterial' })
 
+/** 事件脚本可通过 `$context.trigger` 调用的方法,与描述符的 exposedMethods 对应。 */
+export interface DialogMaterialExpose {
+  open(): void
+  close(): void
+  toggle(): void
+}
+
 const { schema } = defineProps<{
   schema: MaterialSchema
 }>()
@@ -30,7 +37,7 @@ function toggle() {
   visible.value = !visible.value
 }
 
-defineExpose({ close, open, toggle })
+defineExpose<DialogMaterialExpose>({ close, open, toggle })
 </script>
 
 <template>

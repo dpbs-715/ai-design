@@ -1,4 +1,5 @@
 import type { MaterialDescriptor } from '../descriptor.js'
+import { dialogExposedMethods } from '../exposed-methods.js'
 
 /** 弹窗标题栏高度。 */
 export const dialogHeaderHeight = 52
@@ -20,6 +21,7 @@ export const dialogDescriptor: MaterialDescriptor = {
     roles: ['page-overlay'],
     accepts: ['canvas-content'],
   },
+  exposedMethods: dialogExposedMethods,
   resizeConstraints: {
     minHeight: minimumDialogHeight,
   },

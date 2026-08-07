@@ -1,5 +1,6 @@
 import { createThemeColorReference } from '@ai-design/contracts'
 import type { MaterialCapability, MaterialDescriptor } from '../descriptor.js'
+import { chartExposedMethods } from '../exposed-methods.js'
 import { createCartesianOption, createChartBaseOption } from './chart-options.js'
 
 /** 图表都是叶子节点,不接纳子节点。 */
@@ -24,6 +25,7 @@ export const barChartDescriptor: MaterialDescriptor = {
   group: 'charts',
   description: '柱状图,用于对比各分类的数值大小。数据通过 dataset.source 提供,encode 指定分类轴与数值轴字段。',
   capability: chartCapability,
+  exposedMethods: chartExposedMethods,
   template: {
     type: 'bar-chart',
     name: '柱状图',
@@ -90,6 +92,7 @@ export const lineChartDescriptor: MaterialDescriptor = {
   group: 'charts',
   description: '折线图,用于展示数值随时间或顺序的变化趋势。数据通过 dataset.source 提供。',
   capability: chartCapability,
+  exposedMethods: chartExposedMethods,
   template: {
     type: 'line-chart',
     name: '折线图',
@@ -168,6 +171,7 @@ export const areaChartDescriptor: MaterialDescriptor = {
   group: 'charts',
   description: '面积图,折线下方带渐变填充,用于强调累计量或趋势的体量感。',
   capability: chartCapability,
+  exposedMethods: chartExposedMethods,
   template: {
     type: 'area-chart',
     name: '面积图',
@@ -240,6 +244,7 @@ export const pieChartDescriptor: MaterialDescriptor = {
   group: 'charts',
   description: '环形饼图,用于展示各部分占整体的构成比例。encode 用 itemName 指定名称字段、value 指定数值字段。',
   capability: chartCapability,
+  exposedMethods: chartExposedMethods,
   template: {
     type: 'pie-chart',
     name: '饼图',

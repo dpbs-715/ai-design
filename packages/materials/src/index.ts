@@ -53,6 +53,7 @@ export { imageDescriptor } from './descriptors/image.js'
 export { dataTableDescriptor } from './descriptors/table.js'
 export { textDescriptor, timeDescriptor } from './descriptors/text.js'
 export * from './data-sources.js'
+export * from './exposed-methods.js'
 
 /** 所有物料描述符。新增物料时在这里登记。 */
 export const materialDescriptors: MaterialDescriptor[] = [

@@ -4,6 +4,7 @@ import {
   DEFAULT_STATIC_OPTIONS_SOURCE_ID,
 } from '../data-sources.js'
 import type { MaterialCapability, MaterialDescriptor } from '../descriptor.js'
+import { businessFormExposedMethods, formItemExposedMethods } from '../exposed-methods.js'
 
 /** 表单项只能放在业务表单里,不能直接放到画布上。 */
 const formItemCapability: MaterialCapability = {
@@ -29,6 +30,7 @@ export const businessFormDescriptor: MaterialDescriptor = {
     roles: ['canvas-content'],
     accepts: ['form-item'],
   },
+  exposedMethods: businessFormExposedMethods,
   template: {
     type: 'business-form',
     name: '业务表单',
@@ -65,6 +67,7 @@ export const formInputDescriptor: MaterialDescriptor = {
   description:
     '文本或数字输入框。props.field 是提交时的字段名,props.control.type 取 text 或 number。只能放在业务表单内。',
   capability: formItemCapability,
+  exposedMethods: formItemExposedMethods,
   template: {
     type: 'form-input',
     name: '输入框',
@@ -105,6 +108,7 @@ export const formCommonSelectDescriptor: MaterialDescriptor = {
   description:
     '下拉选择器,支持普通选择与树形选择、单选与多选。选项来自绑定的数据源。只能放在业务表单内。',
   capability: formItemCapability,
+  exposedMethods: formItemExposedMethods,
   template: {
     type: 'form-common-select',
     name: '选择器',
@@ -148,6 +152,7 @@ export const formRadioGroupDescriptor: MaterialDescriptor = {
   group: 'form',
   description: '单选框组,从若干互斥选项里选一个。选项来自绑定的数据源。只能放在业务表单内。',
   capability: formItemCapability,
+  exposedMethods: formItemExposedMethods,
   template: {
     type: 'form-radio-group',
     name: '单选框组',
@@ -179,6 +184,7 @@ export const formCheckboxGroupDescriptor: MaterialDescriptor = {
   description:
     '复选框组,可多选并限制最少/最多选择数量。选项来自绑定的数据源。只能放在业务表单内。',
   capability: formItemCapability,
+  exposedMethods: formItemExposedMethods,
   template: {
     type: 'form-checkbox-group',
     name: '复选框组',
@@ -211,6 +217,7 @@ export const formDatePickerDescriptor: MaterialDescriptor = {
   description:
     '日期选择器,支持日期、日期时间、月份、年份四种类型。props.control.valueFormat 决定提交值的格式。只能放在业务表单内。',
   capability: formItemCapability,
+  exposedMethods: formItemExposedMethods,
   template: {
     type: 'form-date-picker',
     name: '日期选择',
@@ -240,6 +247,7 @@ export const formColorDescriptor: MaterialDescriptor = {
   group: 'form',
   description: '颜色选择器,可选 HEX 或 RGB 格式、是否带透明度。只能放在业务表单内。',
   capability: formItemCapability,
+  exposedMethods: formItemExposedMethods,
   template: {
     type: 'form-color',
     name: '颜色选择',

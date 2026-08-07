@@ -270,3 +270,83 @@ describe('applyDesignOperations — 正常路径', () => {
     expect(added).not.toBe(raw)
   })
 })
+
+/**
+ * 物料模板(`MaterialTemplate`)按约定省略 `children`,而节点(`materialSchema`)
+ * 必填。prompt 让模型照模板生成,所以这个差异必须由 apply 侧吃掉 ——
+ * 编辑器拖拽路径早就在 `createNode` 里这么做了。
+ */
+describe('applyDesignOperations — 模板到节点的结构补齐', () => {
+  const template = {
+    type: 'free-container',
+    name: '自由容器',
+    placement: { type: 'absolute' as const, x: 0, y: 0, width: 560, height: 360 },
+    props: {},
+  }
+
+  it('顶层节点缺 children 时补成空数组', () => {
+    const result = apply(page([]), [
+      { type: 'add-node', parentId: 'root', node: { ...template, id: 'box' } },
+    ])
+
+    expect(result.errors).toEqual([])
+    expect(result.page.root.children[0]!.children).toEqual([])
+  })
+
+  it('嵌套子节点缺 children 时递归补齐', () => {
+    const result = apply(page([]), [
+      {
+        type: 'add-node',
+        parentId: 'root',
+        node: { ...template, id: 'outer', children: [{ ...template, id: 'inner' }] },
+      },
+    ])
+
+    expect(result.errors).toEqual([])
+    const inner = result.page.root.children[0]!.children[0]!
+    expect(inner.id).toBe('inner')
+    expect(inner.children).toEqual([])
+  })
+
+  it('事件缺 code 时补成空串 —— 模板里空处理逻辑就是空串', () => {
+    const result = apply(page([]), [
+      {
+        type: 'add-node',
+        parentId: 'root',
+        node: { ...template, id: 'box', events: [{ type: 'click', name: 'onClick' }] },
+      },
+    ])
+
+    expect(result.errors).toEqual([])
+    expect(result.page.root.children[0]!.events).toEqual([
+      { type: 'click', name: 'onClick', code: '' },
+    ])
+  })
+
+  /** name 没有唯一正确的默认值,补一个等于编数据 —— 要让 repair 节点去修。 */
+  it('事件缺 name 时仍然报错,不猜一个函数名', () => {
+    const result = apply(page([]), [
+      {
+        type: 'add-node',
+        parentId: 'root',
+        node: { ...template, id: 'box', events: [{ type: 'click' }] },
+      },
+    ])
+
+    expect(result.errors[0]).toMatchObject({
+      kind: 'operation',
+      message: expect.stringContaining('events.0.name'),
+    })
+  })
+
+  it('children 类型写错时原样透传给校验,不当成缺省', () => {
+    const result = apply(page([]), [
+      { type: 'add-node', parentId: 'root', node: { ...template, id: 'box', children: 'nope' } },
+    ])
+
+    expect(result.errors[0]).toMatchObject({
+      kind: 'operation',
+      message: expect.stringContaining('children'),
+    })
+  })
+})

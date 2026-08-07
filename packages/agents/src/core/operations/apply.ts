@@ -3,6 +3,7 @@ import type { MaterialSchema, PageSchema } from '@ai-design/contracts'
 import { canMaterialTypeBeChild } from '@ai-design/materials'
 import { operationError, proposalError } from './errors.js'
 import type { DesignError } from './errors.js'
+import { normalizeAgentNode } from './normalize.js'
 import type { DesignOperation } from './schemas.js'
 
 export interface ApplyOperationsResult {
@@ -102,7 +103,9 @@ export function applyDesignOperations(
           return fail(`父节点 “${operation.parentId}” 不存在`)
         }
         // LLM 给的 node 是不透明 JSON(schemas.ts 说明了原因),在这里才做真正的结构校验。
-        const parsed = materialSchema.safeParse(operation.node)
+        // 校验前先补齐模板允许省略的字段(normalize.ts 说明了模板与节点的结构差异),
+        // 否则「照模板生成」这条 prompt 指令必然撞校验失败。
+        const parsed = materialSchema.safeParse(normalizeAgentNode(operation.node))
         if (!parsed.success) {
           const issue = parsed.error.issues[0]
           const path = issue?.path.join('.') || 'node'

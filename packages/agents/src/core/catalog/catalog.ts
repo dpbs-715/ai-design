@@ -1,5 +1,5 @@
 import { materialDescriptors, materialGroups } from '@ai-design/materials'
-import type { MaterialDescriptor } from '@ai-design/materials'
+import type { MaterialDescriptor, MaterialExposedMethod } from '@ai-design/materials'
 import type { MaterialTemplate } from '@ai-design/contracts'
 
 /** 给 LLM 看的物料摘要 —— 不含模板,用于选型。 */
@@ -18,6 +18,11 @@ export interface MaterialSummary {
 /** 单个物料的完整信息 —— 含创建节点所需的模板。 */
 export interface MaterialDetail extends MaterialSummary {
   template: MaterialTemplate
+  /**
+   * 事件脚本可通过 `$context.trigger` 调用的实例方法。
+   * 纯展示类物料没有暴露方法,该字段为 undefined。
+   */
+  exposedMethods?: readonly MaterialExposedMethod[]
 }
 
 export interface MaterialSearchQuery {
@@ -79,7 +84,11 @@ export function searchMaterials(query: MaterialSearchQuery = {}): MaterialSummar
 export function getMaterialDetail(type: string): MaterialDetail | undefined {
   const descriptor = descriptorByType.get(type)
   if (!descriptor) return undefined
-  return { ...toSummary(descriptor), template: descriptor.template }
+  return {
+    ...toSummary(descriptor),
+    template: descriptor.template,
+    exposedMethods: descriptor.exposedMethods,
+  }
 }
 
 /** 所有分组的 key,顺序与物料面板一致。 */
@@ -104,11 +113,29 @@ export function formatMaterialSummaries(summaries: MaterialSummary[]): string {
   return summaries.map(formatSummary).join('\n')
 }
 
-/** 把单个物料的完整信息渲染成工具返回文本。 */
+/**
+ * 把单个物料的完整信息渲染成工具返回文本。
+ *
+ * 模板是 `MaterialTemplate`,不是节点 —— 它按约定省略 `id` 和 `children`。
+ * 这里必须把「省略了什么」写清楚,否则模型照抄模板就会产出缺字段的节点。
+ */
 export function formatMaterialDetail(detail: MaterialDetail): string {
-  return [
+  const lines = [
     formatSummary(detail),
-    '  默认模板(创建节点时以此为基础,必须自行补上唯一的 id):',
+    '  默认模板(创建节点时以此为基础):',
     `  ${JSON.stringify(detail.template)}`,
-  ].join('\n')
+    '  模板省略了两个节点必填字段,照抄时要自己补:',
+    '  - id:全局唯一,页面里已有的 id 不能重用。',
+    '  - children:数组。叶子物料和空容器都写 []。',
+    '  events 若要保留,每一项都要带齐 type/name/code(code 可以是空串);不需要事件就写 []。',
+  ]
+
+  if (detail.exposedMethods && detail.exposedMethods.length > 0) {
+    lines.push('  事件脚本可通过 $context.trigger 调用的方法:')
+    for (const method of detail.exposedMethods) {
+      lines.push(`  - ${method.signature}  // ${method.description}`)
+    }
+  }
+
+  return lines.join('\n')
 }

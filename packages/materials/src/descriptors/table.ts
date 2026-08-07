@@ -1,6 +1,7 @@
 import { createThemeColorReference } from '@ai-design/contracts'
 import { DEFAULT_STATIC_OPTIONS_SOURCE_ID } from '../data-sources.js'
 import type { MaterialDescriptor } from '../descriptor.js'
+import { dataTableExposedMethods } from '../exposed-methods.js'
 
 export const dataTableDescriptor: MaterialDescriptor = {
   key: 'data-table',
@@ -18,6 +19,7 @@ export const dataTableDescriptor: MaterialDescriptor = {
     kind: 'leaf',
     roles: ['canvas-content'],
   },
+  exposedMethods: dataTableExposedMethods,
   template: {
     type: 'data-table',
     name: '数据表格',
