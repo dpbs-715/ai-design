@@ -37,10 +37,31 @@ export const maxLengthFormRuleSchema = extensibleObject({
   trigger: formRuleTriggersSchema,
 })
 
+export const patternFormRuleSchema = extensibleObject({
+  type: z.literal('pattern'),
+  // 正则以文本形式存储 —— 契约是 JSON,装不了 RegExp 对象;
+  // 运行时由 toElementFormRules 用 new RegExp 还原。无法编译的串在这里就拦住,
+  // 不放行到运行时才抛。
+  value: z
+    .string()
+    .min(1, '正则表达式不能为空')
+    .refine((value) => {
+      try {
+        new RegExp(value)
+        return true
+      } catch {
+        return false
+      }
+    }, '正则表达式无法编译'),
+  message: z.string().min(1),
+  trigger: formRuleTriggersSchema,
+})
+
 export const formRuleSchema = z.discriminatedUnion('type', [
   requiredFormRuleSchema,
   minLengthFormRuleSchema,
   maxLengthFormRuleSchema,
+  patternFormRuleSchema,
 ])
 
 export const formRulesSchema = z.array(formRuleSchema)
@@ -334,6 +355,13 @@ export type FormRuleSchema =
   | {
       type: 'maxLength'
       value: number
+      message: string
+      trigger: FormRuleTrigger[]
+    }
+  | {
+      type: 'pattern'
+      /** 正则表达式文本(不含两端的斜杠),运行时 new RegExp 还原。 */
+      value: string
       message: string
       trigger: FormRuleTrigger[]
     }

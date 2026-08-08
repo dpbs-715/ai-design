@@ -82,6 +82,8 @@ export const PLAN_SYSTEM_PROMPT = [
   '  运行时 dataId 会用数据源覆盖 options,两者并存等于你写的选项被丢掉。',
   '- 内联选项的每一项都要带齐 id(选项间唯一)、label、value、disabled ——',
   '  模板里 options 是空数组看不出形状,但编辑器按 id 追踪选项,缺字段过不了页面校验。',
+  '- 表单校验规则 rules 的 type 只支持 required / minLength / maxLength / pattern;',
+  '  pattern 的 value 是正则表达式文本(不含两端的斜杠),如 "^\\w+@\\w+\\.\\w+$"。',
   '- placement 用 absolute 类型并落在画布范围内;表单项用 form-item 类型。',
   '',
   'operations 按执行顺序排列 —— 后面的操作可以引用前面新增的节点。',

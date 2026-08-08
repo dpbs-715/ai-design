@@ -28,6 +28,14 @@ export function toElementFormRules(rules: FormRuleSchema[]): FormItemRule[] {
       }
     }
 
+    if (rule.type === 'pattern') {
+      return {
+        pattern: new RegExp(rule.value),
+        message: rule.message,
+        trigger: rule.trigger,
+      }
+    }
+
     return {
       [rule.type === 'minLength' ? 'min' : 'max']: rule.value,
       message: rule.message,

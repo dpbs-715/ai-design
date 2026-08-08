@@ -557,4 +557,40 @@ describe('applyDesignOperations — 物料级结构校验', () => {
 
     expect(result.errors).toEqual([])
   })
+
+  it('pattern 校验规则是合法的 —— 契约存正则文本,运行时还原成 RegExp', () => {
+    const node = input()
+    node.props = {
+      ...node.props,
+      rules: [
+        {
+          type: 'pattern',
+          value: '^\\w+@\\w+\\.\\w+$',
+          message: '邮箱格式不正确',
+          trigger: ['blur', 'change'],
+        },
+      ],
+    }
+    const result = apply(page([]), [
+      { type: 'add-node', parentId: 'root', node: form([node]) },
+    ])
+
+    expect(result.errors).toEqual([])
+  })
+
+  it('无法编译的正则在结构校验就拦下,不放行到运行时', () => {
+    const node = input()
+    node.props = {
+      ...node.props,
+      rules: [{ type: 'pattern', value: '([', message: '格式不正确', trigger: ['change'] }],
+    }
+    const result = apply(page([]), [
+      { type: 'add-node', parentId: 'root', node: form([node]) },
+    ])
+
+    expect(result.errors[0]).toMatchObject({
+      kind: 'operation',
+      message: expect.stringContaining('props.rules.0.value'),
+    })
+  })
 })

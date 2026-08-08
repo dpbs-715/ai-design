@@ -21,13 +21,16 @@ const emit = defineEmits<{
 
 const supportsLengthRules = computed(() => allowLength && inputType !== 'number')
 
+/** 正则只对文本输入有意义;数字输入的值是 number,async-validator 的 pattern 不接。 */
+const supportsPattern = computed(() => allowLength && inputType !== 'number')
+
 function getRule(type: FormRuleSchema['type']) {
   return modelValue.find((rule) => rule.type === type)
 }
 
-function getLengthRule(type: 'minLength' | 'maxLength') {
+function getValuedRule<T extends FormRuleSchema['type']>(type: T) {
   return modelValue.find(
-    (rule): rule is Extract<FormRuleSchema, { type: typeof type }> => rule.type === type,
+    (rule): rule is Extract<FormRuleSchema, { type: T }> => rule.type === type,
   )
 }
 
@@ -39,6 +42,13 @@ function updateRule(type: FormRuleSchema['type'], enabled: boolean) {
         type,
         message: requiredMessage,
         trigger: supportsLengthRules.value ? ['blur', 'change'] : ['change'],
+      })
+    } else if (type === 'pattern') {
+      rules.push({
+        type,
+        value: '^.+$',
+        message: '格式不正确',
+        trigger: ['blur', 'change'],
       })
     } else {
       rules.push({
@@ -93,7 +103,7 @@ function updateRuleField(
         </div>
         <div v-if="getRule(type)" class="form-rules-setter__fields">
           <el-input-number
-            :model-value="getLengthRule(type)?.value ?? 0"
+            :model-value="getValuedRule(type)?.value ?? 0"
             :min="0"
             :max="9999"
             controls-position="right"
@@ -107,6 +117,28 @@ function updateRuleField(
         </div>
       </section>
     </template>
+
+    <section v-if="supportsPattern" class="form-rules-setter__rule">
+      <div class="form-rules-setter__heading">
+        <span>正则校验</span>
+        <el-switch
+          :model-value="Boolean(getRule('pattern'))"
+          @update:model-value="updateRule('pattern', Boolean($event))"
+        />
+      </div>
+      <div v-if="getRule('pattern')" class="form-rules-setter__fields form-rules-setter__fields--pattern">
+        <el-input
+          :model-value="getValuedRule('pattern')?.value"
+          placeholder="正则表达式,如 ^\w+@\w+\.\w+$"
+          @update:model-value="updateRuleField('pattern', 'value', $event)"
+        />
+        <el-input
+          :model-value="getRule('pattern')?.message"
+          placeholder="校验提示"
+          @update:model-value="updateRuleField('pattern', 'message', $event)"
+        />
+      </div>
+    </section>
   </div>
 </template>
 
@@ -135,5 +167,9 @@ function updateRuleField(
   display: grid;
   grid-template-columns: 92px 1fr;
   gap: 6px;
+}
+
+.form-rules-setter__fields--pattern {
+  grid-template-columns: 1fr 1fr;
 }
 </style>
