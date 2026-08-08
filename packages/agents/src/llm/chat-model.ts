@@ -11,6 +11,7 @@ export function createChatModel(config: AgentModelConfig): BaseChatModel {
     apiKey: config.apiKey,
     model: config.model,
     ...(config.temperature === undefined ? {} : { temperature: config.temperature }),
+    ...(config.maxTokens === undefined ? {} : { maxTokens: config.maxTokens }),
     ...(config.timeoutMs === undefined ? {} : { timeout: config.timeoutMs }),
     ...(config.maxRetries === undefined ? {} : { maxRetries: config.maxRetries }),
     ...(config.baseURL ? { configuration: { baseURL: config.baseURL } } : {}),

@@ -24,6 +24,7 @@ export interface EnvironmentVariables {
   AGENT_MODEL_NAME: string
   AGENT_MODEL_BASE_URL: string
   AGENT_MODEL_TIMEOUT_MS: number
+  AGENT_MODEL_MAX_TOKENS: number
 }
 
 const DEFAULT_SERVER_PORT = 3000
@@ -36,6 +37,12 @@ const DEFAULT_REDIS_HOST = '127.0.0.1'
 const DEFAULT_SMTP_HOST = 'smtp.qq.com'
 const DEFAULT_SMTP_PORT = 465
 const DEFAULT_AGENT_MODEL_TIMEOUT_MS = 120_000
+/**
+ * 设计方案要输出整棵节点子树,是最容易撞长度上限的一类响应。
+ * 撞上限返回的是半截 JSON(`finish_reason=length`),解析必然失败,
+ * 所以默认值给得比端点默认宽松。
+ */
+const DEFAULT_AGENT_MODEL_MAX_TOKENS = 8192
 
 function readRequiredString(
   environment: Record<string, unknown>,
@@ -168,6 +175,11 @@ export function validateEnvironment(environment: Record<string, unknown>): Envir
       environment,
       'AGENT_MODEL_TIMEOUT_MS',
       DEFAULT_AGENT_MODEL_TIMEOUT_MS,
+    ),
+    AGENT_MODEL_MAX_TOKENS: readPositiveInteger(
+      environment,
+      'AGENT_MODEL_MAX_TOKENS',
+      DEFAULT_AGENT_MODEL_MAX_TOKENS,
     ),
   }
 }

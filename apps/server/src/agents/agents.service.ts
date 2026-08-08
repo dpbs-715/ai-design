@@ -87,6 +87,7 @@ export class AgentsService {
         model: this.config.get('AGENT_MODEL_NAME', { infer: true }),
         baseURL: this.config.get('AGENT_MODEL_BASE_URL', { infer: true }),
         timeoutMs: this.config.get('AGENT_MODEL_TIMEOUT_MS', { infer: true }),
+        maxTokens: this.config.get('AGENT_MODEL_MAX_TOKENS', { infer: true }),
         maxRetries: 1,
       }),
       logger: agentLogger,

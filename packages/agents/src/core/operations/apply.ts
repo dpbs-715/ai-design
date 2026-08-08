@@ -20,8 +20,13 @@ function collectSubtreeIds(node: MaterialSchema, ids: string[] = []): string[] {
   return ids
 }
 
-function insertAt<T>(items: T[], item: T, index?: number): T[] {
-  const at = index === undefined ? items.length : Math.max(0, Math.min(index, items.length))
+/**
+ * `index` 用 `== null` 同时兜住 undefined 和 null —— strict 模式下模型用显式 null
+ * 表示「不指定位置」(见 llm/mfjs.ts)。只判 undefined 的话 null 会掉进 Math.min,
+ * 算出 0,把节点静默插到最前面而不是追加到末尾。
+ */
+function insertAt<T>(items: T[], item: T, index?: number | null): T[] {
+  const at = index == null ? items.length : Math.max(0, Math.min(index, items.length))
   return [...items.slice(0, at), item, ...items.slice(at)]
 }
 
@@ -54,7 +59,7 @@ function attach(
   children: MaterialSchema[],
   parentId: string,
   node: MaterialSchema,
-  index?: number,
+  index?: number | null,
 ): MaterialSchema[] {
   if (parentId === rootId) {
     return insertAt(children, node, index)
