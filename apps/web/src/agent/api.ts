@@ -90,7 +90,10 @@ function parseEvent(raw: string): AgentStreamEvent | undefined {
   }
   if (event.type === 'aborted') return { type: 'aborted' }
   if (event.type === 'failed') {
-    return { type: 'failed', message: typeof event.message === 'string' ? event.message : '执行失败' }
+    return {
+      type: 'failed',
+      message: typeof event.message === 'string' ? event.message : '执行失败',
+    }
   }
   return undefined
 }
