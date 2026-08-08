@@ -21,33 +21,46 @@ function collectSubtreeIds(node: MaterialSchema, ids: string[] = []): string[] {
 }
 
 /**
- * 物料级结构校验 —— 与客户端 `parsePageSchema` 同一份 schema
+ * 物料级结构校验 + 规范化 —— 与客户端 `parsePageSchema` 同一份 schema
  * (@ai-design/materials 的 `materialNodeSchemas`)。
  *
  * contracts 的 `materialSchema` 只查通用骨架,`props` 是不透明对象;物料各自
  * props 的约束(枚举取值、必填字段、选项形状)只有物料级 schema 知道。少了这层,
  * 模型发明的取值(`control.type: "email"` 之类)在服务端全过、到客户端才硬失败,
  * repair 循环帮不上忙。在这里拦下,错误会交给 repair 修。
+ *
+ * 解析结果同时是规范化结果:schema 里的默认值(比如操作列的 `field: '$actions'`)
+ * 只存在于 parse 输出里 —— 只校验不用它,入树的 JSON 仍然缺字段。
  */
-function findNodeSchemaConflict(node: MaterialSchema): string | undefined {
+function parseWithMaterialSchema(
+  node: MaterialSchema,
+): { node: MaterialSchema; conflict?: never } | { conflict: string } {
   const schema = materialNodeSchemas[node.type]
-  if (!schema) return undefined
+  if (!schema) return { node }
   const result = schema.safeParse(node)
-  if (result.success) return undefined
-  const issue = result.error.issues[0]
-  const path = issue?.path.join('.') || 'node'
-  return `节点 “${node.name}”(${node.id})结构不合法:${path} ${issue?.message ?? '校验失败'}`
+  if (!result.success) {
+    const issue = result.error.issues[0]
+    const path = issue?.path.join('.') || 'node'
+    return {
+      conflict: `节点 “${node.name}”(${node.id})结构不合法:${path} ${issue?.message ?? '校验失败'}`,
+    }
+  }
+  return { node: result.data }
 }
 
-/** 与 findSubtreePropsConflict 同理:add-node 连子树一起加,每个节点都要过。 */
-function findSubtreeSchemaConflict(node: MaterialSchema): string | undefined {
-  const conflict = findNodeSchemaConflict(node)
-  if (conflict) return conflict
-  for (const child of node.children) {
-    const childConflict = findSubtreeSchemaConflict(child)
-    if (childConflict) return childConflict
+/** add-node 连子树一起加,每个节点都要过物料级 schema,入树的也是各自的规范化副本。 */
+function normalizeSubtree(
+  node: MaterialSchema,
+): { node: MaterialSchema; conflict?: never } | { conflict: string } {
+  const parsed = parseWithMaterialSchema(node)
+  if (parsed.conflict) return parsed
+  const children: MaterialSchema[] = []
+  for (const child of parsed.node.children) {
+    const normalized = normalizeSubtree(child)
+    if (normalized.conflict) return normalized
+    children.push(normalized.node)
   }
-  return undefined
+  return { node: { ...parsed.node, children } }
 }
 
 /**
@@ -147,12 +160,15 @@ export function applyDesignOperations(
           const path = issue?.path.join('.') || 'node'
           return fail(`节点结构不合法:${path} ${issue?.message ?? '校验失败'}`)
         }
-        const node = parsed.data
         // 通用骨架之后再过物料级 schema —— 枚举越界、缺必填字段在这一层拦。
-        const schemaConflict = findSubtreeSchemaConflict(node)
-        if (schemaConflict) {
-          return fail(schemaConflict)
+        // 入树的必须是解析后的规范化副本而不是 operation.node:schema 默认值
+        // (比如操作列的 field: '$actions')只存在于 parse 输出里,用原始对象
+        // 会静默丢掉它们;独立副本也避免页面树和 proposal 共享同一份节点。
+        const normalized = normalizeSubtree(parsed.data)
+        if (normalized.conflict) {
+          return fail(normalized.conflict)
         }
+        const node = normalized.node
         // 结构合法不代表 props 讲得通,再查一层语义(validate-props.ts 说明了为什么分开)。
         const conflict = findSubtreePropsConflict(node)
         if (conflict) {
@@ -171,10 +187,6 @@ export function applyDesignOperations(
         if (selfDuplicate !== undefined) {
           return fail(`新增的子树内部存在重复 id “${selfDuplicate}”`)
         }
-        // 入树的是 parsed.data 而不是 operation.node。当前 materialSchema 不含
-        // 默认值,两者内容一致,但 parsed.data 是独立副本 —— 用原始对象会让页面树
-        // 和 proposal 共享同一份节点,改一处影响另一处;且日后 schema 一旦加上
-        // 默认值或 transform,用原始对象就会静默丢掉这些规范化结果。
         children = attach(rootId, children, operation.parentId, node, operation.index)
         break
       }
@@ -203,21 +215,22 @@ export function applyDesignOperations(
           style: operation.style ? { ...node.style, ...operation.style } : node.style,
           placement: operation.placement ?? node.placement,
         })
-        // 局部更新合并出的是完整节点,同样要过物料级 schema —— 只改一个字段也可能
-        // 让节点落入不合法状态(比如把 control.type 改成枚举外的值)。
         const merged = merge(tree.nodeMap.get(operation.nodeId)!)
-        const schemaConflict = findNodeSchemaConflict(merged)
-        if (schemaConflict) {
-          return fail(schemaConflict)
+        // 局部更新合并出的是完整节点,同样要过物料级 schema —— 只改一个字段也可能
+        // 让节点落入不合法状态(比如把 control.type 改成枚举外的值)。与 add-node
+        // 同理,入树用规范化副本,历史 JSON 里缺的默认值也借这次修改一并写回。
+        const normalized = parseWithMaterialSchema(merged)
+        if (normalized.conflict) {
+          return fail(normalized.conflict)
         }
         // 局部更新同样能写出矛盾的 props(比如补了 options 却没删原有的 dataId),
         // 所以查的是合并后的结果,不是操作里那几个字段。
-        const conflict = findNodePropsConflict(merged)
+        const conflict = findNodePropsConflict(normalized.node)
         if (conflict) {
           return fail(conflict)
         }
         children = mapMaterialTree(children, (node) =>
-          node.id === operation.nodeId ? merge(node) : node,
+          node.id === operation.nodeId ? normalized.node : node,
         )
         break
       }

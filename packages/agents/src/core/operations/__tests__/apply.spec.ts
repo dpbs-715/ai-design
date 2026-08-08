@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { MaterialSchema, PageSchema } from '@ai-design/contracts'
 import {
   businessFormDescriptor,
+  dataTableDescriptor,
   formCommonSelectDescriptor,
   formInputDescriptor,
 } from '@ai-design/materials'
@@ -90,6 +91,19 @@ function input(controlOverride: Record<string, any> = {}): MaterialSchema {
         ...(formInputDescriptor.template.props.control as Record<string, any>),
         ...controlOverride,
       },
+    },
+    events: [],
+  } as MaterialSchema
+}
+
+function table(columns: Record<string, any>[]): MaterialSchema {
+  return {
+    ...dataTableDescriptor.template,
+    id: 'sales-table',
+    children: [],
+    props: {
+      ...dataTableDescriptor.template.props,
+      columns,
     },
     events: [],
   } as MaterialSchema
@@ -592,5 +606,47 @@ describe('applyDesignOperations — 物料级结构校验', () => {
       kind: 'operation',
       message: expect.stringContaining('props.rules.0.value'),
     })
+  })
+})
+
+/**
+ * 物料级 schema 里的默认值只在 parse 输出里存在 —— 入树必须用规范化副本,
+ * 否则默认值「校验通过但不写回」,保存的 JSON 仍然缺字段。
+ * 操作列的 field 就是这类:模型按「action 列不绑定数据」的描述生成时经常漏掉,
+ * 而 CommonTable 的单元格插槽按 field 匹配,缺了会渲染成空白。
+ */
+describe('applyDesignOperations — 物料级默认值写回', () => {
+  it('add-node:操作列缺 field 时补成 $actions,按钮缺 variant/icon 同样补齐', () => {
+    const result = apply(page([]), [
+      {
+        type: 'add-node',
+        parentId: 'root',
+        node: table([
+          {
+            type: 'action',
+            id: 'col-actions',
+            actions: [{ id: 'edit', label: '编辑' }],
+          },
+        ]),
+      },
+    ])
+
+    expect(result.errors).toEqual([])
+    const columns = result.page.root.children[0]!.props.columns as Array<Record<string, any>>
+    expect(columns[0]).toMatchObject({ type: 'action', field: '$actions' })
+    expect(columns[0]!.actions[0]).toMatchObject({ variant: 'link', icon: '' })
+  })
+
+  it('update-node:历史 JSON 缺的默认值借这次修改一并写回', () => {
+    const existing = table([
+      { type: 'action', id: 'col-actions', actions: [{ id: 'edit', label: '编辑' }] },
+    ])
+    const result = apply(page([existing]), [
+      { type: 'update-node', nodeId: 'sales-table', props: { rowKey: 'id' } },
+    ])
+
+    expect(result.errors).toEqual([])
+    const columns = result.page.root.children[0]!.props.columns as Array<Record<string, any>>
+    expect(columns[0]).toMatchObject({ field: '$actions' })
   })
 })

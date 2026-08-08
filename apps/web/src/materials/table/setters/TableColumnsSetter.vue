@@ -586,11 +586,7 @@ function parseConditionValue(value: string) {
           <p class="detail-hint">
             点击按钮会触发表格的「操作列点击」事件,事件脚本里用 $payload.actionId 区分是哪个操作。
           </p>
-          <div
-            v-for="(action, index) in selectedColumn.actions"
-            :key="action.id"
-            class="action-item"
-          >
+          <div v-for="(action, index) in selectedColumn.actions" :key="index" class="action-item">
             <div class="detail-grid">
               <label class="detail-field">
                 <span>操作标识</span>
