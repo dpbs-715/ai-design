@@ -3,6 +3,7 @@ import type { RunnableConfig } from '@langchain/core/runnables'
 import { designProposalSchema } from '../../../core/operations/schemas.js'
 import { contextFromConfig } from '../../../core/runtime/context.js'
 import { formatPageOutline } from '../../../core/tree/outline.js'
+import { withDesignStructuredOutput } from '../../../llm/structured-output.js'
 import type { PageDesignContext } from '../context.js'
 import { REPAIR_SYSTEM_PROMPT } from '../prompts.js'
 import type { PageDesignGraphState } from '../state.js'
@@ -14,9 +15,11 @@ export function createRepairNode() {
     const attempt = state.repairCount + 1
     logger.info('修复修改操作', { attempt })
 
-    const proposal = await model
-      .withStructuredOutput(designProposalSchema, { name: 'design_proposal' })
-      .invoke(
+    const proposal = await withDesignStructuredOutput(
+      model,
+      designProposalSchema,
+      'design_proposal',
+    ).invoke(
         [
           new SystemMessage(REPAIR_SYSTEM_PROMPT),
           new HumanMessage(

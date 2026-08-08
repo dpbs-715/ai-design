@@ -1,6 +1,7 @@
 import { AIMessage, HumanMessage, SystemMessage } from '@langchain/core/messages'
 import type { RunnableConfig } from '@langchain/core/runnables'
 import { contextFromConfig } from '../../../core/runtime/context.js'
+import { withDesignStructuredOutput } from '../../../llm/structured-output.js'
 import { formatPageOutline, formatSelectedNodes } from '../../../core/tree/outline.js'
 import type { PageDesignContext } from '../context.js'
 import { UNDERSTAND_SYSTEM_PROMPT } from '../prompts.js'
@@ -21,11 +22,13 @@ export function createUnderstandNode() {
       ].join('\n\n'),
     )
 
-    const intent = await model
-      .withStructuredOutput(designIntentSchema, { name: 'design_intent' })
-      .invoke([new SystemMessage(UNDERSTAND_SYSTEM_PROMPT), ...state.messages, userMessage], {
-        signal,
-      })
+    const intent = await withDesignStructuredOutput(
+      model,
+      designIntentSchema,
+      'design_intent',
+    ).invoke([new SystemMessage(UNDERSTAND_SYSTEM_PROMPT), ...state.messages, userMessage], {
+      signal,
+    })
 
     return {
       intent,

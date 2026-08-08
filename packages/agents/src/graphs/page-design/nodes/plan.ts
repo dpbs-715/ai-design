@@ -3,6 +3,7 @@ import type { RunnableConfig } from '@langchain/core/runnables'
 import { designProposalSchema } from '../../../core/operations/schemas.js'
 import { contextFromConfig } from '../../../core/runtime/context.js'
 import { formatPageOutline } from '../../../core/tree/outline.js'
+import { withDesignStructuredOutput } from '../../../llm/structured-output.js'
 import { designTools } from '../../../tools/design-tools.js'
 import type { PageDesignContext } from '../context.js'
 import { PLAN_SYSTEM_PROMPT } from '../prompts.js'
@@ -39,9 +40,11 @@ export function createPlanNode() {
       signal,
     })
 
-    const proposal = await model
-      .withStructuredOutput(designProposalSchema, { name: 'design_proposal' })
-      .invoke(
+    const proposal = await withDesignStructuredOutput(
+      model,
+      designProposalSchema,
+      'design_proposal',
+    ).invoke(
         [
           ...transcript,
           new HumanMessage('第二步:按上面取到的模板和设计意图,输出 operations 与 summary。'),
