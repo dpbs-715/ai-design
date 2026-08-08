@@ -54,6 +54,7 @@ export { dataTableDescriptor } from './descriptors/table.js'
 export { textDescriptor, timeDescriptor } from './descriptors/text.js'
 export * from './data-sources.js'
 export * from './exposed-methods.js'
+export { materialNodeSchemas } from './schemas/index.js'
 
 /** 所有物料描述符。新增物料时在这里登记。 */
 export const materialDescriptors: MaterialDescriptor[] = [

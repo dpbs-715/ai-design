@@ -1,12 +1,12 @@
 import type { MaterialSchema } from '@ai-design/contracts'
 
 /**
- * 节点 props 的语义校验 —— `materialSchema` 管不到的那一层。
+ * 节点 props 的语义校验 —— 结构 schema 管不到的那一层。
  *
- * `materialSchema.props` 是 `Record<string, any>`(contracts/material.ts),
- * 只保证「props 是个对象」。物料各自的 props 含义没有 schema 描述,
- * 于是「结构合法但运行时行为不对」的节点能一路通过校验落进页面。
- * 这里收口这类矛盾:能静默丢数据、且判定规则明确的,报错交给 repair 修。
+ * 字段级约束由物料级 schema 负责(@ai-design/materials 的 materialNodeSchemas,
+ * apply.ts 在 apply 阶段会跑)。但「单看每个字段都合法、组合起来矛盾」的规则
+ * schema 不该表达 —— 比如内联 options 与 dataId 各自都合法,并存时运行时
+ * 静默丢数据。这里收口这类矛盾:判定规则明确的,报错交给 repair 修。
  */
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {

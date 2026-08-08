@@ -18,6 +18,14 @@
     "./containment": {
       "types": "./src/containment.ts",
       "default": "./dist/containment.js"
+    },
+    "./schemas/business-form": {
+      "types": "./src/schemas/business-form.ts",
+      "default": "./dist/schemas/business-form.js"
+    },
+    "./schemas/table": {
+      "types": "./src/schemas/table.ts",
+      "default": "./dist/schemas/table.js"
     }
   },
   "scripts": {
@@ -26,7 +34,8 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@ai-design/contracts": "workspace:*"
+    "@ai-design/contracts": "workspace:*",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "typescript": "~6.0.3"

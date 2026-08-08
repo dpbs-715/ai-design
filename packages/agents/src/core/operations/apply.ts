@@ -1,6 +1,6 @@
 import { createMaterialTreeIndex, mapMaterialTree, materialSchema } from '@ai-design/contracts'
 import type { MaterialSchema, PageSchema } from '@ai-design/contracts'
-import { canMaterialTypeBeChild } from '@ai-design/materials'
+import { canMaterialTypeBeChild, materialNodeSchemas } from '@ai-design/materials'
 import { operationError, proposalError } from './errors.js'
 import type { DesignError } from './errors.js'
 import { normalizeAgentNode } from './normalize.js'
@@ -18,6 +18,36 @@ function collectSubtreeIds(node: MaterialSchema, ids: string[] = []): string[] {
   ids.push(node.id)
   node.children.forEach((child) => collectSubtreeIds(child, ids))
   return ids
+}
+
+/**
+ * 物料级结构校验 —— 与客户端 `parsePageSchema` 同一份 schema
+ * (@ai-design/materials 的 `materialNodeSchemas`)。
+ *
+ * contracts 的 `materialSchema` 只查通用骨架,`props` 是不透明对象;物料各自
+ * props 的约束(枚举取值、必填字段、选项形状)只有物料级 schema 知道。少了这层,
+ * 模型发明的取值(`control.type: "email"` 之类)在服务端全过、到客户端才硬失败,
+ * repair 循环帮不上忙。在这里拦下,错误会交给 repair 修。
+ */
+function findNodeSchemaConflict(node: MaterialSchema): string | undefined {
+  const schema = materialNodeSchemas[node.type]
+  if (!schema) return undefined
+  const result = schema.safeParse(node)
+  if (result.success) return undefined
+  const issue = result.error.issues[0]
+  const path = issue?.path.join('.') || 'node'
+  return `节点 “${node.name}”(${node.id})结构不合法:${path} ${issue?.message ?? '校验失败'}`
+}
+
+/** 与 findSubtreePropsConflict 同理:add-node 连子树一起加,每个节点都要过。 */
+function findSubtreeSchemaConflict(node: MaterialSchema): string | undefined {
+  const conflict = findNodeSchemaConflict(node)
+  if (conflict) return conflict
+  for (const child of node.children) {
+    const childConflict = findSubtreeSchemaConflict(child)
+    if (childConflict) return childConflict
+  }
+  return undefined
 }
 
 /**
@@ -118,6 +148,11 @@ export function applyDesignOperations(
           return fail(`节点结构不合法:${path} ${issue?.message ?? '校验失败'}`)
         }
         const node = parsed.data
+        // 通用骨架之后再过物料级 schema —— 枚举越界、缺必填字段在这一层拦。
+        const schemaConflict = findSubtreeSchemaConflict(node)
+        if (schemaConflict) {
+          return fail(schemaConflict)
+        }
         // 结构合法不代表 props 讲得通,再查一层语义(validate-props.ts 说明了为什么分开)。
         const conflict = findSubtreePropsConflict(node)
         if (conflict) {
@@ -168,9 +203,16 @@ export function applyDesignOperations(
           style: operation.style ? { ...node.style, ...operation.style } : node.style,
           placement: operation.placement ?? node.placement,
         })
+        // 局部更新合并出的是完整节点,同样要过物料级 schema —— 只改一个字段也可能
+        // 让节点落入不合法状态(比如把 control.type 改成枚举外的值)。
+        const merged = merge(tree.nodeMap.get(operation.nodeId)!)
+        const schemaConflict = findNodeSchemaConflict(merged)
+        if (schemaConflict) {
+          return fail(schemaConflict)
+        }
         // 局部更新同样能写出矛盾的 props(比如补了 options 却没删原有的 dataId),
         // 所以查的是合并后的结果,不是操作里那几个字段。
-        const conflict = findNodePropsConflict(merge(tree.nodeMap.get(operation.nodeId)!))
+        const conflict = findNodePropsConflict(merged)
         if (conflict) {
           return fail(conflict)
         }

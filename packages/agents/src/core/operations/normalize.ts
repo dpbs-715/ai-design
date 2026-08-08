@@ -12,8 +12,12 @@
  * 就把这个差异吃掉了。agent 侧缺的正是同一步,所以只有 agent 会报
  * `children.0.children Invalid input: expected array, received undefined`。
  *
- * 只补「模板本来就允许省略、且默认值唯一」的字段:
+ * 只补「默认值唯一」的字段:
  * - `children` → `[]`,递归。
+ * - `events` → `[]`,递归。contracts 把 events 标成可选,但编辑器的物料级 schema
+ *   (business-form/table)要求它是数组,编辑器拖建出的节点也永远带 events:[]。
+ *   模型照「contracts 可选」的口径省略后,服务端校验全过、到客户端 parsePageSchema
+ *   才炸 —— 那时 repair 已经帮不上了。
  * - `events[].code` → `''`,所有物料模板都用空串表示「事件已声明、处理逻辑为空」。
  *
  * 不补 `events[].name`、`props`、`placement` 之类没有唯一正确默认值的字段 ——
@@ -44,7 +48,9 @@ export function normalizeAgentNode(node: unknown): unknown {
     normalized.children = normalized.children.map(normalizeAgentNode)
   }
 
-  if (Array.isArray(normalized.events)) {
+  if (normalized.events === undefined) {
+    normalized.events = []
+  } else if (Array.isArray(normalized.events)) {
     normalized.events = normalized.events.map(normalizeEvent)
   }
 

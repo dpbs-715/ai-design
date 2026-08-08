@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import type { MaterialSchema, PageSchema } from '@ai-design/contracts'
+import {
+  businessFormDescriptor,
+  formCommonSelectDescriptor,
+  formInputDescriptor,
+} from '@ai-design/materials'
 import { applyDesignOperations } from '../apply.js'
 import type { DesignOperation } from '../schemas.js'
 
@@ -40,6 +45,54 @@ function ids(children: MaterialSchema[]): string[] {
 
 function apply(source: PageSchema, operations: DesignOperation[]) {
   return applyDesignOperations(source, operations)
+}
+
+/**
+ * 以真实物料模板为基础造节点 —— apply 阶段会跑物料级 schema(materialNodeSchemas),
+ * 凭空写的极简夹具走不到要测的那一层。
+ */
+function form(children: MaterialSchema[]): MaterialSchema {
+  return {
+    ...businessFormDescriptor.template,
+    id: 'user-form',
+    children,
+    events: [],
+  } as MaterialSchema
+}
+
+function select(props: Record<string, any>, dataId?: string): MaterialSchema {
+  const { dataId: _templateDataId, ...rest } = formCommonSelectDescriptor.template
+  return {
+    ...rest,
+    id: 'field-gender',
+    children: [],
+    props: {
+      ...formCommonSelectDescriptor.template.props,
+      ...props,
+      control: {
+        ...(formCommonSelectDescriptor.template.props.control as Record<string, any>),
+        ...props.control,
+      },
+    },
+    events: [],
+    ...(dataId === undefined ? {} : { dataId }),
+  } as MaterialSchema
+}
+
+function input(controlOverride: Record<string, any> = {}): MaterialSchema {
+  return {
+    ...formInputDescriptor.template,
+    id: 'field-name',
+    children: [],
+    props: {
+      ...formInputDescriptor.template.props,
+      control: {
+        ...(formInputDescriptor.template.props.control as Record<string, any>),
+        ...controlOverride,
+      },
+    },
+    events: [],
+  } as MaterialSchema
 }
 
 describe('applyDesignOperations — 旧实现的静默数据丢失回归', () => {
@@ -259,6 +312,8 @@ describe('applyDesignOperations — 正常路径', () => {
       placement: { type: 'absolute' as const, x: 0, y: 0, width: 10, height: 10 },
       props: {},
       children: [],
+      // normalize 会补 events:[],这里显式带上,让断言聚焦在「副本而非共享对象」。
+      events: [],
     }
     const result = apply(page([]), [{ type: 'add-node', parentId: 'root', node: raw }])
 
@@ -323,6 +378,22 @@ describe('applyDesignOperations — 模板到节点的结构补齐', () => {
     ])
   })
 
+  /** 编辑器的物料级 schema 把 events 当必填数组,缺省时补 [] 而不是让它炸在客户端。 */
+  it('缺 events 时补成空数组,嵌套子节点同样补齐', () => {
+    const result = apply(page([]), [
+      {
+        type: 'add-node',
+        parentId: 'root',
+        node: { ...template, id: 'outer', children: [{ ...template, id: 'inner' }] },
+      },
+    ])
+
+    expect(result.errors).toEqual([])
+    const outer = result.page.root.children[0]!
+    expect(outer.events).toEqual([])
+    expect(outer.children[0]!.events).toEqual([])
+  })
+
   /** name 没有唯一正确的默认值,补一个等于编数据 —— 要让 repair 节点去修。 */
   it('事件缺 name 时仍然报错,不猜一个函数名', () => {
     const result = apply(page([]), [
@@ -352,43 +423,23 @@ describe('applyDesignOperations — 模板到节点的结构补齐', () => {
 })
 
 /**
- * 结构合法、运行时行为不对的那一类。materialSchema 的 props 是 Record<string, any>,
- * 这些节点在 zod 那关一路绿灯,只能靠语义校验拦。
+ * 结构合法、运行时行为不对的那一类。字段级约束由物料级 schema 负责,
+ * 这里只剩「单看每个字段都合法、组合起来矛盾」的规则。
+ *
+ * 夹具以真实物料模板为基础改 —— 否则过不了 apply 阶段的物料级校验,
+ * 根本走不到语义检查。
  */
 describe('applyDesignOperations — props 语义冲突', () => {
-  function select(props: Record<string, any>, dataId?: string): MaterialSchema {
-    return {
-      type: 'form-common-select',
-      name: '性别',
-      id: 'field-gender',
-      placement: { type: 'form-item', span: 24 },
-      children: [],
-      props,
-      ...(dataId === undefined ? {} : { dataId }),
-    }
-  }
-
+  /** 完整 control + 内联选项。update-node 的 props 是整体替换,残缺 control 过不了结构校验。 */
   const inlineOptions = {
-    field: 'gender',
-    label: '性别',
     control: {
-      componentType: 'ElSelect',
+      ...(formCommonSelectDescriptor.template.props.control as Record<string, any>),
       options: [
-        { label: '男', value: 'male' },
-        { label: '女', value: 'female' },
+        { id: 'gender-male', label: '男', value: 'male', disabled: false },
+        { id: 'gender-female', label: '女', value: 'female', disabled: false },
       ],
     },
   }
-
-  const form = (children: MaterialSchema[]): MaterialSchema => ({
-    type: 'business-form',
-    name: '表单',
-    id: 'user-form',
-    placement: { type: 'absolute', x: 0, y: 0, width: 520, height: 460 },
-    childrenLayout: { type: 'form-grid' },
-    children,
-    props: {},
-  })
 
   it('内联 options 与 dataId 并存时报错 —— 运行时 dataId 会覆盖掉 options', () => {
     const result = apply(page([]), [
@@ -420,12 +471,7 @@ describe('applyDesignOperations — props 语义冲突', () => {
       {
         type: 'add-node',
         parentId: 'root',
-        node: form([
-          select(
-            { field: 'gender', control: { componentType: 'ElSelect', options: [] } },
-            'default-static-options',
-          ),
-        ]),
+        node: form([select({ control: { options: [] } }, 'default-static-options')]),
       },
     ])
 
@@ -433,7 +479,7 @@ describe('applyDesignOperations — props 语义冲突', () => {
   })
 
   it('update-node 补出 options 却留着 dataId 时报错 —— 查的是合并后的结果', () => {
-    const existing = select({ field: 'gender', control: {} }, 'default-static-options')
+    const existing = select({}, 'default-static-options')
     const result = apply(page([form([existing])]), [
       { type: 'update-node', nodeId: 'field-gender', props: inlineOptions },
     ])
@@ -452,6 +498,61 @@ describe('applyDesignOperations — props 语义冲突', () => {
     const stale = select(inlineOptions, 'default-static-options')
     const result = apply(page([form([stale])]), [
       { type: 'update-node', nodeId: 'user-form', props: { labelWidth: 120 } },
+    ])
+
+    expect(result.errors).toEqual([])
+  })
+})
+
+/**
+ * 物料级结构校验 —— 与客户端 parsePageSchema 同一份 schema(materialNodeSchemas)。
+ * 模型发明的取值、漏写的必填字段在服务端拦下交给 repair,而不是到客户端才硬失败。
+ */
+describe('applyDesignOperations — 物料级结构校验', () => {
+  it('模型发明枚举值时报结构错误,路径定位到字段', () => {
+    const result = apply(page([]), [
+      { type: 'add-node', parentId: 'root', node: form([input({ type: 'email' })]) },
+    ])
+
+    expect(result.errors[0]).toMatchObject({
+      kind: 'operation',
+      message: expect.stringContaining('props.control.type'),
+    })
+  })
+
+  it('内联选项缺 id 时报出具体路径', () => {
+    const result = apply(page([]), [
+      {
+        type: 'add-node',
+        parentId: 'root',
+        node: form([
+          select({
+            control: { options: [{ label: '男', value: 'male' }] },
+          }),
+        ]),
+      },
+    ])
+
+    expect(result.errors[0]).toMatchObject({
+      kind: 'operation',
+      message: expect.stringContaining('props.control.options.0.id'),
+    })
+  })
+
+  it('update-node 合并后的节点同样要过物料级校验', () => {
+    const result = apply(page([form([input()])]), [
+      { type: 'update-node', nodeId: 'field-name', props: { control: { type: 'email' } } },
+    ])
+
+    expect(result.errors[0]).toMatchObject({
+      kind: 'operation',
+      message: expect.stringContaining('control'),
+    })
+  })
+
+  it('照模板补齐的节点能直接通过', () => {
+    const result = apply(page([]), [
+      { type: 'add-node', parentId: 'root', node: form([input(), select({})]) },
     ])
 
     expect(result.errors).toEqual([])
