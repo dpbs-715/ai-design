@@ -1,35 +1,57 @@
+import { SystemMessage } from '@langchain/core/messages'
+import type { BaseMessage } from '@langchain/core/messages'
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import type { InteropZodType } from '@langchain/core/utils/types'
+import type { RunnableConfig } from '@langchain/core/runnables'
+import { z } from 'zod'
 
 /**
- * 结构化输出统一走 tool calling。
+ * 结构化输出统一走 JSON Mode,并把 schema 一起注入 prompt。
  *
- * 不指定 `method` 时 LangChain 会按模型名反向白名单猜(@langchain/openai
- * utils/output.js:`getStructuredOutputMethod`):只要名字不是 gpt-3* / gpt-4-* / gpt-4,
- * 就认为支持 OpenAI 的 `json_schema` response format。第三方端点的模型名(kimi-*、
- * qwen-* 等)全都能通过这个检查,于是默认落到 `jsonSchema`。
+ * 三条路在本项目的端点(Kimi,思考模型)上各自的实际表现:
  *
- * 而多数 OpenAI 兼容端点只是「收下 response_format 但不约束解码」。
- * 返回里没有 `parsed` 字段,LangChain 就退回去对 `message.content` 直接 JSON.parse
- * (chat_models/base.js 的 altParser)—— 等于把「模型自觉只输出 JSON」当成契约。
- * 思考模型一旦把推理链写进 content,这层就必然崩,报 OUTPUT_PARSING_FAILURE,
- * 且崩在解析阶段、拿不到任何可用结果。
+ * - `jsonSchema`:LangChain 的默认选择,因为它按模型名反向白名单猜
+ *   (@langchain/openai utils/output.js `getStructuredOutputMethod`)—— 只要名字不是
+ *   gpt-3* / gpt-4-* / gpt-4 就当作支持 OpenAI 的 `json_schema`,第三方模型名全部命中。
+ *   而端点只是「收下 response_format 但不约束解码」,返回里没有 `parsed` 字段,
+ *   LangChain 退回去对 `message.content` 直接 JSON.parse(chat_models/base.js 的 altParser)。
+ *   思考模型把推理链写进 content 时这层必崩,报 OUTPUT_PARSING_FAILURE。
+ * - `functionCalling`:会发**强制** `tool_choice: {type:'function', function:{name}}`,
+ *   端点直接 400:`tool_choice 'specified' is incompatible with thinking enabled`。
+ *   注意这不否定工具调用本身 —— 物料检索走的 `model.bindTools(tools)` 不带 tool_choice,
+ *   一直是好的。被拒的是「强制调用指定工具」,不是「有工具」。
+ * - `jsonMode`:即 Kimi 文档里的 `response_format: {type:'json_object'}`,官方支持,
+ *   不涉及 tool_choice。这是唯一可用的一条。
  *
- * tool calling 没这个问题:结果在 `tool_calls[].args`,与 `content` 是分开的字段,
- * 模型在 content 里写多少思考都污染不到它。本项目用的端点已经验证支持工具调用
- * (物料检索一直走的就是 tool calling),所以这里固定用它。
- *
- * 为什么不用 `jsonMode`(即 Kimi 文档里的 `response_format: {type:'json_object'}`):
- * 那条路只发 response_format,**schema 完全不发给模型** —— 字段名、枚举值、
- * 字段描述一个都不带,模型只能猜。Kimi 官方示例因此要在 system prompt 里手写
- * 「请使用如下 JSON 格式输出」。改用它就得把三份 zod schema 手抄进 prompt 再维护同步,
- * 抄漏或改动不同步都会静默产出字段不对的结果。functionCalling 把 schema 作为
- * 工具参数一起发出去,这份重复就不存在。
+ * jsonMode 的短板是 LangChain 只发 response_format、不把 schema 放进 messages
+ * (`asJsonSchema` 只进 `ls_structured_output_format`,那是 LangSmith 的追踪元数据)。
+ * 所以这里自己补上:用 `z.toJSONSchema` 从同一份 zod schema 机械生成契约文本再注入,
+ * 不是在 prompt 里手写一份形状 —— 手写会与 schema 各自演进,生成不会。
  */
+
+/** 契约说明拼在消息末尾,靠近生成位置。JSON Mode 也要求消息里出现 “JSON” 字样。 */
+function schemaInstruction(schema: z.ZodType, name: string): SystemMessage {
+  return new SystemMessage(
+    [
+      `只输出一个 JSON 对象,不要加解释文字,不要包 \`\`\`json 代码块。`,
+      `该对象必须满足下面这份 JSON Schema(名称 ${name}):`,
+      JSON.stringify(z.toJSONSchema(schema)),
+      '所有 required 字段都必须出现;不要额外添加 schema 里没有的字段。',
+      '思考过程不要写进输出 —— 输出的第一个字符是 `{`,最后一个是 `}`。',
+    ].join('\n'),
+  )
+}
+
 export function withDesignStructuredOutput<T extends Record<string, any>>(
   model: BaseChatModel,
-  schema: InteropZodType<T>,
+  schema: z.ZodType<T>,
   name: string,
 ) {
-  return model.withStructuredOutput<T>(schema, { name, method: 'functionCalling' })
+  const runnable = model.withStructuredOutput<T>(schema, { name, method: 'jsonMode' })
+  const instruction = schemaInstruction(schema, name)
+
+  return {
+    /** 注入契约后再调用 —— 包一层是为了让调用点不可能漏掉这一步。 */
+    invoke: (messages: BaseMessage[], config?: RunnableConfig): Promise<T> =>
+      runnable.invoke([...messages, instruction], config),
+  }
 }
