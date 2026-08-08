@@ -81,17 +81,22 @@ const BUSINESS_FORM_METHODS = [
   },
 ] as const satisfies readonly MaterialExposedMethod[]
 
-/** 表单与表格共用的按字段配置方法,来自 `useConfigs`。 */
+/**
+ * 表单与表格共用的按字段配置方法,来自 `useConfigs`(@vunio/hooks)。
+ *
+ * 签名必须与 useConfigs 的实现逐字一致 —— web 侧的编译期断言只比对方法名,
+ * 签名写错(比如 fields 写成单个 string)不会报错,模型照文档调用,到运行时才炸。
+ */
 const FIELD_CONFIG_METHODS = [
   {
     name: 'setHidden',
-    signature: 'setHidden(field: string, hidden: boolean): void',
-    description: '按字段名显示或隐藏某一项。',
+    signature: 'setHidden(fields: string[], hidden: boolean): void',
+    description: '按字段名显示或隐藏;只改一个字段也要传数组,如 ["age"]。',
   },
   {
     name: 'setDisabled',
-    signature: 'setDisabled(field: string, disabled: boolean): void',
-    description: '按字段名禁用或启用某一项。',
+    signature: 'setDisabled(fields: string[], disabled: boolean): void',
+    description: '按字段名禁用或启用;只改一个字段也要传数组,如 ["age"]。',
   },
   {
     name: 'setDisabledAll',
@@ -105,8 +110,8 @@ const FIELD_CONFIG_METHODS = [
   },
   {
     name: 'getConfigByField',
-    signature: 'getConfigByField(field: string): Record<string, unknown> | undefined',
-    description: '读取某一项当前的运行时配置。',
+    signature: 'getConfigByField(field: string): Record<string, unknown>',
+    description: '读取某一项当前的运行时配置;字段不存在时返回空对象,不是 undefined。',
   },
 ] as const satisfies readonly MaterialExposedMethod[]
 
