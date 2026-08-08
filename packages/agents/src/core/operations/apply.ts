@@ -34,7 +34,7 @@ function collectSubtreeIds(node: MaterialSchema, ids: string[] = []): string[] {
  */
 function parseWithMaterialSchema(
   node: MaterialSchema,
-): { node: MaterialSchema; conflict?: never } | { conflict: string } {
+): { node: MaterialSchema; conflict?: undefined } | { node?: undefined; conflict: string } {
   const schema = materialNodeSchemas[node.type]
   if (!schema) return { node }
   const result = schema.safeParse(node)
@@ -45,13 +45,13 @@ function parseWithMaterialSchema(
       conflict: `节点 “${node.name}”(${node.id})结构不合法:${path} ${issue?.message ?? '校验失败'}`,
     }
   }
-  return { node: result.data }
+  return { node: result.data as MaterialSchema }
 }
 
 /** add-node 连子树一起加,每个节点都要过物料级 schema,入树的也是各自的规范化副本。 */
 function normalizeSubtree(
   node: MaterialSchema,
-): { node: MaterialSchema; conflict?: never } | { conflict: string } {
+): { node: MaterialSchema; conflict?: undefined } | { node?: undefined; conflict: string } {
   const parsed = parseWithMaterialSchema(node)
   if (parsed.conflict) return parsed
   const children: MaterialSchema[] = []
