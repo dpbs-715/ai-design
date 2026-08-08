@@ -166,7 +166,7 @@ export function applyDesignOperations(
         // (比如操作列的 field: '$actions')只存在于 parse 输出里,用原始对象
         // 会静默丢掉它们;独立副本也避免页面树和 proposal 共享同一份节点。
         const normalized = normalizeSubtree(parsed.data)
-        if (normalized.conflict) {
+        if (!normalized.ok) {
           return fail(normalized.conflict)
         }
         const node = normalized.node
@@ -221,7 +221,7 @@ export function applyDesignOperations(
         // 让节点落入不合法状态(比如把 control.type 改成枚举外的值)。与 add-node
         // 同理,入树用规范化副本,历史 JSON 里缺的默认值也借这次修改一并写回。
         const normalized = parseWithMaterialSchema(merged)
-        if (normalized.conflict) {
+        if (!normalized.ok) {
           return fail(normalized.conflict)
         }
         // 局部更新同样能写出矛盾的 props(比如补了 options 却没删原有的 dataId),
