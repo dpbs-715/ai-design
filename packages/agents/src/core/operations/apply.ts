@@ -5,6 +5,7 @@ import { operationError, proposalError } from './errors.js'
 import type { DesignError } from './errors.js'
 import { normalizeAgentNode } from './normalize.js'
 import type { DesignOperation } from './schemas.js'
+import { findNodePropsConflict, findSubtreePropsConflict } from './validate-props.js'
 
 export interface ApplyOperationsResult {
   /** 应用成功时的新页面;失败时是原页面(不做部分修改)。 */
@@ -112,6 +113,11 @@ export function applyDesignOperations(
           return fail(`节点结构不合法:${path} ${issue?.message ?? '校验失败'}`)
         }
         const node = parsed.data
+        // 结构合法不代表 props 讲得通,再查一层语义(validate-props.ts 说明了为什么分开)。
+        const conflict = findSubtreePropsConflict(node)
+        if (conflict) {
+          return fail(conflict)
+        }
         const parentType = nodeType(operation.parentId)!
         if (!canMaterialTypeBeChild(parentType, node.type)) {
           return fail(`“${parentType}” 不能容纳 “${node.type}”`)
@@ -151,15 +157,20 @@ export function applyDesignOperations(
         if (!tree.nodeMap.has(operation.nodeId)) {
           return fail(`节点 “${operation.nodeId}” 不存在`)
         }
+        const merge = (node: MaterialSchema): MaterialSchema => ({
+          ...node,
+          props: operation.props ? { ...node.props, ...operation.props } : node.props,
+          style: operation.style ? { ...node.style, ...operation.style } : node.style,
+          placement: operation.placement ?? node.placement,
+        })
+        // 局部更新同样能写出矛盾的 props(比如补了 options 却没删原有的 dataId),
+        // 所以查的是合并后的结果,不是操作里那几个字段。
+        const conflict = findNodePropsConflict(merge(tree.nodeMap.get(operation.nodeId)!))
+        if (conflict) {
+          return fail(conflict)
+        }
         children = mapMaterialTree(children, (node) =>
-          node.id === operation.nodeId
-            ? {
-                ...node,
-                props: operation.props ? { ...node.props, ...operation.props } : node.props,
-                style: operation.style ? { ...node.style, ...operation.style } : node.style,
-                placement: operation.placement ?? node.placement,
-              }
-            : node,
+          node.id === operation.nodeId ? merge(node) : node,
         )
         break
       }

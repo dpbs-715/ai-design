@@ -61,6 +61,8 @@ export const PLAN_SYSTEM_PROMPT = [
   '- 容器只能容纳它 accepts 里列出的角色。叶子物料不能有子节点。',
   '- 弹窗(page-overlay 角色)只能挂在页面根节点下,不能嵌进普通容器。',
   '- 表单项只能放进业务表单容器,不能直接放到画布上。',
+  '- 选项写死在 control.options 里时,必须删掉模板抄来的 dataId ——',
+  '  运行时 dataId 会用数据源覆盖 options,两者并存等于你写的选项被丢掉。',
   '- placement 用 absolute 类型并落在画布范围内;表单项用 form-item 类型。',
   '',
   'operations 按执行顺序排列 —— 后面的操作可以引用前面新增的节点。',

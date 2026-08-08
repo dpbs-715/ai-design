@@ -350,3 +350,110 @@ describe('applyDesignOperations — 模板到节点的结构补齐', () => {
     })
   })
 })
+
+/**
+ * 结构合法、运行时行为不对的那一类。materialSchema 的 props 是 Record<string, any>,
+ * 这些节点在 zod 那关一路绿灯,只能靠语义校验拦。
+ */
+describe('applyDesignOperations — props 语义冲突', () => {
+  function select(props: Record<string, any>, dataId?: string): MaterialSchema {
+    return {
+      type: 'form-common-select',
+      name: '性别',
+      id: 'field-gender',
+      placement: { type: 'form-item', span: 24 },
+      children: [],
+      props,
+      ...(dataId === undefined ? {} : { dataId }),
+    }
+  }
+
+  const inlineOptions = {
+    field: 'gender',
+    label: '性别',
+    control: {
+      componentType: 'ElSelect',
+      options: [
+        { label: '男', value: 'male' },
+        { label: '女', value: 'female' },
+      ],
+    },
+  }
+
+  const form = (children: MaterialSchema[]): MaterialSchema => ({
+    type: 'business-form',
+    name: '表单',
+    id: 'user-form',
+    placement: { type: 'absolute', x: 0, y: 0, width: 520, height: 460 },
+    childrenLayout: { type: 'form-grid' },
+    children,
+    props: {},
+  })
+
+  it('内联 options 与 dataId 并存时报错 —— 运行时 dataId 会覆盖掉 options', () => {
+    const result = apply(page([]), [
+      {
+        type: 'add-node',
+        parentId: 'root',
+        node: form([select(inlineOptions, 'default-static-options')]),
+      },
+    ])
+
+    expect(result.errors[0]).toMatchObject({
+      kind: 'operation',
+      message: expect.stringContaining('dataId'),
+    })
+    // 整体失败不留部分修改。
+    expect(result.page.root.children).toEqual([])
+  })
+
+  it('只写 options 不带 dataId 是合法的', () => {
+    const result = apply(page([]), [
+      { type: 'add-node', parentId: 'root', node: form([select(inlineOptions)]) },
+    ])
+
+    expect(result.errors).toEqual([])
+  })
+
+  it('只写 dataId、options 为空数组是合法的 —— 这是模板的原始形态', () => {
+    const result = apply(page([]), [
+      {
+        type: 'add-node',
+        parentId: 'root',
+        node: form([
+          select(
+            { field: 'gender', control: { componentType: 'ElSelect', options: [] } },
+            'default-static-options',
+          ),
+        ]),
+      },
+    ])
+
+    expect(result.errors).toEqual([])
+  })
+
+  it('update-node 补出 options 却留着 dataId 时报错 —— 查的是合并后的结果', () => {
+    const existing = select({ field: 'gender', control: {} }, 'default-static-options')
+    const result = apply(page([form([existing])]), [
+      { type: 'update-node', nodeId: 'field-gender', props: inlineOptions },
+    ])
+
+    expect(result.errors[0]).toMatchObject({
+      kind: 'operation',
+      message: expect.stringContaining('dataId'),
+    })
+  })
+
+  /**
+   * update-node 只改一个节点,子树是页面里的既有内容。
+   * 拿新规则去查旧节点,会让一次无关的合法修改被历史遗留问题挡下来。
+   */
+  it('update-node 不因子树里的既有冲突而失败', () => {
+    const stale = select(inlineOptions, 'default-static-options')
+    const result = apply(page([form([stale])]), [
+      { type: 'update-node', nodeId: 'user-form', props: { labelWidth: 120 } },
+    ])
+
+    expect(result.errors).toEqual([])
+  })
+})
