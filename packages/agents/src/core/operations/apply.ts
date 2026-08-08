@@ -32,35 +32,36 @@ function collectSubtreeIds(node: MaterialSchema, ids: string[] = []): string[] {
  * 解析结果同时是规范化结果:schema 里的默认值(比如操作列的 `field: '$actions'`)
  * 只存在于 parse 输出里 —— 只校验不用它,入树的 JSON 仍然缺字段。
  */
-function parseWithMaterialSchema(
-  node: MaterialSchema,
-): { node: MaterialSchema; conflict?: undefined } | { node?: undefined; conflict: string } {
+type MaterialNormalizeResult =
+  | { ok: true; node: MaterialSchema }
+  | { ok: false; conflict: string }
+
+function parseWithMaterialSchema(node: MaterialSchema): MaterialNormalizeResult {
   const schema = materialNodeSchemas[node.type]
-  if (!schema) return { node }
+  if (!schema) return { ok: true, node }
   const result = schema.safeParse(node)
   if (!result.success) {
     const issue = result.error.issues[0]
     const path = issue?.path.join('.') || 'node'
     return {
+      ok: false,
       conflict: `节点 “${node.name}”(${node.id})结构不合法:${path} ${issue?.message ?? '校验失败'}`,
     }
   }
-  return { node: result.data as MaterialSchema }
+  return { ok: true, node: result.data as MaterialSchema }
 }
 
 /** add-node 连子树一起加,每个节点都要过物料级 schema,入树的也是各自的规范化副本。 */
-function normalizeSubtree(
-  node: MaterialSchema,
-): { node: MaterialSchema; conflict?: undefined } | { node?: undefined; conflict: string } {
+function normalizeSubtree(node: MaterialSchema): MaterialNormalizeResult {
   const parsed = parseWithMaterialSchema(node)
-  if (parsed.conflict) return parsed
+  if (!parsed.ok) return parsed
   const children: MaterialSchema[] = []
   for (const child of parsed.node.children) {
     const normalized = normalizeSubtree(child)
-    if (normalized.conflict) return normalized
+    if (!normalized.ok) return normalized
     children.push(normalized.node)
   }
-  return { node: { ...parsed.node, children } }
+  return { ok: true, node: { ...parsed.node, children } }
 }
 
 /**
