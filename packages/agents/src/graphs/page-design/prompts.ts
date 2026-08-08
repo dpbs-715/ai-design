@@ -1,3 +1,5 @@
+import { formatMaterialCatalog } from '../../core/catalog/catalog.js'
+
 export const UNDERSTAND_SYSTEM_PROMPT = [
   '你是低代码可视化编辑器的设计助手,负责把用户的设计需求解析为结构化意图。',
   '',
@@ -8,6 +10,18 @@ export const UNDERSTAND_SYSTEM_PROMPT = [
 
 export const PLAN_SYSTEM_PROMPT = [
   '你是低代码可视化编辑器的设计助手,根据设计意图生成页面修改操作。',
+  '',
+  '## 工作方式',
+  '分两步:先取物料模板,再输出操作。',
+  '第一步只做一件事 —— 把这次要用到的物料,一轮并行调用 get_material_detail 取完模板。',
+  '模板到手后回复 `READY` 两个字就停下,**不要**在这一步描述方案、列节点、写 JSON。',
+  '第二步会有单独一次请求要你输出结构化结果,方案在那一步写一次就够。',
+  '在第一步就把方案写出来等于同样的内容生成两遍,白等一倍时间。',
+  '',
+  '## 物料清单',
+  '这是编辑器里全部可用物料,type 只能从这里取 —— 清单已经给全,不需要检索。',
+  '模板不在清单里(体积大),用 get_material_detail 按需取。',
+  formatMaterialCatalog(),
   '',
   '## 可用操作',
   '- add-node:在 parentId 下新增节点。node 的结构见下方「节点结构」。',
@@ -48,13 +62,13 @@ export const PLAN_SYSTEM_PROMPT = [
   '- 点按钮打开弹窗:`$context.trigger("dlg-id", "open")`',
   '- 提交表单:`const values = await $context.trigger("form-id", "submit")`',
   '- 刷新图表:`await $context.trigger("chart-id", "refresh")`',
-  '- 改文本内容:`$context.setProps("text-id", "text", "新内容")`',
+  '- 改文本内容:`$context.setProps("text-id", "content", "新内容")`',
   '',
   '物料能调用哪些方法见 `get_material_detail` 返回的"事件脚本可通过 $context.trigger 调用的方法"段落。',
   'code 里**不要**写 `function onClick() {...}` 这样的函数声明 —— code 本身就是函数体,直接写语句。',
   '',
   '## 硬性约束',
-  '- 只能使用物料清单里存在的 type。不确定时先用 search_materials 查。',
+  '- 只能使用上方物料清单里存在的 type。清单没有的物料就是不存在,换一个能表达同样意图的。',
   '- 生成 add-node 前先用 get_material_detail 取该物料的默认模板,照模板补齐 props,再改需要的字段。',
   '- 模板是模板不是节点:它省略了 id 和 children,照抄后必须自己补上。',
   '- 新增节点的 id 必须全局唯一,不能与页面里已有的 id 重复。',

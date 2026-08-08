@@ -1,4 +1,4 @@
-import { materialDescriptors, materialGroups } from '@ai-design/materials'
+import { materialDescriptors } from '@ai-design/materials'
 import type { MaterialDescriptor, MaterialExposedMethod } from '@ai-design/materials'
 import type { MaterialTemplate } from '@ai-design/contracts'
 
@@ -23,11 +23,6 @@ export interface MaterialDetail extends MaterialSummary {
    * 纯展示类物料没有暴露方法,该字段为 undefined。
    */
   exposedMethods?: readonly MaterialExposedMethod[]
-}
-
-export interface MaterialSearchQuery {
-  keyword?: string
-  group?: string
 }
 
 /**
@@ -61,25 +56,6 @@ export function listMaterialSummaries(): MaterialSummary[] {
   return [...descriptorByType.values()].map(toSummary)
 }
 
-/**
- * 按关键词或分组搜索物料。关键词匹配 type / 名称 / 用途说明,不区分大小写。
- * 两个条件都为空时返回全部。
- */
-export function searchMaterials(query: MaterialSearchQuery = {}): MaterialSummary[] {
-  const keyword = query.keyword?.trim().toLowerCase()
-  const group = query.group?.trim()
-
-  return listMaterialSummaries().filter((summary) => {
-    if (group && summary.group !== group) return false
-    if (!keyword) return true
-    return (
-      summary.type.toLowerCase().includes(keyword) ||
-      summary.name.toLowerCase().includes(keyword) ||
-      summary.description.toLowerCase().includes(keyword)
-    )
-  })
-}
-
 /** 取单个物料的完整信息,含模板。type 不存在时返回 undefined。 */
 export function getMaterialDetail(type: string): MaterialDetail | undefined {
   const descriptor = descriptorByType.get(type)
@@ -89,11 +65,6 @@ export function getMaterialDetail(type: string): MaterialDetail | undefined {
     template: descriptor.template,
     exposedMethods: descriptor.exposedMethods,
   }
-}
-
-/** 所有分组的 key,顺序与物料面板一致。 */
-export function listMaterialGroupKeys(): string[] {
-  return materialGroups.map((group) => group.key)
 }
 
 function formatSummary(summary: MaterialSummary): string {
@@ -107,10 +78,16 @@ function formatSummary(summary: MaterialSummary): string {
   ].join('\n')
 }
 
-/** 把物料摘要渲染成 prompt 文本。 */
-export function formatMaterialSummaries(summaries: MaterialSummary[]): string {
-  if (summaries.length === 0) return '(没有匹配的物料)'
-  return summaries.map(formatSummary).join('\n')
+/**
+ * 把全部物料的摘要渲染成 prompt 文本,每个 type 一条。
+ *
+ * 物料清单是二十来条静态数据(约 1k token),直接进 system prompt。
+ * 曾经这里是个 `search_materials` 工具:模型看不到清单,只能按分组一轮轮试探,
+ * 光是把清单拼回来就要好几次往返 —— 检索一张这么小的静态表不值当。
+ * 模板体积大(全部约 5k token),仍旧按需用 `get_material_detail` 取。
+ */
+export function formatMaterialCatalog(): string {
+  return listMaterialSummaries().map(formatSummary).join('\n')
 }
 
 /**

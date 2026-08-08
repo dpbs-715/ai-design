@@ -12,8 +12,10 @@ import { runToolLoop } from './tool-loop.js'
 /**
  * 生成页面修改操作。
  *
- * 分两步:先让模型用工具查物料(不再把全量清单塞进 prompt),
- * 再让它基于查到的信息输出结构化 operations。
+ * 分两步:先让模型取物料模板(清单已在 system prompt 里,只补模板),
+ * 再让它基于模板输出结构化 operations。
+ * 拆两步是因为不少 OpenAI 兼容端点不支持同时启用 tools 和 structured output;
+ * 既然拆了,第一步就只负责取模板 —— 方案只在第二步生成一次。
  */
 export function createPlanNode() {
   return async (state: PageDesignGraphState, config: RunnableConfig) => {
@@ -24,7 +26,8 @@ export function createPlanNode() {
       [
         `页面结构:\n${formatPageOutline(state.page)}`,
         `设计意图:\n${JSON.stringify(state.intent, null, 2)}`,
-        '先用工具确认要用哪些物料及其默认模板,然后给出修改操作。',
+        '第一步:从物料清单里挑出这次要用的物料,一轮并行调用 get_material_detail 取完模板。',
+        '模板到手就回 READY,方案留到第二步写。',
       ].join('\n\n'),
     )
 
@@ -41,7 +44,7 @@ export function createPlanNode() {
       .invoke(
         [
           ...transcript,
-          new HumanMessage('把上面的结论整理成最终的 operations 与 summary。'),
+          new HumanMessage('第二步:按上面取到的模板和设计意图,输出 operations 与 summary。'),
         ],
         { signal },
       )

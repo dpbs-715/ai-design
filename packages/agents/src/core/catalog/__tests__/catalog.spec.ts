@@ -1,11 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
+  formatMaterialCatalog,
   formatMaterialDetail,
-  formatMaterialSummaries,
   getMaterialDetail,
-  listMaterialGroupKeys,
   listMaterialSummaries,
-  searchMaterials,
 } from '../catalog.js'
 
 describe('listMaterialSummaries', () => {
@@ -33,46 +31,6 @@ describe('listMaterialSummaries', () => {
   })
 })
 
-describe('searchMaterials', () => {
-  it('无条件时返回全部', () => {
-    expect(searchMaterials()).toHaveLength(listMaterialSummaries().length)
-  })
-
-  it('按分组过滤', () => {
-    const results = searchMaterials({ group: 'form' })
-    expect(results.length).toBeGreaterThan(0)
-    expect(results.every((item) => item.group === 'form')).toBe(true)
-  })
-
-  it('关键词匹配 type', () => {
-    const results = searchMaterials({ keyword: 'bar-chart' })
-    expect(results.map((item) => item.type)).toContain('bar-chart')
-  })
-
-  it('关键词匹配中文名称', () => {
-    expect(searchMaterials({ keyword: '按钮' }).map((item) => item.type)).toContain('button')
-  })
-
-  it('关键词匹配用途说明 —— “环形” 只出现在 description 里', () => {
-    const results = searchMaterials({ keyword: '环形' })
-    expect(results.map((item) => item.type)).toContain('pie-chart')
-  })
-
-  it('关键词不区分大小写', () => {
-    expect(searchMaterials({ keyword: 'BUTTON' }).map((item) => item.type)).toContain('button')
-  })
-
-  it('分组与关键词同时生效', () => {
-    const results = searchMaterials({ group: 'charts', keyword: '饼图' })
-    expect(results).toHaveLength(1)
-    expect(results[0]!.type).toBe('pie-chart')
-  })
-
-  it('无匹配时返回空数组', () => {
-    expect(searchMaterials({ keyword: '不存在的物料xyz' })).toEqual([])
-  })
-})
-
 describe('getMaterialDetail', () => {
   it('返回完整模板', () => {
     const detail = getMaterialDetail('button')
@@ -92,19 +50,23 @@ describe('getMaterialDetail', () => {
   })
 })
 
-describe('formatMaterialSummaries', () => {
+describe('formatMaterialCatalog', () => {
   it('容器标注可容纳的角色,叶子标注不能有子节点', () => {
-    const text = formatMaterialSummaries(searchMaterials({ keyword: 'free-container' }))
-    expect(text).toContain('容器')
-    expect(text).toContain('canvas-content')
-
-    expect(formatMaterialSummaries(searchMaterials({ keyword: 'button' }))).toContain(
-      '不能有子节点',
-    )
+    const text = formatMaterialCatalog()
+    expect(text).toContain('容器,可容纳=[canvas-content]')
+    expect(text).toContain('不能有子节点')
   })
 
-  it('空结果给出明确提示而不是空字符串', () => {
-    expect(formatMaterialSummaries([])).toBe('(没有匹配的物料)')
+  /** 清单是模型选型的唯一依据 —— 漏一个 type,那个物料就等于不存在。 */
+  it('每个 type 都出现,且各占一行', () => {
+    const text = formatMaterialCatalog()
+    const summaries = listMaterialSummaries()
+
+    for (const summary of summaries) {
+      expect(text).toContain(`- ${summary.type}(${summary.name})`)
+    }
+    // 每条物料两行:摘要行 + 说明行。
+    expect(text.split('\n')).toHaveLength(summaries.length * 2)
   })
 })
 
@@ -149,14 +111,5 @@ describe('formatMaterialDetail', () => {
     // 没有暴露方法的物料(纯展示类)不应出现 trigger 相关文本。
     const textText = formatMaterialDetail(getMaterialDetail('text')!)
     expect(textText).not.toContain('trigger')
-  })
-})
-
-describe('listMaterialGroupKeys', () => {
-  it('覆盖描述符实际使用的所有分组', () => {
-    const groupKeys = new Set(listMaterialGroupKeys())
-    for (const summary of listMaterialSummaries()) {
-      expect(groupKeys.has(summary.group)).toBe(true)
-    }
   })
 })
