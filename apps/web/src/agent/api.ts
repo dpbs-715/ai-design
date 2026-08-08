@@ -12,21 +12,23 @@ const designOperationSchema = z.discriminatedUnion('type', [
     type: z.literal('add-node'),
     parentId: z.string(),
     node: z.unknown(),
-    index: z.number().optional(),
+    // nullish 而非 optional:服务端走 MFJS strict,可选字段会拿到显式 null
+    // (见 packages/agents/src/core/operations/schemas.ts)。
+    index: z.number().nullish(),
   }),
   z.object({ type: z.literal('remove-node'), nodeId: z.string() }),
   z.object({
     type: z.literal('update-node'),
     nodeId: z.string(),
-    props: z.record(z.string(), z.unknown()).optional(),
-    style: z.record(z.string(), z.unknown()).optional(),
-    placement: z.unknown().optional(),
+    props: z.record(z.string(), z.unknown()).nullish(),
+    style: z.record(z.string(), z.unknown()).nullish(),
+    placement: z.unknown().nullish(),
   }),
   z.object({
     type: z.literal('move-node'),
     nodeId: z.string(),
     parentId: z.string(),
-    index: z.number().optional(),
+    index: z.number().nullish(),
   }),
 ])
 
